@@ -1,0 +1,19 @@
+# P2 (data, features, baselines) Python environment.
+# Create on CARC (keep the env and the package cache on scratch, not in /home1):
+#   module purge && module load conda/25.11.0
+#   export CONDA_PKGS_DIRS=/scratch1/$USER/conda_pkgs
+#   mamba env create --prefix /scratch1/$USER/envs/ee599 -f environment.yml
+# Use:
+#   module purge && module load conda/25.11.0 && conda activate /scratch1/$USER/envs/ee599
+# ffmpeg/x264 still come from CARC modules, not from this env.
+name: ee599
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - pyarrow
+  - scipy
+  - scikit-learn
+  - matplotlib

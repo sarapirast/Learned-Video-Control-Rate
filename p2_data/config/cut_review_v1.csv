@@ -1,0 +1,272 @@
+clip_id,frame,verdict,claude_verdict,human_verdict,resolution,note,hist_delta,scdet_score
+Animation_360P-4b4c,150,cut,cut,unsure,"settled (Claude cut / human unsure), re-viewed with wider context",synthetic slide change (Webdriver Torso),0.322,36.0
+Animation_360P-4b4c,180,cut,cut,unsure,"settled (Claude cut / human unsure), re-viewed with wider context",synthetic slide change (Webdriver Torso),0.214,20.0
+Animation_360P-4b4c,210,cut,cut,unsure,"settled (Claude cut / human unsure), re-viewed with wider context",synthetic slide change (Webdriver Torso),0.147,15.4
+Animation_360P-4b4c,240,cut,cut,unsure,"settled (Claude cut / human unsure), re-viewed with wider context",synthetic slide change (Webdriver Torso),0.177,13.4
+Animation_360P-4edc,205,cut,cut,cut,agreed,,0.406,7.2
+Gaming_360P-73c7,30,cut,unsure,cut,"settled (Claude unsure / human cut), re-viewed with wider context",static -> jump -> static: teleport/respawn,0.186,36.4
+Gaming_360P-73c7,142,no_cut,no_cut,no_cut,agreed,fast game-camera motion,0.124,24.1
+Gaming_360P-73c7,155,no_cut,no_cut,no_cut,agreed,fast game-camera motion,0.103,27.6
+Gaming_360P-73c7,169,no_cut,no_cut,no_cut,agreed,fast game-camera motion,0.156,35.2
+Gaming_360P-73c7,172,no_cut,unsure,no_cut,"settled (Claude unsure / human no_cut), re-viewed with wider context",progressive over 170-172: fast turn,0.137,30.1
+Gaming_360P-73c7,180,no_cut,no_cut,no_cut,agreed,fast game-camera motion,0.117,33.5
+Gaming_360P-73c7,201,no_cut,no_cut,no_cut,agreed,fast game-camera motion,0.105,34.7
+Gaming_360P-73c7,225,no_cut,no_cut,no_cut,agreed,fast game-camera motion,0.120,31.8
+Gaming_360P-73c7,281,cut,no_cut,cut,"settled (Claude no_cut / human cut), re-viewed with wider context",static -> jump -> static: teleport,0.188,23.1
+Gaming_360P-73c7,287,no_cut,no_cut,no_cut,agreed,fast game-camera motion,0.180,30.4
+Gaming_360P-73c7,293,no_cut,no_cut,no_cut,agreed,fast game-camera motion,0.126,23.7
+Gaming_360P-7acb,135,cut,cut,cut,agreed,,0.178,10.8
+Gaming_360P-7acb,268,cut,cut,cut,agreed,,0.172,10.6
+MusicVideo_360P-5f07,8,cut,cut,cut,agreed,,0.678,3.2
+MusicVideo_360P-5f07,49,cut,cut,cut,agreed,,0.692,4.5
+MusicVideo_360P-5f07,291,cut,cut,no_cut,"settled (Claude cut / human no_cut), re-viewed with wider context",stutter edit: pose snaps and returns,0.141,10.1
+MusicVideo_360P-5f07,296,cut,cut,cut,agreed,,0.141,11.3
+MusicVideo_360P-7b94,43,cut,cut,no_cut,"settled (Claude cut / human no_cut), re-viewed with wider context",full frame -> picture-in-picture in one frame,0.339,20.7
+MusicVideo_360P-7b94,53,cut,cut,no_cut,"settled (Claude cut / human no_cut), re-viewed with wider context",picture-in-picture shrinks in one step (lower confidence),0.334,15.5
+MusicVideo_480P-7955,22,cut,cut,cut,agreed,,0.320,28.4
+MusicVideo_480P-7955,36,cut,cut,cut,agreed,,0.214,22.3
+MusicVideo_480P-7955,71,cut,cut,cut,agreed,,0.180,15.4
+MusicVideo_480P-7955,169,gradual,no_cut,gradual,"settled (Claude no_cut / human gradual), re-viewed with wider context",end of fade from white,0.588,3.5
+MusicVideo_480P-7955,202,gradual,gradual,gradual,agreed,overlay dissolve,0.537,4.6
+NewsClip_360P-0ff8,112,cut,cut,cut,agreed,,0.225,23.6
+NewsClip_360P-1b1c,41,cut,cut,cut,agreed,,0.247,11.1
+NewsClip_360P-1b1c,92,cut,cut,cut,agreed,,0.165,13.4
+NewsClip_360P-1b1c,168,cut,cut,cut,agreed,,0.293,18.2
+NewsClip_360P-1b1c,295,cut,cut,cut,agreed,,0.269,13.6
+NewsClip_360P-5052,75,no_cut,no_cut,no_cut,agreed,static sky shot,0.386,8.1
+NewsClip_360P-5052,147,no_cut,no_cut,no_cut,agreed,static sky shot,0.261,11.0
+NewsClip_360P-5052,250,no_cut,no_cut,no_cut,agreed,static sky shot,0.541,3.3
+Sports_360P-1d5c,218,cut,cut,cut,agreed,,0.271,17.9
+TelevisionClip_720P-4edb,175,gradual,unsure,no_cut,"settled (Claude unsure / human no_cut), re-viewed with wider context",whip transition 173-178 between two scenes (cuts also detected at 174/177/178),0.850,4.2
+Vlog_360P-4795,234,no_cut,no_cut,no_cut,agreed,"motion blur, same shot",0.142,11.1
+Vlog_360P-4795,254,no_cut,no_cut,no_cut,agreed,"motion blur, same shot",0.106,11.2
+aspen,148,cut,cut,cut,agreed,real cut; aspen is not a single shot,0.257,14.2
+aspen,206,cut,cut,cut,agreed,real cut; aspen is not a single shot,0.323,14.0
+bbb_s04,51,cut,cut,cut,agreed,,0.311,10.8
+bbb_s04,259,cut,cut,cut,agreed,,0.589,3.3
+ed_s01,247,cut,cut,cut,agreed,,0.142,10.5
+ed_s02,157,cut,cut,cut,agreed,,0.495,8.0
+ed_s03,93,cut,cut,cut,agreed,,0.532,6.7
+ed_s03,279,cut,cut,cut,agreed,,0.722,7.4
+ed_s04,56,cut,cut,cut,agreed,,0.693,8.8
+ed_s04,58,no_cut,no_cut,no_cut,agreed,"background light flicker, same shot",0.291,11.6
+ed_s04,77,no_cut,no_cut,no_cut,agreed,"background light flicker, same shot",0.319,12.5
+ed_s04,97,no_cut,no_cut,no_cut,agreed,"background light flicker, same shot",0.476,5.9
+ed_s04,133,no_cut,no_cut,no_cut,agreed,"background light flicker, same shot",0.555,3.3
+ed_s04,134,no_cut,no_cut,no_cut,agreed,"background light flicker, same shot",0.459,2.1
+ed_s04,216,gradual,no_cut,gradual,"settled (Claude no_cut / human gradual), re-viewed with wider context",build-up to a white-out; new scene at f227,0.379,5.8
+ed_s04,217,no_cut,no_cut,no_cut,agreed,"background light flicker, same shot",0.319,10.0
+ed_s05,3,cut,cut,cut,agreed,,0.267,22.9
+ed_s05,63,cut,cut,cut,agreed,,0.189,21.9
+ed_s06,236,cut,cut,cut,agreed,,0.468,9.8
+rush_field_cuts,258,cut,cut,cut,agreed,,0.279,13.9
+rush_field_cuts,420,cut,cut,cut,agreed,,0.154,18.2
+sintel_s00,104,cut,cut,cut,agreed,,0.332,17.6
+sintel_s01,43,cut,cut,cut,agreed,,0.190,23.8
+sintel_s01,86,cut,cut,cut,agreed,,0.338,19.8
+sintel_s02,24,cut,cut,cut,agreed,,0.327,23.0
+sintel_s02,244,cut,cut,cut,agreed,,0.734,6.9
+sintel_s03,29,cut,cut,cut,agreed,,0.361,9.7
+sintel_s04,67,cut,cut,cut,agreed,,0.666,8.9
+sintel_s04,222,cut,cut,cut,agreed,,0.231,10.3
+sita_s00,64,gradual,no_cut,gradual,"settled (Claude no_cut / human gradual), re-viewed with wider context",backdrop changes to starfield over several frames,0.545,2.1
+sita_s00,93,no_cut,no_cut,unsure,"settled (Claude no_cut / human unsure), re-viewed with wider context",objects swap on a constant starfield,0.355,4.0
+sita_s00,184,no_cut,no_cut,no_cut,agreed,collage animation on a fixed background,0.279,11.7
+sita_s00,278,no_cut,no_cut,unsure,"settled (Claude no_cut / human unsure), re-viewed with wider context",objects swap on a constant starfield,0.387,7.1
+sita_s01,84,cut,cut,no_cut,"settled (Claude cut / human no_cut), re-viewed with wider context",wide -> close-up in one frame,0.263,21.1
+sita_s01,110,no_cut,cut,no_cut,"settled (Claude cut / human no_cut), re-viewed with wider context",stepped zoom in limited animation,0.124,20.8
+sita_s01,123,cut,cut,cut,agreed,,0.229,21.0
+sita_s04,255,gradual,gradual,gradual,agreed,overlay dissolve,0.871,2.6
+tos_s00,214,cut,cut,cut,agreed,,0.304,15.9
+tos_s01,260,cut,cut,cut,agreed,,0.196,14.4
+tos_s02,100,no_cut,no_cut,gradual,"settled (Claude no_cut / human gradual), re-viewed with wider context",VFX light swell that returns to the same shot (shot change is at f99),0.419,4.0
+tos_s02,101,no_cut,no_cut,gradual,"settled (Claude no_cut / human gradual), re-viewed with wider context",VFX light swell that returns to the same shot (shot change is at f99),0.414,4.8
+tos_s03,4,cut,cut,cut,agreed,,0.286,16.7
+tos_s03,50,cut,cut,cut,agreed,,0.185,18.0
+tos_s03,94,cut,cut,cut,agreed,,0.131,21.7
+tos_s03,214,cut,cut,cut,agreed,,0.230,23.3
+tos_s03,223,no_cut,no_cut,no_cut,agreed,"VFX hologram flicker, same shot",0.325,10.2
+tos_s03,227,no_cut,no_cut,no_cut,agreed,"VFX hologram flicker, same shot",0.317,11.0
+tos_s03,229,no_cut,no_cut,no_cut,agreed,"VFX hologram flicker, same shot",0.326,10.9
+tos_s03,231,no_cut,no_cut,no_cut,agreed,"VFX hologram flicker, same shot",0.329,12.3
+tos_s03,233,no_cut,no_cut,no_cut,agreed,"VFX hologram flicker, same shot",0.319,11.3
+tos_s03,283,cut,cut,cut,agreed,,0.143,15.6
+tos_s04,19,cut,cut,cut,agreed,,0.173,15.5
+tos_s04,67,cut,cut,cut,agreed,,0.227,16.4
+tos_s04,96,cut,cut,cut,agreed,,0.271,17.3
+tos_s04,152,cut,cut,cut,agreed,,0.304,18.5
+tos_s05,130,cut,cut,cut,agreed,,0.293,12.2
+tos_s05,161,no_cut,no_cut,no_cut,agreed,"fast pan, same shot",0.140,11.6
+tos_s06,82,cut,cut,cut,agreed,,0.153,18.6
+CoverSong_480P-7f6d,134,no_cut,no_cut,,claude only (rejected-frame review),near-black frames,0.397,0.3
+Gaming_360P-73c7,28,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.044,36.6
+Gaming_360P-73c7,34,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.018,30.2
+Gaming_360P-73c7,36,no_cut,no_cut,no_cut,agreed (round-2 blind check),game-camera motion,0.027,31.6
+Gaming_360P-73c7,37,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.013,13.3
+Gaming_360P-73c7,43,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.020,26.1
+Gaming_360P-73c7,50,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.021,28.0
+Gaming_360P-73c7,137,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.051,33.5
+Gaming_360P-73c7,149,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.015,16.4
+Gaming_360P-73c7,150,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.030,15.5
+Gaming_360P-73c7,151,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.019,14.2
+Gaming_360P-73c7,161,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.033,12.2
+Gaming_360P-73c7,170,no_cut,unsure,no_cut,"settled (Claude unsure / human no_cut), round-2 blind check",fast turn; consistent with f172,0.357,1.5
+Gaming_360P-73c7,174,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.019,16.1
+Gaming_360P-73c7,184,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.025,10.2
+Gaming_360P-73c7,186,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.036,23.8
+Gaming_360P-73c7,187,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.041,21.6
+Gaming_360P-73c7,188,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.039,14.6
+Gaming_360P-73c7,190,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.078,33.2
+Gaming_360P-73c7,193,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.044,41.0
+Gaming_360P-73c7,197,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.074,35.5
+Gaming_360P-73c7,204,no_cut,no_cut,no_cut,agreed (round-2 blind check),game-camera motion,0.075,34.9
+Gaming_360P-73c7,211,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.029,23.0
+Gaming_360P-73c7,229,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.030,20.2
+Gaming_360P-73c7,232,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.032,32.6
+Gaming_360P-73c7,235,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.072,31.5
+Gaming_360P-73c7,239,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.059,25.1
+Gaming_360P-73c7,241,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.017,10.2
+Gaming_360P-73c7,245,no_cut,no_cut,no_cut,agreed (round-2 blind check),game-camera motion,0.019,17.5
+Gaming_360P-73c7,247,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.032,22.9
+Gaming_360P-73c7,261,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.036,13.3
+Gaming_360P-73c7,263,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.023,16.8
+Gaming_360P-73c7,267,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.035,19.9
+Gaming_360P-73c7,271,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.067,22.9
+Gaming_360P-73c7,284,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.088,30.8
+Gaming_360P-73c7,289,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.024,12.7
+Gaming_360P-73c7,291,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.029,14.1
+Gaming_360P-73c7,295,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.046,31.0
+Gaming_360P-73c7,299,no_cut,no_cut,,claude only (rejected-frame review),game-camera motion,0.062,19.5
+Gaming_360P-7acb,148,no_cut,no_cut,,claude only (rejected-frame review),near-black frames,0.914,0.2
+Gaming_360P-7acb,211,cut,cut,cut,agreed (round-2 blind check),abrupt content change (new shape),0.066,10.6
+Gaming_480P-14fc,9,unsure,cut,no_cut,"settled (Claude cut / human no_cut), round-2 blind check",mouse flick vs edit cannot be told apart,0.090,10.6
+Gaming_480P-14fc,152,no_cut,no_cut,,claude only (rejected-frame review),game-camera aiming,0.028,10.4
+Gaming_480P-14fc,155,no_cut,no_cut,,claude only (rejected-frame review),game-camera aiming,0.034,10.9
+Gaming_480P-14fc,157,no_cut,no_cut,,claude only (rejected-frame review),game-camera aiming,0.030,11.0
+Gaming_480P-14fc,159,no_cut,no_cut,,claude only (rejected-frame review),game-camera aiming,0.079,11.5
+Gaming_480P-14fc,161,no_cut,no_cut,,claude only (rejected-frame review),game-camera aiming,0.084,10.8
+HowTo_360P-4e4c,187,no_cut,no_cut,,claude only (rejected-frame review),"static, brightness drift",0.357,0.3
+HowTo_360P-4e4c,190,gradual,gradual,,claude only (rejected-frame review),fade through white (one blob -> four blobs),0.543,0.1
+HowTo_360P-4e4c,191,gradual,gradual,gradual,agreed (round-2 blind check),fade through white (one blob -> four blobs),0.412,0.2
+HowTo_360P-4e4c,192,gradual,gradual,,claude only (rejected-frame review),fade through white (one blob -> four blobs),0.706,0.2
+HowTo_360P-4e4c,193,gradual,gradual,,claude only (rejected-frame review),fade through white (one blob -> four blobs),0.984,0.1
+HowTo_360P-4e4c,194,gradual,gradual,,claude only (rejected-frame review),fade through white (one blob -> four blobs),0.895,0.0
+HowTo_360P-4e4c,195,gradual,gradual,,claude only (rejected-frame review),fade through white (one blob -> four blobs),0.353,0.3
+HowTo_360P-4e4c,196,gradual,gradual,,claude only (rejected-frame review),fade through white (one blob -> four blobs),0.610,0.3
+HowTo_360P-4e4c,197,gradual,gradual,,claude only (rejected-frame review),fade through white (one blob -> four blobs),0.513,0.2
+HowTo_360P-4e4c,198,gradual,gradual,,claude only (rejected-frame review),fade through white (one blob -> four blobs),0.513,0.2
+HowTo_360P-4e4c,199,gradual,gradual,,claude only (rejected-frame review),fade through white (one blob -> four blobs),0.427,0.3
+HowTo_360P-4e4c,200,no_cut,no_cut,,claude only (rejected-frame review),"static, brightness drift",0.451,0.3
+HowTo_360P-4e4c,201,no_cut,no_cut,,claude only (rejected-frame review),"static, brightness drift",0.395,0.1
+HowTo_360P-4e4c,202,no_cut,no_cut,,claude only (rejected-frame review),"static, brightness drift",0.423,0.4
+Lecture_360P-7a57,210,no_cut,no_cut,,claude only (rejected-frame review),"projector screen, exposure drift",0.383,0.6
+Lecture_360P-7a57,211,no_cut,no_cut,,claude only (rejected-frame review),"projector screen, exposure drift",0.441,0.4
+Lecture_360P-7a57,212,no_cut,no_cut,,claude only (rejected-frame review),"projector screen, exposure drift",0.631,0.3
+Lecture_360P-7a57,214,no_cut,no_cut,,claude only (rejected-frame review),"projector screen, exposure drift",0.421,0.5
+Lecture_360P-7a57,217,no_cut,no_cut,,claude only (rejected-frame review),"projector screen, exposure drift",0.473,0.3
+Lecture_360P-7a57,218,no_cut,no_cut,,claude only (rejected-frame review),"projector screen, exposure drift",0.514,0.3
+Lecture_360P-7a57,219,no_cut,no_cut,,claude only (rejected-frame review),"projector screen, exposure drift",0.548,0.1
+Lecture_360P-7a57,220,no_cut,no_cut,,claude only (rejected-frame review),"projector screen, exposure drift",0.506,0.2
+MusicVideo_360P-7b94,79,no_cut,no_cut,,claude only (rejected-frame review),motion within shot (cut is at f78),0.075,10.4
+MusicVideo_360P-7b94,281,no_cut,no_cut,,claude only (rejected-frame review),motion within shot (cut is at f78),0.355,0.5
+MusicVideo_480P-7955,52,no_cut,no_cut,,claude only (rejected-frame review),same shot / strobe flicker,0.050,16.2
+MusicVideo_480P-7955,128,no_cut,no_cut,,claude only (rejected-frame review),same shot / strobe flicker,1.000,0.0
+MusicVideo_480P-7955,129,no_cut,no_cut,,claude only (rejected-frame review),same shot / strobe flicker,1.000,0.1
+MusicVideo_480P-7955,130,no_cut,no_cut,,claude only (rejected-frame review),same shot / strobe flicker,1.000,0.0
+MusicVideo_480P-7955,131,no_cut,no_cut,,claude only (rejected-frame review),same shot / strobe flicker,1.000,0.8
+MusicVideo_480P-7955,132,no_cut,no_cut,,claude only (rejected-frame review),same shot / strobe flicker,1.000,0.0
+MusicVideo_480P-7955,133,cut,cut,cut,agreed (round-2 blind check),strobe edit: new framing after a black frame,1.000,1.9
+MusicVideo_480P-7955,161,gradual,gradual,,claude only (rejected-frame review),dissolve / fade to or from white,0.383,0.5
+MusicVideo_480P-7955,162,gradual,gradual,,claude only (rejected-frame review),dissolve / fade to or from white,0.489,1.0
+MusicVideo_480P-7955,171,gradual,gradual,,claude only (rejected-frame review),dissolve / fade to or from white,0.544,1.6
+MusicVideo_480P-7955,173,gradual,gradual,,claude only (rejected-frame review),dissolve / fade to or from white,0.515,1.5
+MusicVideo_480P-7955,186,gradual,gradual,,claude only (rejected-frame review),dissolve / fade to or from white,0.508,1.7
+MusicVideo_480P-7955,187,gradual,gradual,,claude only (rejected-frame review),dissolve / fade to or from white,0.572,0.4
+MusicVideo_480P-7955,191,gradual,gradual,,claude only (rejected-frame review),dissolve / fade to or from white,0.584,1.2
+MusicVideo_480P-7955,203,gradual,gradual,,claude only (rejected-frame review),dissolve / fade to or from white,0.468,0.5
+MusicVideo_480P-7955,204,gradual,gradual,gradual,agreed (round-2 blind check),dissolve / fade to or from white,0.379,0.4
+NewsClip_360P-5052,153,no_cut,no_cut,,claude only (rejected-frame review),static sky shot,0.022,10.4
+NewsClip_360P-5052,159,no_cut,no_cut,,claude only (rejected-frame review),static sky shot,0.018,11.1
+NewsClip_360P-5052,165,no_cut,no_cut,,claude only (rejected-frame review),static sky shot,0.022,12.0
+NewsClip_360P-5052,171,no_cut,no_cut,,claude only (rejected-frame review),static sky shot,0.024,12.4
+NewsClip_360P-5052,177,no_cut,no_cut,,claude only (rejected-frame review),static sky shot,0.030,13.4
+NewsClip_360P-5052,183,no_cut,no_cut,,claude only (rejected-frame review),static sky shot,0.019,14.0
+NewsClip_360P-5052,189,no_cut,no_cut,,claude only (rejected-frame review),static sky shot,0.014,14.5
+NewsClip_360P-5052,195,no_cut,no_cut,,claude only (rejected-frame review),static sky shot,0.020,14.5
+NewsClip_360P-5052,201,no_cut,no_cut,,claude only (rejected-frame review),static sky shot,0.026,14.3
+NewsClip_360P-5052,207,no_cut,no_cut,,claude only (rejected-frame review),static sky shot,0.019,13.5
+NewsClip_360P-5052,213,no_cut,no_cut,,claude only (rejected-frame review),static sky shot,0.016,12.6
+NewsClip_360P-5052,219,no_cut,no_cut,,claude only (rejected-frame review),static sky shot,0.040,11.4
+ed_s04,72,no_cut,no_cut,,claude only (rejected-frame review),background light flicker,0.359,1.3
+ed_s04,90,no_cut,no_cut,,claude only (rejected-frame review),background light flicker,0.361,1.0
+ed_s04,98,no_cut,no_cut,,claude only (rejected-frame review),background light flicker,0.488,1.1
+ed_s04,99,no_cut,no_cut,,claude only (rejected-frame review),background light flicker,0.425,1.9
+ed_s04,129,no_cut,no_cut,,claude only (rejected-frame review),background light flicker,0.367,0.7
+ed_s05,178,gradual,gradual,,claude only (rejected-frame review),fade to black,0.389,0.3
+ed_s05,179,gradual,gradual,,claude only (rejected-frame review),fade to black,0.473,0.2
+ed_s05,180,gradual,gradual,,claude only (rejected-frame review),fade to black,0.862,0.4
+rush_field_cuts,318,cut,cut,cut,agreed (round-2 blind check),wide crowd -> close crowd; similar colours so histogram barely moved,0.044,14.7
+sintel_s00,14,no_cut,no_cut,cut,"settled (Claude no_cut / human cut), round-2 blind check",within shot; the cut the human marked is at f13 (already labelled),0.072,15.4
+sintel_s00,231,no_cut,no_cut,,claude only (rejected-frame review),fast action within shot,0.091,12.0
+sintel_s00,283,no_cut,no_cut,,claude only (rejected-frame review),fast action within shot,0.354,1.7
+sita_s00,46,no_cut,no_cut,,claude only (rejected-frame review),objects swap on a fixed backdrop,0.398,0.3
+sita_s00,50,no_cut,no_cut,,claude only (rejected-frame review),objects swap on a fixed backdrop,0.455,0.0
+sita_s00,53,no_cut,no_cut,,claude only (rejected-frame review),objects swap on a fixed backdrop,0.504,0.3
+sita_s00,56,no_cut,no_cut,,claude only (rejected-frame review),objects swap on a fixed backdrop,0.600,0.2
+sita_s00,59,no_cut,no_cut,,claude only (rejected-frame review),objects swap on a fixed backdrop,0.542,0.1
+sita_s00,67,no_cut,no_cut,,claude only (rejected-frame review),objects swap on a fixed backdrop,0.691,0.1
+sita_s02,5,no_cut,no_cut,,claude only (rejected-frame review),static map,0.647,0.3
+sita_s02,260,gradual,gradual,,claude only (rejected-frame review),fade to black,0.834,1.6
+sita_s02,261,gradual,gradual,,claude only (rejected-frame review),fade to black,0.824,0.3
+sita_s02,262,gradual,gradual,,claude only (rejected-frame review),fade to black,0.842,0.1
+sita_s02,263,gradual,gradual,,claude only (rejected-frame review),fade to black,0.743,0.0
+sita_s02,264,gradual,gradual,,claude only (rejected-frame review),fade to black,0.785,0.1
+sita_s02,265,gradual,gradual,no_cut,"settled (Claude gradual / human no_cut), round-2 blind check",mid fade to black: luma 120 -> 16 over f259-283,0.752,0.3
+sita_s02,266,gradual,gradual,,claude only (rejected-frame review),fade to black,0.751,0.0
+sita_s02,267,gradual,gradual,,claude only (rejected-frame review),fade to black,0.786,0.2
+sita_s02,268,gradual,gradual,,claude only (rejected-frame review),fade to black,0.832,0.0
+sita_s02,269,gradual,gradual,,claude only (rejected-frame review),fade to black,0.845,0.3
+sita_s02,270,gradual,gradual,,claude only (rejected-frame review),fade to black,0.756,0.2
+sita_s02,271,gradual,gradual,,claude only (rejected-frame review),fade to black,0.758,0.4
+sita_s02,272,gradual,gradual,,claude only (rejected-frame review),fade to black,0.801,0.3
+sita_s02,273,gradual,gradual,,claude only (rejected-frame review),fade to black,0.763,0.2
+sita_s02,274,gradual,gradual,,claude only (rejected-frame review),fade to black,0.801,0.3
+sita_s02,275,gradual,gradual,,claude only (rejected-frame review),fade to black,0.769,0.3
+sita_s02,276,gradual,gradual,,claude only (rejected-frame review),fade to black,0.793,0.4
+sita_s02,277,gradual,gradual,,claude only (rejected-frame review),fade to black,0.872,0.2
+sita_s02,278,gradual,gradual,,claude only (rejected-frame review),fade to black,0.885,0.0
+sita_s02,279,gradual,gradual,,claude only (rejected-frame review),fade to black,0.917,0.6
+sita_s02,280,gradual,gradual,,claude only (rejected-frame review),fade to black,0.887,0.9
+sita_s02,281,gradual,gradual,,claude only (rejected-frame review),fade to black,0.895,0.6
+sita_s02,282,gradual,gradual,,claude only (rejected-frame review),fade to black,0.908,0.2
+sita_s02,283,gradual,gradual,,claude only (rejected-frame review),fade to black,0.914,0.3
+sita_s04,256,gradual,gradual,,claude only (rejected-frame review),overlay dissolve,0.525,0.1
+sita_s04,257,gradual,gradual,,claude only (rejected-frame review),overlay dissolve,0.382,0.0
+MusicVideo_360P-5f07,50,cut,cut,,claude only (sample of both-detector frames),clean shot change,0.991,11.0
+sintel_s00,13,cut,cut,,claude only (sample of both-detector frames),clean shot change,0.379,24.4
+tos_s02,264,cut,cut,,claude only (sample of both-detector frames),clean shot change,0.361,18.3
+MusicVideo_480P-7955,283,cut,cut,cut,agreed (round-2 blind check),strobe edit: new framing after black frames,0.999,24.7
+MusicVideo_480P-7955,291,cut,cut,,claude only (sample of both-detector frames),clean shot change,1.000,30.5
+sintel_s00,74,no_cut,no_cut,no_cut,agreed (round-2 blind check),character runs across the camera; same shot,0.480,21.8
+sintel_s02,203,cut,cut,,claude only (sample of both-detector frames),clean shot change,0.527,20.6
+ed_s04,227,cut,cut,,claude only (sample of both-detector frames),clean shot change,0.824,60.5
+MusicVideo_360P-5f07,130,cut,cut,,claude only (sample of both-detector frames),clean shot change,0.489,38.5
+tos_s05,237,cut,cut,,claude only (sample of both-detector frames),clean shot change,0.585,21.7
+MusicVideo_480P-7955,127,cut,unsure,cut,"settled (Claude unsure / human cut), round-2 blind check",first image after 7 black frames (black frames are in the source video: strobe effect),1.000,38.6
+tos_s05,160,cut,cut,,claude only (sample of both-detector frames),clean shot change,0.694,17.1
+Animation_480P-52af,75,cut,cut,,claude only (sample of both-detector frames),clean shot change,0.845,12.1
+tos_s00,85,cut,cut,,claude only (sample of both-detector frames),clean shot change,0.403,22.5
+tos_s05,206,cut,cut,,claude only (sample of both-detector frames),clean shot change,0.717,29.4
+Gaming_360P-73c7,22,cut,cut,,claude only (sample of both-detector frames),clean shot change,0.534,34.5
+red_kayak,148,cut,cut,,"claude only (dissolve-detector check, frame-by-frame)",hard cut kayaker close-up -> wide river; both detectors just below threshold,0.338,8.5
+controlled_burn,253,gradual,gradual,,"claude only (dissolve-detector check, frame-by-frame)",cross-dissolve house fire -> close flames (f252-261),0.102,1.6
+controlled_burn,254,gradual,gradual,,"claude only (dissolve-detector check, frame-by-frame)",cross-dissolve house fire -> close flames (f252-261),0.135,0.8
+controlled_burn,255,gradual,gradual,,"claude only (dissolve-detector check, frame-by-frame)",cross-dissolve house fire -> close flames (f252-261),0.131,0.1
+controlled_burn,256,gradual,gradual,,"claude only (dissolve-detector check, frame-by-frame)",cross-dissolve house fire -> close flames (f252-261),0.116,0.1
+controlled_burn,257,gradual,gradual,,"claude only (dissolve-detector check, frame-by-frame)",cross-dissolve house fire -> close flames (f252-261),0.086,0.2
+controlled_burn,258,gradual,gradual,,"claude only (dissolve-detector check, frame-by-frame)",cross-dissolve house fire -> close flames (f252-261),0.118,0.1
+controlled_burn,259,gradual,gradual,,"claude only (dissolve-detector check, frame-by-frame)",cross-dissolve house fire -> close flames (f252-261),0.099,0.2
+controlled_burn,260,gradual,gradual,,"claude only (dissolve-detector check, frame-by-frame)",cross-dissolve house fire -> close flames (f252-261),0.094,0.1
+ed_s00,4,no_cut,no_cut,,"claude only (dissolve-detector check, frame-by-frame)",cables sweep past the moving camera; not a dissolve,0.279,7.8
+ed_s00,5,no_cut,no_cut,,"claude only (dissolve-detector check, frame-by-frame)",cables sweep past the moving camera; not a dissolve,0.222,5.2
+ed_s00,6,no_cut,no_cut,,"claude only (dissolve-detector check, frame-by-frame)",cables sweep past the moving camera; not a dissolve,0.214,9.0

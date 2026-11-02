@@ -1,0 +1,60 @@
+source_id,source,group,priority,split,cuts,url,licence,src_res,fps,src_frames,start,max_frames,segments,notes
+bbb,blender,bbb,1,train,natural,https://media.xiph.org/video/derf/y4m/big_buck_bunny_360p24.y4m.xz,CC BY 3.0,360p,24,14315,,300,6,CG animation; xz y4m (1.1 GB)
+sintel,blender,sintel,1,train,natural,https://media.xiph.org/sintel/sintel-1080-png/,CC BY 3.0,1080 PNG (scope; centre-crop to 16:9),24,21312,,300,6,CG animation; fetch only the PNG ranges needed
+sintel_trailer,blender,sintel,2,train,natural,https://media.xiph.org/video/derf/y4m/sintel_trailer_2k_480p24.y4m,CC BY 3.0,480p,24,1253,,300,1,same film as sintel so same group
+tos,blender,tos,1,test,natural,https://media.xiph.org/tearsofsteel/tearsofsteel-1080-png/,CC BY 3.0,1080 PNG (scope; centre-crop to 16:9),24,17620,,300,8,live action + CG; fetch only the PNG ranges needed
+ed,blender,ed,1,test,natural,https://media.xiph.org/video/derf/y4m/elephants_dream_360p24.y4m.xz,CC BY 2.5,360p,24,15691,,300,8,CG animation; xz y4m (1.2 GB)
+sita,archive.org,sita,1,val,natural,https://media.xiph.org/video/derf/y4m/sita_sings_the_blues_360p24.y4m.xz,CC0 1.0,360p,23.976,117714,,300,6,2D animation; xz y4m (5.9 GB); decode only the segments needed
+rush_field_cuts,xiph-ntia,rush_field_cuts,1,test,natural,https://media.xiph.org/video/derf/y4m/rush_field_cuts_1080p.y4m,NTIA/ITS research use only,1080p 4:2:2,29.97,570,60,450,1,live sports with edits; skip first/last 2 s per NTIA readme
+crowd_run,xiph-svt,crowd_run,1,auto,none,https://media.xiph.org/video/derf/y4m/crowd_run_1080p50.y4m,SVT research use (SVT_MultiFormat_v10.pdf),1080p,50,500,,300,1,
+park_joy,xiph-svt,park_joy,1,auto,none,https://media.xiph.org/video/derf/y4m/park_joy_1080p50.y4m,SVT research use (SVT_MultiFormat_v10.pdf),1080p,50,500,,300,1,
+ducks_take_off,xiph-svt,ducks_take_off,1,auto,none,https://media.xiph.org/video/derf/y4m/ducks_take_off_1080p50.y4m,SVT research use (SVT_MultiFormat_v10.pdf),1080p,50,500,,300,1,
+in_to_tree,xiph-svt,in_to_tree,1,auto,none,https://media.xiph.org/video/derf/y4m/in_to_tree_1080p50.y4m,SVT research use (SVT_MultiFormat_v10.pdf),1080p,50,500,,300,1,
+old_town_cross,xiph-svt,old_town_cross,1,auto,none,https://media.xiph.org/video/derf/y4m/old_town_cross_1080p50.y4m,SVT research use (SVT_MultiFormat_v10.pdf),1080p,50,500,,300,1,
+blue_sky,xiph-ldv,blue_sky,1,auto,none,https://media.xiph.org/video/derf/y4m/blue_sky_1080p25.y4m,no explicit licence (TU Munich LDV; Xiph-hosted),1080p,25,217,,300,1,
+pedestrian_area,xiph-ldv,pedestrian_area,1,auto,none,https://media.xiph.org/video/derf/y4m/pedestrian_area_1080p25.y4m,no explicit licence (TU Munich LDV; Xiph-hosted),1080p,25,375,,300,1,
+riverbed,xiph-ldv,riverbed,1,auto,none,https://media.xiph.org/video/derf/y4m/riverbed_1080p25.y4m,no explicit licence (TU Munich LDV; Xiph-hosted),1080p,25,250,,300,1,very hard to code
+rush_hour,xiph-ldv,rush_hour,1,auto,none,https://media.xiph.org/video/derf/y4m/rush_hour_1080p25.y4m,no explicit licence (TU Munich LDV; Xiph-hosted),1080p,25,500,,300,1,
+station2,xiph-ldv,station2,1,auto,none,https://media.xiph.org/video/derf/y4m/station2_1080p25.y4m,no explicit licence (TU Munich LDV; Xiph-hosted),1080p,25,313,,300,1,
+sunflower,xiph-ldv,sunflower,1,auto,none,https://media.xiph.org/video/derf/y4m/sunflower_1080p25.y4m,no explicit licence (TU Munich LDV; Xiph-hosted),1080p,25,500,,300,1,
+tractor,xiph-ldv,tractor,1,auto,none,https://media.xiph.org/video/derf/y4m/tractor_1080p25.y4m,no explicit licence (TU Munich LDV; Xiph-hosted),1080p,25,690,,300,1,
+aspen,xiph-ntia,aspen,1,auto,none,https://media.xiph.org/video/derf/y4m/aspen_1080p.y4m,NTIA/ITS research use only,1080p,29.97,570,60,300,1,
+controlled_burn,xiph-ntia,controlled_burn,1,auto,none,https://media.xiph.org/video/derf/y4m/controlled_burn_1080p.y4m,NTIA/ITS research use only,1080p,29.97,570,60,300,1,
+red_kayak,xiph-ntia,red_kayak,1,auto,none,https://media.xiph.org/video/derf/y4m/red_kayak_1080p.y4m,NTIA/ITS research use only,1080p,29.97,570,60,300,1,
+snow_mnt,xiph-ntia,snow_mnt,1,auto,none,https://media.xiph.org/video/derf/y4m/snow_mnt_1080p.y4m,NTIA/ITS research use only,1080p,29.97,570,60,300,1,
+speed_bag,xiph-ntia,speed_bag,1,auto,none,https://media.xiph.org/video/derf/y4m/speed_bag_1080p.y4m,NTIA/ITS research use only,1080p,29.97,570,60,300,1,
+touchdown_pass,xiph-ntia,touchdown_pass,1,auto,none,https://media.xiph.org/video/derf/y4m/touchdown_pass_1080p.y4m,NTIA/ITS research use only,1080p,29.97,570,60,300,1,
+west_wind_easy,xiph-ntia,west_wind_easy,1,auto,none,https://media.xiph.org/video/derf/y4m/west_wind_easy_1080p.y4m,NTIA/ITS research use only,1080p,29.97,570,60,300,1,
+mobcal,xiph-ldv,mobcal,2,auto,none,https://media.xiph.org/video/derf/y4m/720p50_mobcal_ter.y4m,no explicit licence (TU Munich LDV; Xiph-hosted),720p,50,504,4,300,1,first 4 frames are mid grey
+parkrun,xiph-ldv,parkrun,2,auto,none,https://media.xiph.org/video/derf/y4m/720p50_parkrun_ter.y4m,no explicit licence (TU Munich LDV; Xiph-hosted),720p,50,504,4,300,1,first 4 frames are mid grey
+shields,xiph-ldv,shields,2,auto,none,https://media.xiph.org/video/derf/y4m/720p50_shields_ter.y4m,no explicit licence (TU Munich LDV; Xiph-hosted),720p,50,504,2,300,1,first 2 frames are mid grey
+stockholm,xiph-ldv,stockholm,2,auto,none,https://media.xiph.org/video/derf/y4m/720p5994_stockholm_ter.y4m,no explicit licence (TU Munich LDV; Xiph-hosted),720p,59.94,604,2,300,1,first 2 frames are mid grey
+dinner,xiph-hdgreetings,dinner,2,auto,unknown,https://media.xiph.org/video/derf/y4m/dinner_1080p30.y4m,HDgreetings: research/testing only,1080p,30,950,,300,1,cut status from detector
+factory,xiph-hdgreetings,factory,2,auto,unknown,https://media.xiph.org/video/derf/y4m/factory_1080p30.y4m,HDgreetings: research/testing only,1080p,30,1339,,300,1,cut status from detector
+life,xiph-hdgreetings,life,2,auto,unknown,https://media.xiph.org/video/derf/y4m/life_1080p30.y4m,HDgreetings: research/testing only,1080p,30,825,,300,1,cut status from detector
+FourPeople,xiph-conf,conf,2,auto,none,https://media.xiph.org/video/derf/y4m/FourPeople_1280x720_60.y4m,public domain (per Xiph),720p,60,601,,300,1,video conferencing; one group so all conf clips share a split
+Johnny,xiph-conf,conf,2,auto,none,https://media.xiph.org/video/derf/y4m/Johnny_1280x720_60.y4m,public domain (per Xiph),720p,60,601,,300,1,
+KristenAndSara,xiph-conf,conf,2,auto,none,https://media.xiph.org/video/derf/y4m/KristenAndSara_1280x720_60.y4m,public domain (per Xiph),720p,60,601,,300,1,
+vidyo1,xiph-conf,conf,2,auto,none,https://media.xiph.org/video/derf/y4m/vidyo1_720p_60fps.y4m,public domain (per Xiph),720p,60,601,,300,1,
+vidyo3,xiph-conf,conf,2,auto,none,https://media.xiph.org/video/derf/y4m/vidyo3_720p_60fps.y4m,public domain (per Xiph),720p,60,601,,300,1,
+vidyo4,xiph-conf,conf,2,auto,none,https://media.xiph.org/video/derf/y4m/vidyo4_720p_60fps.y4m,public domain (per Xiph),720p,60,601,,300,1,
+Netflix_Boat,xiph-netflix,nf_elfuente,2,auto,none,https://media.xiph.org/video/derf/ElFuente/Netflix_Boat_4096x2160_60fps_10bit_420.y4m,CC BY-NC-ND 4.0 (do not redistribute derived YUV),4096x2160 10-bit,60,300,,300,1,crop 4096 to 3840 wide
+Netflix_Tango,xiph-netflix,nf_elfuente,2,auto,none,https://media.xiph.org/video/derf/ElFuente/Netflix_Tango_4096x2160_60fps_10bit_420.y4m,CC BY-NC-ND 4.0 (do not redistribute derived YUV),4096x2160 10-bit,60,294,,300,1,crop 4096 to 3840 wide
+Netflix_Aerial,xiph-netflix,nf_chimera,2,auto,none,https://media.xiph.org/video/derf/Chimera/Netflix_Aerial_4096x2160_60fps_10bit_420.y4m,CC BY-NC-ND 4.0 (do not redistribute derived YUV),4096x2160 10-bit,60,1199,,300,1,crop 4096 to 3840 wide
+Netflix_RollerCoaster,xiph-netflix,nf_chimera,2,auto,none,https://media.xiph.org/video/derf/Chimera/Netflix_RollerCoaster_4096x2160_60fps_10bit_420.y4m,CC BY-NC-ND 4.0 (do not redistribute derived YUV),4096x2160 10-bit,60,1199,,300,1,crop 4096 to 3840 wide
+Beauty,uvg,uvg_beauty,1,auto,none,https://ultravideo.fi/video/Beauty_1920x1080_120fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),1080p 8-bit (UVG download),120,600,,300,1,
+Bosphorus,uvg,uvg_yacht,1,auto,none,https://ultravideo.fi/video/Bosphorus_1920x1080_120fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),1080p 8-bit (UVG download),120,600,,300,1,same yacht shoot as YachtRide
+YachtRide,uvg,uvg_yacht,1,auto,none,https://ultravideo.fi/video/YachtRide_1920x1080_120fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),1080p 8-bit (UVG download),120,600,,300,1,
+HoneyBee,uvg,uvg_honeybee,1,auto,none,https://ultravideo.fi/video/HoneyBee_1920x1080_120fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),1080p 8-bit (UVG download),120,600,,300,1,
+Jockey,uvg,uvg_horse,1,auto,none,https://ultravideo.fi/video/Jockey_1920x1080_120fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),1080p 8-bit (UVG download),120,600,,300,1,same race shoot as ReadySetGo
+ReadySetGo,uvg,uvg_horse,1,auto,none,https://ultravideo.fi/video/ReadySetGo_1920x1080_120fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),1080p 8-bit (UVG download),120,600,,300,1,
+ShakeNDry,uvg,uvg_shakendry,1,auto,none,https://ultravideo.fi/video/ShakeNDry_1920x1080_120fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),1080p 8-bit (UVG download),120,300,,300,1,
+Lips,uvg,uvg_lips,2,auto,none,https://ultravideo.fi/video/Lips_3840x2160_120fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),2160p 8-bit (UVG download; no 1080p),120,600,,300,1,
+CityAlley,uvg,uvg_cityalley,2,auto,none,https://ultravideo.fi/video/CityAlley_3840x2160_50fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),2160p 8-bit (UVG download),50,600,,300,1,
+FlowerFocus,uvg,uvg_flower,2,auto,none,https://ultravideo.fi/video/FlowerFocus_3840x2160_50fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),2160p 8-bit (UVG download),50,600,,300,1,
+FlowerKids,uvg,uvg_flower,2,auto,none,https://ultravideo.fi/video/FlowerKids_3840x2160_50fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),2160p 8-bit (UVG download),50,600,,300,1,
+FlowerPan,uvg,uvg_flower,2,auto,none,https://ultravideo.fi/video/FlowerPan_3840x2160_50fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),2160p 8-bit (UVG download),50,600,,300,1,
+RaceNight,uvg,uvg_racenight,2,auto,none,https://ultravideo.fi/video/RaceNight_3840x2160_50fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),2160p 8-bit (UVG download),50,600,,300,1,
+RiverBank,uvg,uvg_riverbank,2,auto,none,https://ultravideo.fi/video/RiverBank_3840x2160_50fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),2160p 8-bit (UVG download),50,600,,300,1,
+SunBath,uvg,uvg_sunbath,2,auto,none,https://ultravideo.fi/video/SunBath_3840x2160_50fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),2160p 8-bit (UVG download),50,300,,300,1,
+Twilight,uvg,uvg_twilight,2,auto,none,https://ultravideo.fi/video/Twilight_3840x2160_50fps_420_8bit_YUV_RAW.7z,CC BY-NC 3.0 (cite Mercat et al. MMSys 2020),2160p 8-bit (UVG download),50,600,,300,1,
