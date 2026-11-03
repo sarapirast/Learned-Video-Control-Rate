@@ -9,3 +9,7 @@
 
 # Experiment outputs
 results/
+
+# Build artifacts
+build/
+__pycache__/
