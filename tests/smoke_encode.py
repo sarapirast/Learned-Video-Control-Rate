@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from x264env import Encoder, psnr_i420, read_y4m  # noqa: E402
+from x264env import Encoder, psnr_i420, read_y4m, y4m_header  # noqa: E402
 
 
 def main() -> int:
@@ -23,7 +23,7 @@ def main() -> int:
     src = {}
     rows = []
     bitstream = bytearray()
-    with Encoder(w, h, fn, fd) as enc:
+    with Encoder(w, h, fn, fd, sar=y4m_header(args.y4m)["sar"]) as enc:
         print(f"x264 build {enc.api_version}, {w}x{h} @ {fn}/{fd} fps, QP {args.qp} "
               f"(honoured range {enc.qp_range[0]}..{enc.qp_range[1]})")
 

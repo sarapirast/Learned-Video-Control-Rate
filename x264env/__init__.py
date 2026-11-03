@@ -1,6 +1,6 @@
-from .encoder import Encoder, EncodedFrame, read_y4m, psnr_i420
+from .encoder import Encoder, EncodedFrame, read_y4m, y4m_header, psnr_i420
 
-__all__ = ["Encoder", "EncodedFrame", "read_y4m", "psnr_i420", "RateControlEnv"]
+__all__ = ["Encoder", "EncodedFrame", "read_y4m", "y4m_header", "psnr_i420", "RateControlEnv"]
 
 
 def __getattr__(name):

@@ -15,6 +15,7 @@ by `env.sh`. Keep this file and `FROZEN_OPTS` in sync.
 | psy | 0 | Optimise for PSNR, the reward metric. |
 | threads | 1 | Deterministic output; light on shared nodes. |
 | format | 8-bit 4:2:0, 320x180 | Set as struct fields in the shim (width, height, `X264_CSP_I420`, bitdepth 8). |
+| fps, SAR | from the y4m header | Same as the x264 CLI does: fps sets the VUI timing, and the `A` value (e.g. 1:1) is written as the VUI aspect ratio. Metadata only; needed for byte-identical parity with the CLI. |
 | rate control | CQP (`qp=31`) | Every frame's QP is forced through `pic.i_qpplus1`. |
 | ipratio / pbratio | 10 / 10 | See "QP range" below. |
 | force-cfr | 1 | See "Zero delay" below. |
@@ -58,7 +59,8 @@ start codes.
 - `slice_bits`: the coded picture.
 - `header_bits`: SPS + PPS + SEI. SPS and PPS are repeated on every IDR. The
   SEI on the first frame is x264's version-and-options text, about 4.4 kbit.
-  At QP 26, frame 0 is 23,136 bits: 18,464 slice + 4,672 header.
+  At QP 26, frame 0 of the testsrc clip is 23,144 bits: 18,464 slice + 4,680
+  header.
 
 Decide per experiment which of these counts against the GOP budget.
 

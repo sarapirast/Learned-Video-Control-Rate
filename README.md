@@ -39,6 +39,12 @@ make              # builds build/libx264shim.so
 different env. The Python comes from the conda env (3.11, numpy, gymnasium);
 no `python` module is loaded, so the two never shadow each other.
 
+> **Never install `ffmpeg` or `x264` (or anything that pulls them in) into the
+> conda env.** Its `bin/` comes first on `PATH`, so conda's copies would
+> silently replace CARC's module versions, and encodes would no longer match
+> the frozen x264 build. After `source env.sh`, check that `which x264 ffmpeg`
+> both point under `/apps/spack/2506/`.
+
 ## Encoder shim
 
 `encoder_shim.c` wraps libx264 (CARC `x264/20250608`, API build 165) behind a
@@ -46,11 +52,14 @@ small C API that takes and returns plain byte buffers, so Python never depends
 on x264's struct layout. Settings are applied with `x264_param_parse`.
 
 ```python
-from x264env import Encoder, read_y4m
+from x264env import Encoder, read_y4m, y4m_header
 w, h, fn, fd, frames = read_y4m("clip.y4m")
-with Encoder(w, h, fn, fd) as enc:
+with Encoder(w, h, fn, fd, sar=y4m_header("clip.y4m")["sar"]) as enc:
     out = enc.encode(next(frames), qp=30)   # contiguous I420 bytes in
 ```
+
+`sar` is written to the SPS as the aspect ratio, as the x264 CLI does with the
+y4m's `A` value. The env passes it automatically.
 
 Each `EncodedFrame` has:
 - `pts`, `qp`, `frame_type` (`"IDR"` / `"P"`)
@@ -103,6 +112,11 @@ constructor's arguments are the defaults.
   (luma), `qp`, `shield_fired`, `frame_type`, `budget_left`. The last frame
   also has `total_slice_bits` and
   `overshoot = (total slice bits - budget) / budget`.
+- **`env.step_qp(qp)`:** encodes the next frame at an explicit QP in [11, 51],
+  with no action mapping and no shield. It returns the same tuple as `step()`.
+  It's for tests and baselines (e.g. QP jumps bigger than ±4).
+- **`env.episode_bitstream` / `env.episode_recon`:** the episode's Annex-B
+  stream and I420 recon so far.
 
 ### Observation: `float32[16]`, normalised (`OBS_FIELDS`)
 
@@ -137,6 +151,7 @@ is over 30. P2's features can replace it through
 ```bash
 python3 tests/smoke_encode.py clip.y4m --qp 26           # per-frame bits + PSNR at constant QP
 python3 tests/test_env.py clip.y4m [--budget 45000]      # env_checker + episodes
+python3 tests/test_parity.py --clip a.y4m:GOP [--clip b.y4m:GOP ...]   # env vs x264 CLI
 ```
 
 `test_env.py` runs gymnasium's `env_checker`, then three episodes with
@@ -146,6 +161,55 @@ half the budget to exercise the shield). It also checks the `k=0` mask,
 
 Test clip: `ffmpeg -f lavfi -i testsrc=size=320x180:rate=30 -frames:v 30
 -pix_fmt yuv420p clip.y4m`. Keep clips outside the repo.
+
+### Parity test: env vs x264 CLI
+
+`test_parity.py` checks that the env's encodes are exactly what the CARC
+`x264` CLI produces for the same QPs. For each clip:GOP and QP sequence:
+
+1. Run an env episode and keep its bitstream and recon.
+2. Encode the same 30 frames with the `x264` CLI: the frozen flags plus
+   `--qp 31 --ipratio 10 --pbratio 10 --force-cfr`, reading the original y4m
+   with `--seek gop*30 --frames 30`, and a `--qpfile` with the same QPs
+   (frame 0 `I`, the rest `P`).
+3. Compare the full bitstream NAL by NAL, the per-frame slice sizes, and the
+   ffmpeg-decoded frames (plus the env's own recon) byte for byte. A case
+   passes only if all three match. A difference confined to the x264 options
+   SEI would be reported with the differing options.
+
+QP sequences: constant 26, constant 11, constant 51, random across 11..51
+(seed 0), and a shield case. In the shield case, dqp = -1 every frame from
+base QP 31, with the constant-QP-31 spend as the budget. The shield fires
+part-way, and the QPs the env actually used, forced ones included, go to the
+CLI. Work files go to `/scratch1/$USER/tmp/ee599_parity` (`--workdir`) and
+are deleted when everything passes.
+
+Two things the test found, both fixed:
+- **The x264 CLI numbers `--qpfile` lines by absolute input frame,** counting
+  the frames skipped by `--seek`. GOP g therefore needs lines `g*30 .. g*30+29`.
+  Lines that don't match are ignored without a warning, and x264 falls back
+  to its default CQP QPs (I ≈ 11, P = 31 here).
+- **The CLI writes the y4m's sample aspect ratio (`A1:1`) into the SPS** as
+  `aspect_ratio_idc=1`. The shim now does the same (`sar`), which costs 8
+  header bits on each IDR.
+
+## Parity results (2026-11-03)
+
+**25/25 PASS.** In every case the bitstream, the per-frame slice bits and the
+decoded frames were byte-identical to the CLI's, including the x264 options
+SEI. Real clips were read in place from P2's data v1
+(`/scratch1/aayushso/ee599/data/v1/320x180/clips`); nothing was copied.
+
+| clip | GOP | fps | content |
+|---|---|---|---|
+| testsrc (synthetic) | 0 | 30 | test pattern |
+| Animation_360P-3e40 | 0 | 30 | stable |
+| Gaming_360P-3eb6 | 1 | 18595/622 | scene cut at frame 8 |
+| aspen | 2 | 30000/1001 | stable |
+| bbb_s00 | 3 | 24 | stable |
+
+Each GOP was tested with constant 26, 11 and 51, random 11..51, and the shield
+case. The shield fired on 4, 16, 19, 22 and 19 frames respectively.
 
 ## Verification results (2026-11-03, 320x180 testsrc)
 

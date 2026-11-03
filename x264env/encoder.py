@@ -23,7 +23,7 @@ def _load(path: str | os.PathLike | None = None) -> C.CDLL:
     lib = C.CDLL(str(path or os.environ.get("X264SHIM_LIB", _DEFAULT_LIB)))
     u8p, ip, llp = C.POINTER(C.c_uint8), C.POINTER(C.c_int), C.POINTER(C.c_longlong)
     lib.shim_api_version.restype = C.c_int
-    lib.shim_open.argtypes = [C.c_int, C.c_int, C.c_int, C.c_int, C.c_int]
+    lib.shim_open.argtypes = [C.c_int] * 7
     lib.shim_open.restype = C.c_void_p
     lib.shim_frame_size.argtypes = [C.c_void_p]
     lib.shim_frame_size.restype = C.c_int
@@ -64,9 +64,12 @@ class Encoder:
     LOG_NONE, LOG_ERROR, LOG_WARNING, LOG_INFO, LOG_DEBUG = -1, 0, 1, 2, 3
 
     def __init__(self, width: int, height: int, fps_num: int = 30, fps_den: int = 1,
-                 log_level: int = LOG_ERROR, lib_path: str | None = None):
+                 log_level: int = LOG_ERROR, lib_path: str | None = None,
+                 sar: tuple[int, int] = (0, 0)):
+        """sar: sample aspect ratio for the SPS VUI, (0, 0) = not written. Pass
+        the y4m "A" value (see y4m_header) to match the x264 CLI's stream."""
         self._lib = _load(lib_path)
-        self._h = self._lib.shim_open(width, height, fps_num, fps_den, log_level)
+        self._h = self._lib.shim_open(width, height, fps_num, fps_den, sar[0], sar[1], log_level)
         if not self._h:
             raise RuntimeError("shim_open failed (see stderr)")
         self.width, self.height = width, height
@@ -199,6 +202,28 @@ def read_y4m(path: str | os.PathLike) -> tuple[int, int, int, int, Iterator[byte
                 yield data
 
     return w, h, fps_num, fps_den, frames()
+
+
+def y4m_header(path: str | os.PathLike) -> dict:
+    """Header fields of a y4m: width, height, fps (num, den), sar (w, h; (0, 0)
+    if absent or unknown) and the raw token list."""
+    with open(path, "rb") as f:
+        toks = f.readline().split()
+    if not toks or toks[0] != b"YUV4MPEG2":
+        raise ValueError(f"{path}: not a YUV4MPEG2 file")
+    out = {"width": 0, "height": 0, "fps": (30, 1), "sar": (0, 0),
+           "tokens": [t.decode() for t in toks[1:]]}
+    for tok in toks[1:]:
+        key, val = tok[:1], tok[1:]
+        if key == b"W":
+            out["width"] = int(val)
+        elif key == b"H":
+            out["height"] = int(val)
+        elif key == b"F":
+            out["fps"] = tuple(int(x) for x in val.split(b":"))
+        elif key == b"A":
+            out["sar"] = tuple(int(x) for x in val.split(b":"))
+    return out
 
 
 def psnr_i420(ref: bytes, rec: bytes, width: int, height: int) -> dict[str, float]:

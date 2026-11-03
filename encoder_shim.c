@@ -53,8 +53,11 @@ static const char *FROZEN_OPTS[][2] = {
 
 int shim_api_version(void) { return X264_BUILD; }
 
-/* Returns an opaque handle, or NULL on failure (reason printed to stderr). */
-shim_t *shim_open(int width, int height, int fps_num, int fps_den, int log_level)
+/* Returns an opaque handle, or NULL on failure (reason printed to stderr).
+ * sar_w:sar_h is the sample aspect ratio written to the SPS VUI (0:0 = not
+ * written); pass the y4m "A" value so the stream matches the x264 CLI. */
+shim_t *shim_open(int width, int height, int fps_num, int fps_den,
+                  int sar_w, int sar_h, int log_level)
 {
     if (width <= 0 || height <= 0 || (width & 1) || (height & 1)) {
         fprintf(stderr, "shim_open: width/height must be positive and even\n");
@@ -89,6 +92,10 @@ shim_t *shim_open(int width, int height, int fps_num, int fps_den, int log_level
     s->param.i_fps_den   = fps_den > 0 ? fps_den : 1;
     s->param.i_timebase_num = s->param.i_fps_den;
     s->param.i_timebase_den = s->param.i_fps_num;
+    if (sar_w > 0 && sar_h > 0) {
+        s->param.vui.i_sar_width  = sar_w;
+        s->param.vui.i_sar_height = sar_h;
+    }
     s->param.i_log_level = log_level;
 
     s->enc = x264_encoder_open(&s->param);

@@ -41,7 +41,7 @@ import numpy as np
 from gymnasium import spaces
 
 from .complexity import compute_features
-from .encoder import Encoder, read_y4m
+from .encoder import Encoder, read_y4m, y4m_header
 
 GOP_LEN = 30
 QP_MIN, QP_MAX = 11, 51
@@ -114,6 +114,7 @@ class RateControlEnv(gym.Env):
         prev_luma = None if prev is None else np.frombuffer(prev, np.uint8, ys).reshape(h, w)
         feats = self.features_fn(luma, prev_luma)
         self._w, self._h, self._fps = w, h, (fn, fd)
+        self._sar = y4m_header(clip)["sar"]   # written to the SPS like the x264 CLI does
         self._frames = gop_frames            # raw I420 bytes, cached in RAM
         self._luma = luma
         self._cplx = np.asarray(feats["complexity"], dtype=np.float32)
@@ -131,15 +132,18 @@ class RateControlEnv(gym.Env):
         if not QP_MIN <= cfg["base_qp"] <= QP_MAX:
             raise ValueError(f"base_qp must be in [{QP_MIN}, {QP_MAX}]")
         self._load_gop(cfg["clip"], int(cfg["gop"]))
+        self.clip, self.gop = cfg["clip"], int(cfg["gop"])
 
         self.budget, self.k, self.base_qp = int(cfg["budget"]), int(cfg["k"]), int(cfg["base_qp"])
         self.close()
-        self._enc = Encoder(self._w, self._h, *self._fps)
+        self._enc = Encoder(self._w, self._h, *self._fps, sar=self._sar)
         if self._enc.qp_range != (QP_MIN, QP_MAX):
             raise RuntimeError(f"encoder QP range {self._enc.qp_range} != ({QP_MIN}, {QP_MAX})")
 
         self.t = 0
         self.slice_bits_used = 0
+        self.episode_bitstream = bytearray()   # Annex-B stream of this episode so far
+        self.episode_recon = bytearray()       # I420 recon frames of this episode so far
         self.prev_qp = self.base_qp
         self._hist_qp = deque([self.base_qp] * 3, maxlen=3)   # most recent first
         self._hist_bits = deque([0] * 3, maxlen=3)
@@ -165,10 +169,23 @@ class RateControlEnv(gym.Env):
                 floor_cost += self.shield_bits_i - self.shield_bits_p
             if left < floor_cost:
                 qp, shield_fired = QP_MAX, True
+        return self._encode_next(qp, shield_fired)
 
+    def step_qp(self, qp: int):
+        """Encode the next frame at an explicit QP in [11, 51] (no action mapping,
+        no shield). Same return value and info as step(). For tests and baselines."""
+        if self._enc is None or self.t >= GOP_LEN:
+            raise RuntimeError("call reset() before step_qp()")
+        if not QP_MIN <= int(qp) <= QP_MAX:
+            raise ValueError(f"qp must be in [{QP_MIN}, {QP_MAX}]")
+        return self._encode_next(int(qp), False)
+
+    def _encode_next(self, qp: int, shield_fired: bool):
         src = self._frames[self.t]
         out = self._enc.encode(src, qp)
         assert out is not None and out.pts == self.t, "encoder returned a delayed frame"
+        self.episode_bitstream += out.bitstream
+        self.episode_recon += out.recon
 
         ys = self._w * self._h
         ref_y = self._luma[self.t].astype(np.float32)
