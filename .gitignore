@@ -1,0 +1,11 @@
+# Only code and configs belong in this repo — never data or results.
+
+# Raw / encoded video
+*.y4m
+*.yuv
+*.264
+*.mkv
+*.mp4
+
+# Experiment outputs
+results/
