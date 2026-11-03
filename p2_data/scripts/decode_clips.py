@@ -5,8 +5,9 @@
   data/v1/<W>x<H>/meta/<clip_id>.json   how it was made (merged into manifest.csv by --merge)
 
 Rules (docs/clip-selection.md, "Decode rules"):
-  - frame rate: native, no conversion; clips outside 23.976-30 fps are skipped
-  - frames: exactly n_frames from clip_candidates.csv, never duplicated or dropped
+  - frame rate: native for 23.976-30 fps sources; 50/60/120 fps sources keep every Nth frame
+    (decimate = 2 or 4, from clip_candidates.csv), so the output is 25-30 fps; no other conversion
+  - frames: exactly n_frames output frames, never duplicated
   - geometry: centre-crop the largest even-sized 16:9 region, then lanczos scale to WxH
   - colour: YUV sources pass through (scaled only, no matrix change), RGB (PNG) sources are
     converted with BT.709, and everything ends up limited range; > 8-bit sources are rounded to
@@ -33,8 +34,24 @@ from fractions import Fraction
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CANDIDATES = os.path.join(ROOT, 'data', 'clip_candidates.csv')
 RAW = os.path.join(ROOT, 'data', 'raw')
-FPS_MIN, FPS_MAX = 23.976, 30.0   # same rule as select_clips.py
+FPS_MIN, FPS_MAX = 23.976, 30.0   # output rate; same rule as select_clips.py
 SCALE_FLAGS = 'lanczos+accurate_rnd+full_chroma_int'
+# 7za for UVG .7z archives. Called by full path: the p7zip module needs gcc/13.3.0, which conflicts
+# with ffmpeg's gcc/14.3.0 module, but the binary itself runs fine alongside ffmpeg.
+SEVEN_ZA = os.environ.get('SEVEN_ZA', '/apps/spack/2406/apps/linux-rocky8-x86_64_v3/gcc-13.3.0/'
+                                      'p7zip-17.05-qyi5ptc/bin/7za')
+
+
+def archive_yuv(path):
+    """Name of the single raw .yuv inside a UVG .7z archive, and its width/height (from the name)."""
+    names = re.findall(r'^Path = (.+)$', run([SEVEN_ZA, 'l', '-slt', path]), re.M)[1:]  # [0] is the archive
+    yuv = [n for n in names if n.lower().endswith('.yuv')]
+    if len(yuv) != 1:
+        raise RuntimeError('%s: expected one .yuv inside, found %s' % (path, yuv))
+    m = re.search(r'_(\d+)x(\d+)_(\d+)fps_420_8bit', yuv[0])
+    if not m:
+        raise RuntimeError('%s: cannot read size/rate from %s' % (path, yuv[0]))
+    return yuv[0], int(m.group(1)), int(m.group(2)), int(m.group(3))
 
 
 def run(cmd):
@@ -45,6 +62,9 @@ def probe(path, kind):
     """Width, height, pix_fmt, exact frame rate and colour tags of a raw source."""
     args = ['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-of', 'json', '-show_entries',
             'stream=width,height,pix_fmt,r_frame_rate,color_range,color_space,color_primaries,color_transfer']
+    if kind == '7z':      # raw YUV inside an archive: nothing for ffprobe to read
+        name, w, h, rate = archive_yuv(path)
+        return dict(width=w, height=h, pix_fmt='yuv420p', r_frame_rate='%d/1' % rate, member=name)
     if kind == 'png_dir':
         path = os.path.join(path, '00000.png')
     s = json.loads(run(args + [path]))['streams'][0]
@@ -60,13 +80,15 @@ def crop_16x9(w, h):
     return cw, ch, (w - cw) // 2 // 2 * 2, (h - ch) // 2 // 2 * 2
 
 
-def ffmpeg_command(clip, raw, raw_dir, src, out_w, out_h, fps, skip, dst):
+def ffmpeg_command(clip, raw, raw_dir, src, out_w, out_h, fps, decimate, skip, dst):
     w, h = src['width'], src['height']
     cw, ch, x, y = crop_16x9(w, h)
     rgb = src['pix_fmt'].startswith(('rgb', 'bgr', 'gbr', 'pal'))
     filters = []
     if skip:
         filters.append('trim=start_frame=%d' % skip)
+    if decimate > 1:      # keep source frames 0, N, 2N, ... (counted after the trim)
+        filters.append('select=not(mod(n\\,%d))' % decimate)
     if (cw, ch) != (w, h):
         filters.append('crop=%d:%d:%d:%d' % (cw, ch, x, y))
     # sws_dither=none: with a resize, swscale rounds without dither anyway; without one (output size
@@ -79,14 +101,22 @@ def ffmpeg_command(clip, raw, raw_dir, src, out_w, out_h, fps, skip, dst):
     chain = ','.join(filters)
 
     rate = '%d/%d' % (fps.numerator, fps.denominator)
-    cmd = ['ffmpeg', '-hide_banner', '-nostdin', '-loglevel', 'error', '-y']
+    out_fps = fps / decimate
+    cmd = ['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y']
     if raw['kind'] == 'png_dir':
-        cmd += ['-framerate', rate, '-start_number', '0', '-i', os.path.join(raw_dir, raw['path'], '%05d.png')]
+        cmd += ['-nostdin', '-framerate', rate, '-start_number', '0',
+                '-i', os.path.join(raw_dir, raw['path'], '%05d.png')]
+    elif raw['kind'] == '7z':  # raw YUV streamed from 7za on stdin (see decode)
+        cmd += ['-f', 'rawvideo', '-pix_fmt', 'yuv420p', '-s', '%dx%d' % (w, h), '-r', rate, '-i', '-']
     else:
         # -r as an input option: constant-rate timestamps for every stored frame, nothing re-timed
-        cmd += ['-r', rate, '-i', os.path.join(raw_dir, raw['path'])]
-    cmd += ['-vf', chain, '-fps_mode', 'passthrough', '-frames:v', str(clip['n_frames']),
-            '-f', 'yuv4mpegpipe', dst]
+        cmd += ['-nostdin', '-r', rate, '-i', os.path.join(raw_dir, raw['path'])]
+    cmd += ['-vf', chain, '-fps_mode', 'passthrough']
+    if decimate > 1:
+        # The y4m header rate comes from the encoder time base; set it to the reduced rate. (ffmpeg 7
+        # refuses output -r with passthrough.) Verified: frames are exactly source frames 0, N, 2N, ...
+        cmd += ['-enc_time_base', '%d/%d' % (out_fps.denominator, out_fps.numerator)]
+    cmd += ['-frames:v', str(clip['n_frames']), '-f', 'yuv4mpegpipe', dst]
     crop = None if (cw, ch) == (w, h) else '%dx%d+%d+%d' % (cw, ch, x, y)
     colour = ('RGB -> YUV BT.709, limited range' if rgb else
               'none (YUV passthrough); range normalised to limited')
@@ -130,45 +160,59 @@ def decode(clip_id, args):
         print('%s: already decoded, skipping' % clip_id)
         return
 
-    if clip['fps_status'] != 'ok':
-        raise RuntimeError('%s is flagged (%s fps); not decoding until the team decides'
-                           % (clip_id, clip['src_fps']))
+    if clip['fps_status'] not in ('ok', 'decimate'):
+        raise RuntimeError('%s: frame-rate status %r (%s fps) is not decodable'
+                           % (clip_id, clip['fps_status'], clip['src_fps']))
+    decimate = int(clip['decimate'])
     raw = {r['clip_id']: r for r in csv.DictReader(open(args.index))}.get(clip_id)
     if raw is None:
         raise RuntimeError('%s is not in %s (not downloaded yet?)' % (clip_id, args.index))
-    if raw['kind'] == '7z':
-        raise RuntimeError('%s: 7z (UVG) sources are not handled yet' % clip_id)
     # Range and PNG downloads hold exactly the clip's source frames.
     if raw['n_src_frames'] and int(raw['n_src_frames']) != clip['n_frames'] * int(clip['decimate']):
         raise RuntimeError('%s: raw has %s frames, clip needs %d' % (clip_id, raw['n_src_frames'],
                                                                       clip['n_frames']))
 
-    src = probe(os.path.join(args.raw, raw['path']), raw['kind'])
+    src_path = os.path.join(args.raw, raw['path'])
+    src = probe(src_path, raw['kind'])
     if raw['kind'] == 'png_dir':
         fps = Fraction(clip['src_fps']).limit_denominator(1001)
     else:
         fps = Fraction(src['r_frame_rate'])
-    if not FPS_MIN - 0.01 <= float(fps) <= FPS_MAX + 0.01:
-        raise RuntimeError('%s: source is %.3f fps, outside %g-%g' % (clip_id, fps, FPS_MIN, FPS_MAX))
     if abs(float(fps) - float(clip['src_fps'])) > 0.01 * float(fps):
         raise RuntimeError('%s: source is %.3f fps but the candidate list says %s'
                            % (clip_id, fps, clip['src_fps']))
+    want_fps = fps / decimate
+    if not FPS_MIN - 0.01 <= float(want_fps) <= FPS_MAX + 0.01:
+        raise RuntimeError('%s: output would be %.3f fps (source %.3f / %d), outside %g-%g'
+                           % (clip_id, want_fps, fps, decimate, FPS_MIN, FPS_MAX))
     skip = int(clip['start_frame']) - int(raw['first_src_frame'])
 
     out_w, out_h = args.width, args.height
-    cmd, chain, crop, colour = ffmpeg_command(clip, raw, args.raw, src, out_w, out_h, fps, skip,
+    cmd, chain, crop, colour = ffmpeg_command(clip, raw, args.raw, src, out_w, out_h, fps, decimate, skip,
                                                dst + '.part')
     t0 = time.time()
-    subprocess.check_call(cmd)
+    if raw['kind'] == '7z':
+        unzip = subprocess.Popen([SEVEN_ZA, 'x', '-so', src_path, src['member']],
+                                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        rc = subprocess.call(cmd, stdin=unzip.stdout)
+        unzip.stdout.close()
+        unzip.kill()          # ffmpeg stops after n_frames; the rest of the archive isn't needed
+        unzip.wait()
+        if rc:
+            raise subprocess.CalledProcessError(rc, cmd)
+    else:
+        subprocess.check_call(cmd)
     out_fps, header = check_y4m(dst + '.part', out_w, out_h, clip['n_frames'])
-    if out_fps != fps:
-        raise RuntimeError('%s: output header fps %s, source %s' % (clip_id, out_fps, fps))
+    if out_fps != want_fps:
+        raise RuntimeError('%s: output header fps %s, expected %s' % (clip_id, out_fps, want_fps))
+    fps = want_fps
 
     meta = dict(
         clip_id=clip_id, split=clip['split'], group=clip['group'], source=clip['source'],
         path=os.path.relpath(dst, args.out), width=out_w, height=out_h,
         fps='%d/%d' % (fps.numerator, fps.denominator), n_frames=clip['n_frames'],
         src_path=raw['path'], src_size='%dx%d' % (src['width'], src['height']),
+        src_fps=clip['src_fps'], decimate=decimate,
         src_pix_fmt=src['pix_fmt'], src_start_frame=int(clip['start_frame']),
         src_color_range=src.get('color_range', 'unknown'),
         src_color_space=src.get('color_space', 'unknown'),
@@ -194,8 +238,8 @@ def make_tasks(args):
     raw = {r['clip_id'] for r in csv.DictReader(open(args.index))} if os.path.exists(args.index) else set()
     tasks, skipped = [], []
     for c in csv.DictReader(open(args.candidates)):
-        if c['fps_status'] != 'ok':
-            skipped.append((c['clip_id'], 'flagged: %s fps (pending team decision)' % c['src_fps']))
+        if c['fps_status'] not in ('ok', 'decimate'):
+            skipped.append((c['clip_id'], 'rejected frame rate: %s fps' % c['src_fps']))
         elif c['clip_id'] not in raw:
             skipped.append((c['clip_id'], 'not downloaded'))
         else:
@@ -218,8 +262,11 @@ def merge(args):
     rows = [json.load(open(os.path.join(meta_dir, f)))
             for f in sorted(os.listdir(meta_dir)) if f.endswith('.json')]
     path = os.path.join(args.out, 'manifest.csv')
+    fields = []
+    for r in rows:                         # union of keys: older metadata lacks newer fields
+        fields += [k for k in r if k not in fields]
     with open(path + '.part', 'w', newline='') as f:
-        w = csv.DictWriter(f, list(rows[0]))
+        w = csv.DictWriter(f, fields, restval='')
         w.writeheader()
         w.writerows(rows)
     os.rename(path + '.part', path)

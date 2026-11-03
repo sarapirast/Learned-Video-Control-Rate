@@ -51,8 +51,9 @@ UGC_P2_PER_CATEGORY = 1
 # Small resolutions first: everything is downscaled to ~320x180 anyway.
 UGC_RES = ['360P', '480P', '720P']
 
-# Frame-rate rule (team decision 2026-10-29): accept 23.976-30 fps sources. 50/60 fps-family sources
-# (and their 100/120 multiples) are kept but flagged for a decision; any other rate is rejected.
+# Frame-rate rule (team decisions 2026-10-29 and 2026-11-02): 23.976-30 fps sources are used at their
+# native rate. 50/60 fps-family sources (and their 100/120 multiples) are decimated by an integer factor
+# (120 -> 30, 60 -> 30, 50 -> 25) and then used like any other clip. Any other rate is rejected.
 FPS_MIN, FPS_MAX = 23.976, 30.0
 HIGH_FPS = [50, 59.94, 60, 100, 119.88, 120]
 
@@ -65,7 +66,7 @@ def fps_status(fps):
     if FPS_MIN - 0.01 <= fps <= FPS_MAX + 0.01:
         return 'ok'
     if any(abs(fps - h) <= 0.005 * h for h in HIGH_FPS):
-        return 'flag-high-fps'
+        return 'decimate'
     return 'reject'
 
 
@@ -282,7 +283,7 @@ def summary(rows):
     print()
     print('by source:', ', '.join('%s %d' % kv for kv in sorted(Counter(r['source'] for r in rows).items())))
     flagged = [r for r in rows if r['fps_status'] != 'ok']
-    print('\nflagged high frame rate (team decision): %d clips (%d priority 1)' % (
+    print('\nhigh frame rate, decimated: %d clips (%d priority 1)' % (
         len(flagged), sum(r['priority'] == '1' for r in flagged)))
     for fps, rs in sorted(groupby_fps(flagged).items(), key=lambda kv: float(kv[0])):
         print('  %7s fps: %s' % (fps, ', '.join(r['clip_id'] for r in rs)))

@@ -124,10 +124,9 @@ order was agreed with Aayush.
 - [x] 0. CLAUDE.md brought up to date (current state, modules, checks done)
 - [x] 1. SI/TI per frame for the 88 v1 clips. `scripts/frame_features.py --siti` ->
   `data/v1/320x180/features/siti.csv` (26,417 rows); verified against a plain-Python P.910 implementation
-- [x] 2. First repo commit prepared: 16 files staged under `repo/p2_data/` via `scripts/sync_to_repo.sh`,
-  not committed. Blocked on Aayush: git `user.email` is a placeholder (`your_actual_email@usc.edu`).
-  Aayush sets it, reviews, commits and approves the push. Re-run `scripts/sync_to_repo.sh` before
-  committing if files have changed since.
+- [x] 2. First repo commit: `d2cc27c` on branch `p2-data-v1` (24 files under `p2_data/`), authored by
+  Aayush Soni <75730831+AayushSo@users.noreply.github.com> (GitHub no-reply; email privacy is on). Pushed 2026-11-02; it is the repo's only branch, so GitHub shows it as the default branch.
+  Later changes: run `scripts/sync_to_repo.sh`, then commit in `repo/`
 - [x] 3. Project conda env at `/scratch1/aayushso/envs/ee599` (2026-11-02): Python 3.11, numpy, pandas,
   pyarrow, scipy, scikit-learn, matplotlib. Spec in `environment.yml`, exact versions in
   `environment.lock.txt`, package cache in `/scratch1/aayushso/conda_pkgs`. Use:
@@ -143,6 +142,11 @@ order was agreed with Aayush.
   `scripts/build_features.py` (conda env), with `fp_bits` empty until the encoder is decided. Key point:
   the policy uses the automatic `cut_flag` (97% recall, 78% precision on natural clips), not the
   reviewed labels. Waiting on Sara's answers to the 6 questions
+- [x] 8. High-frame-rate clips decimated and integrated (2026-11-02): 15 P1 clips decoded (job 13668089),
+  manifest/labels/SI-TI/frames.parquet/README regenerated: 109 clips, 1042 GOPs
+  (train 531/87/7, val 128/21/3, test 211/49/5). Open: 3 uncertain frames in the new clips not yet
+  reviewed (cuts/disagreements.csv); repo sync + commit pending
+- [x] 9. Shared read-only via ACLs (2026-11-02): pirasteh, pbanga, ahhanagu, atharvam have traverse (x) on /scratch1/aayushso; everything else stays private
 - [x] 7. Dissolve-detection test: about 1 in 6 precision, so it stays off. It surfaced 1 missed cut
   (red_kayak f148) and 1 dissolve (controlled_burn), now added to the review file. Labels, feature
   table and README regenerated: train 447/84/7, val 123/21/3, test 201/49/5 (stable/cut/gradual)

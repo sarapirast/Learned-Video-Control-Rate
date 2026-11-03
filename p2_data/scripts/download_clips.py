@@ -326,8 +326,6 @@ def main():
     ap.add_argument('--out', default=os.path.join(ROOT, 'data', 'raw'))
     ap.add_argument('--priority', type=int, default=1, help='include clips with priority <= this')
     ap.add_argument('--only', help='comma-separated clip_ids')
-    ap.add_argument('--include-flagged', action='store_true',
-                    help='also fetch clips flagged for high frame rate (pending a team decision)')
     ap.add_argument('--workers', type=int, default=4, help='parallel downloads (be gentle: shared node)')
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--test-frames', type=int, default=0,
@@ -343,12 +341,6 @@ def main():
         clips = [c for c in clips if c['clip_id'] in want]
     else:
         clips = [c for c in clips if int(c['priority']) <= args.priority]
-        if not args.include_flagged:
-            flagged = [c for c in clips if c['fps_status'] != 'ok']
-            clips = [c for c in clips if c['fps_status'] == 'ok']
-            if flagged:
-                log('skipping %d clips flagged for high frame rate (--include-flagged to fetch them)'
-                    % len(flagged))
     os.makedirs(args.out, exist_ok=True)
     jobs = make_jobs(clips, args.out, args.test_frames)
     todo = [j for j in jobs if not j.is_done()]

@@ -76,7 +76,17 @@ The plan's requirements and where each stands:
   they'd need tone mapping. Cosmos Laundromat is the first to add if we want another cut source.
 - The pilot's 21 clips: not on the list yet, because I don't have their identities (see open items).
 
-## Frame-rate rule (decided 2026-10-29)
+## Frame-rate rule (decided 2026-10-29, updated 2026-11-02)
+
+**Update 2026-11-02 (team decision):** the high-frame-rate sources are decimated by an integer factor
+and then used like any other clip, keeping the splits they already had.
+- **Factors:** 120 -> 30, 60/59.94 -> 30/29.97, 50 -> 25.
+- **How:** `decode_clips.py` keeps source frames 0, N, 2N, ... (verified against independently extracted
+  source frames) and writes the reduced rate in the y4m header.
+- **Status:** these clips are now `fps_status = decimate`, not `flag-high-fps`.
+- **Priority 1:** 15 clips: 5 SVT, 7 UVG (from the `.7z` archives, streamed through `7za`), and 3 UGC.
+- **Short clips:** UVG's 120 fps clips give 150 frames (5 GOPs) each; ShakeNDry gives 75 (2 GOPs).
+- **Superseded:** the "flagged, needing a decision" text below is kept for the record.
 
 - **Accept only 23.976-30 fps sources.**
 - **50/60 fps-family sources** (50, 59.94, 60, and their 100/120 multiples) are **flagged, not dropped**,
