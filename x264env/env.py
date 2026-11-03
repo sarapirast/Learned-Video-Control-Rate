@@ -187,11 +187,7 @@ class RateControlEnv(gym.Env):
         self.episode_bitstream += out.bitstream
         self.episode_recon += out.recon
 
-        ys = self._w * self._h
-        ref_y = self._luma[self.t].astype(np.float32)
-        rec_y = np.frombuffer(out.recon, np.uint8, ys).reshape(self._h, self._w).astype(np.float32)
-        mse = float(np.mean((ref_y - rec_y) ** 2))
-        psnr = PSNR_CAP if mse == 0 else min(PSNR_CAP, 10 * np.log10(255.0 ** 2 / mse))
+        mse, psnr = self._luma_mse_psnr(self.t, out.recon)
 
         self.slice_bits_used += out.slice_bits
         self._hist_qp.appendleft(qp)
@@ -209,6 +205,15 @@ class RateControlEnv(gym.Env):
             info["overshoot"] = (self.slice_bits_used - self.budget) / self.budget
             self.close()
         return self._obs(), float(psnr), terminated, False, info
+
+    def _luma_mse_psnr(self, t: int, recon: bytes) -> tuple[float, float]:
+        """Luma MSE and PSNR (dB, capped at PSNR_CAP) of source frame t vs recon."""
+        ys = self._w * self._h
+        ref_y = self._luma[t].astype(np.float32)
+        rec_y = np.frombuffer(recon, np.uint8, ys).reshape(self._h, self._w).astype(np.float32)
+        mse = float(np.mean((ref_y - rec_y) ** 2))
+        psnr = PSNR_CAP if mse == 0 else min(PSNR_CAP, 10 * np.log10(255.0 ** 2 / mse))
+        return mse, float(psnr)
 
     def close(self):
         if self._enc is not None:

@@ -152,6 +152,7 @@ is over 30. P2's features can replace it through
 python3 tests/smoke_encode.py clip.y4m --qp 26           # per-frame bits + PSNR at constant QP
 python3 tests/test_env.py clip.y4m [--budget 45000]      # env_checker + episodes
 python3 tests/test_parity.py --clip a.y4m:GOP [--clip b.y4m:GOP ...]   # env vs x264 CLI
+python3 tests/bench_env.py [--episodes 60]               # throughput, time breakdown, RAM
 ```
 
 `test_env.py` runs gymnasium's `env_checker`, then three episodes with
@@ -210,6 +211,56 @@ SEI. Real clips were read in place from P2's data v1
 
 Each GOP was tested with constant 26, 11 and 51, random 11..51, and the shield
 case. The shield fired on 4, 16, 19, 22 and 19 frames respectively.
+
+## Throughput (2026-11-03)
+
+`tests/bench_env.py`: one env process pinned to one core (numpy threads = 1).
+- 60 real GOPs from 47 of P2's data v1 clips (GOP indices 0..9), the same
+  GOPs for every config.
+- Budget 172,800 slice bits per GOP (0.1 bit/pixel).
+- Every GOP is read once before timing, so the runs measure warm reads.
+
+Node: **a04-09** (`main` partition, 2 cores / 8 GB allocated), **AMD EPYC 7513
+32-Core Processor** (64 cores, 2 sockets). Other jobs kept the node load at
+about 24 of 64 cores. CPU/wall was 0.97–1.00, so one core was effectively
+dedicated. Two runs:
+
+| config | episodes/s per core (run 1 / run 2) | CPU per episode | mean QP | shield steps |
+|---|---|---|---|---|
+| random actions, k=0 | 19.4 / 20.4 | 49–50 ms | 39.9 | 33% |
+| random actions, k=30 | 19.8 / 20.0 | 50 ms | 39.9 | 33% |
+| constant dqp=0, k=0 | 19.1 / 18.6 | 52–53 ms | 37.9 | 32% |
+| constant dqp=0, k=30 | 18.9 / 18.5 | 52–54 ms | 37.9 | 32% |
+
+**Per step (about 1.3–1.4 ms):**
+
+| part | ms | share |
+|---|---|---|
+| x264 encode (incl. recon copy) | 1.16–1.26 | ~90% |
+| MSE + PSNR (luma) | 0.07–0.09 | ~6% |
+| observation | 0.02 (k=0) / 0.04 (k=30) | 1.5–3% |
+| other Python (shield, history, info) | 0.02–0.03 | ~2% |
+
+**Per episode, reset takes about 10–13 ms,** about 20% of the episode. Almost
+all of it is loading the GOP: `read_y4m` streams the clip from its start up to
+the GOP, then computes the complexity features. That takes about 10 ms warm.
+The first, cold read from `/scratch1` (BeeGFS) took 72 ms per GOP in run 1.
+Opening the encoder takes 0.5 ms.
+
+If GOP frames were already in RAM (preloaded, or a seeking y4m reader), the
+env would run at **23–26 episodes/s per core**.
+
+- **Lookahead size** barely matters: k=30 adds about 0.02 ms per step.
+- **Encode time depends on QP:** lower QP means more bits and slower CABAC.
+  The dqp=0 runs (mean QP 37.9) are about 6% slower than random (39.9).
+  Expect fewer episodes/s at looser budgets.
+
+**RAM per env:**
+- About 12 MiB per additional env (open x264 encoder, cached GOP frames and
+  luma, episode bitstream/recon buffers).
+- The process is 35 MiB after imports (Python + numpy + gymnasium), 65 MiB
+  with one env, and 102 MiB with four; peak RSS was 116 MiB.
+- So the 8 GB allocation holds hundreds of envs; CPU, not RAM, is the limit.
 
 ## Verification results (2026-11-03, 320x180 testsrc)
 
