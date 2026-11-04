@@ -4,6 +4,34 @@ An RL agent picks the QP of every frame in x264 so that each 30-frame GOP fits
 a bit budget with maximum PSNR. This branch (`p1`) holds the encoder shim and
 the Gym environment.
 
+## Quick start for teammates
+
+On a CARC compute node (`salloc --partition=debug --time=0:30:00 --cpus-per-task=2 --mem=8G`):
+
+```bash
+cd /scratch1/$USER
+git clone git@github.com:sarapirast/Learned-Video-Control-Rate.git
+cd Learned-Video-Control-Rate
+git checkout p1
+
+# one time: conda env from environment.lock.txt (= P2's lock + gymnasium)
+module purge && module load conda/25.11.0
+export CONDA_PKGS_DIRS=/scratch1/$USER/conda_pkgs
+mamba create --prefix /scratch1/$USER/envs/ee599 -c conda-forge --file environment.lock.txt
+
+# every session
+source env.sh      # set EE599_ENV=/path/to/env first to use an env elsewhere
+make
+
+# tests, on P2's real clips (read in place, nothing is copied)
+D=/scratch1/aayushso/ee599/data/v1/320x180/clips
+python3 tests/smoke_encode.py $D/Animation_360P-3e40.y4m --qp 26
+python3 tests/test_parity.py --clip $D/Animation_360P-3e40.y4m:0 --clip $D/Gaming_360P-3eb6.y4m:1
+```
+
+The smoke test should print bits and PSNR for 30 frames. The parity test
+should end with `10/10 cases passed`.
+
 | Path | What it is |
 |---|---|
 | `env.sh` | CARC modules + conda env; `source` it first |
@@ -36,7 +64,7 @@ make              # builds build/libx264shim.so
 ```
 
 `env.sh` activates `/scratch1/$USER/envs/ee599`; set `EE599_ENV` to use a
-different env. The Python comes from the conda env (3.11, numpy, gymnasium);
+different env. If the env doesn't exist, `env.sh` stops with an error. The Python comes from the conda env (3.11, numpy, gymnasium);
 no `python` module is loaded, so the two never shadow each other.
 
 > **Never install `ffmpeg` or `x264` (or anything that pulls them in) into the

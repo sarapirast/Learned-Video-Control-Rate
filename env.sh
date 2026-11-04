@@ -16,4 +16,9 @@
 module purge
 module load ver/2506 gcc/14.3.0 x264/20250608 ffmpeg/7.1.1 conda/25.11.0
 eval "$(conda shell.bash hook)"
-conda activate "${EE599_ENV:-/scratch1/$USER/envs/ee599}"
+EE599_ENV="${EE599_ENV:-/scratch1/$USER/envs/ee599}"
+if [ ! -d "$EE599_ENV/conda-meta" ]; then
+    echo "env.sh: no conda env at $EE599_ENV; create it (see README Quick start) or set EE599_ENV" >&2
+    return 1 2>/dev/null || exit 1
+fi
+conda activate "$EE599_ENV"
