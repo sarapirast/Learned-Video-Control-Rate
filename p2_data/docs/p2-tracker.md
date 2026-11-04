@@ -192,6 +192,52 @@ order was agreed with Aayush.
   also 30/30; plain --qp clamps 24/30 frames into base +-3 (her finding, only for --qp). So Pavneet's x264 results are
   NOT affected. But the two forced-QP methods are not bit-identical (6-27 of 30 frames differ by a few bytes, totals
   within 0.3%), and preset fast/psy-on vs medium/no-psy changes total bits by 1.8% at the same QPs.
+- [~] 18. (2026-11-04) Causal online base-QP controller = P2's causal baseline, under the clip-level budgets
+  (budgets.csv). Offline prototype scripts/controller_v1.py: PSNR side INVALID (it reads P-frame distortion from
+  constant-QP encodes, but a skipped P frame's quality follows its reference's QP; e.g. near-static lyric GOP gave
+  +70% / -236% artifacts) -> kept only as a record. Real-encode version scripts/controller_real.py (prefix re-encodes,
+  P1 settings, x264 forced QP via --qp 31 --ipratio 10 --pbratio 10, x265 via --qp + qpfile, both checked 30/30;
+  train-only rate model in data/v1/320x180/rd/controller_model.json; generic job script jobs/p2_step.sbatch).
+  Smoke OK (1.8 / 3.8 CPU-s per episode x264 / x265). Tuning on val submitted 2026-11-04: 13714557 (x264),
+  13714558 (x265), 12 settings (margin x dI x i_cap) x k0/5 x 4 levels x every 2nd val GOP. NEXT: pick setting on val
+  (python scripts/controller_real.py --report), then final val+test run (all GOPs, k 0/2/5/10/29) with approval.
+  Tuning v1 (13714557/58) exposed two flaws: (1) one odd first-pass frame set the whole P estimate -> frame 1 at
+  QP 11 spent 4-6x the budget; (2) at k=0 the I frame was starved on low-motion GOPs (I QP above P QPs), saving -26
+  to -56%. Checked the scoring chain: forced-QP encodes = plain CQP within 0.4% bits, same PSNR. Fixes in
+  controller_real.py: P first-pass estimate shrunk to fp_0/(I-P ratio); per-frame spend cap fcap; QP change limit
+  dmax; option init=1 (I QP from budgets.csv estimator - dI); P QP >= I QP + pmin. Hard-case check (6 GOPs, levels
+  36/42): -26 -> +0.5 (k0), +1.75 (k5). Tuning v2 submitted: 13715965 (x264), 13715966 (x265), tag tune2.
+  Tuning v2 (val, k0/5 pooled): best for both encoders 0.97:3:1.0:2:3:4:0:1 (margin 0.97, dI 3, solver start):
+  x264 -3.48 / x265 -2.99 (clamped scoring), 2.7% / 1.4% over; margin 1.0 -> 23-28% over; estimator start
+  (init 1) worse overall. Scoring switched to Pavneet's linear extrapolation beyond the curve (level 24 had been
+  biased): chosen setting -> x264 -2.82, x265 -2.29. Final run submitted 2026-11-04: 13716235 (x264 val), 13716236
+  (x264 test), 13716237 (x265 val), 13716250 (x265 test), tag final. Report: scripts/controller_report.py ->
+  results_v1/controller_final.md.
+  FINAL (2026-11-04 10:44, 32/32 tasks OK): results_v1/controller_final.md (scripts/controller_report.py). Test score
+  by k (0/2/5/10/29): x264 -3.94/-2.21/-0.94/-1.02/-2.48; x265 -4.45/-1.96/-0.20/-0.81/-2.19 (0 = best constant QP
+  in hindsight); 2-4.5% of runs over budget, mean over 0.07-0.35%. The GOP-start estimate held constant (no feedback)
+  scores -25 to -103 (overshoots on ~50-60% of GOPs), so online feedback is what makes a causal base QP work.
+  Lookahead helps up to k=5-10; k=29 is worse than k=5 (to investigate).
+  k=29 anomaly DIAGNOSED (no encodes, from stored QP sequences, test): with more lookahead the plan flattens
+  (P QP std 1.6 -> 1.0; first-5 vs last-5 P QP 32.9->35.1 at k0 vs 33.7->33.8 at k29; I QP 29.0 -> 30.4). The rule
+  "constant QP that spends the remaining budget" converges to flat QP with perfect information, which ignores that
+  early frames (and post-cut frames) are references for later ones (spend-early / mb-tree effect). Small k front-
+  loads by accident. Loss k10 -> k29 concentrated in cut (-3.0) and gradual (-6.3) GOPs vs stable (-0.95). Fix for
+  controller v2: explicit spend-early QP profile + QP boost on the first frame after a visible cut, tuned on val.
+- [x] 20. (2026-11-04) Richer first-pass statistics (x264/x265 --pass 1 --stats): scripts/fp_stats.py -> features/
+  fp_stats.parquet (jobs 13717883/84/85; pass-1 stream bits identical to fp_bits). Gate test scripts/fp_stats_gate.py
+  -> docs/fp-stats-gate.md: (a) per-frame bits at a QP: GBM median error 27% -> 21% (x264), 22% -> 18% (x265) =
+  helps; (b) GOP P cost from frames 0-1: no consistent gain; (c) base QP at k=0/2: within +-0.2 QP. So the stats help
+  per-frame prediction of visible frames, not the k=0 problem (that is missing future information). Next option:
+  GBM per-frame model in the controller (k>=2 gains expected, small headroom).
+- [x] 19. (2026-11-04) Literature survey on feature extraction for RL/learned control on video:
+  docs/lit-survey-features-2026-11-04.md (21 refs). Encoder RL (MuZero-RC, Mao 2020, DDPG-x265) uses first-pass /
+  encoder statistics + budget bookkeeping, never raw pixels; MuZero-RC learns a Transformer embedding over the
+  per-frame first-pass statistic sequence (20k training videos). Pixel CNNs in codecs are supervised R-D parameter
+  predictors (0.7-2% BD-rate). General RL-from-pixels: pretrain/freeze encoders with proxy tasks (ATC, CPC, CURL,
+  world models, pretrained vision models). Cheapest upgrade for us: x264 --pass 1 --stats per-frame tex/mv/misc bits
+  + intra/inter/skip MB counts (verified on a v1 GOP), x265 per-frame stats.
+  Repo: Aayush pushed p2-data-v1 1ec4df0 (2026-11-04).
 - [x] 17. (2026-11-04, side-step; closed 09:25 by Aayush after A came out negative) Overshoot size + RL model review. Done: results_v1/v1_overshoot.{md,csv}
   (scripts/v1_overshoot.py), docs/rl-models-review-2026-11-04.md. Proposed experiments A (budget shield at
   inference, no retraining), B (lambda sweep + PID + val checkpoints), C (MPC, implemented, not run on v1),

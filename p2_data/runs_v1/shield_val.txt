@@ -1,0 +1,15 @@
+bc_k0_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+cql_ppo_k0_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+lagr_k0_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+bc_k2_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+cql_ppo_k2_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+lagr_k2_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+bc_k5_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+cql_ppo_k5_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+lagr_k5_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+bc_k10_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+cql_ppo_k10_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+lagr_k10_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+bc_k29_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+cql_ppo_k29_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3
+lagr_k29_fixed_s0 val 1.0:max:0.1:3,1.0:max:0.2:3,1.0:max:0.3:3,1.0:max:0.5:3

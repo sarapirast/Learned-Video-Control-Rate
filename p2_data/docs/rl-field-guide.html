@@ -1,0 +1,430 @@
+<title>RL Rate Control Field Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: reading column (~68ch) with a sticky contents rail on wide screens; a 30-cell GOP strip is the recurring motif. */
+:root {
+  --bg: #f7f8f9;
+  --surface: #ffffff;
+  --fg: #1c2530;
+  --muted: #5a6673;
+  --line: #d9dee4;
+  --accent: #1f6a86;        /* encoder blue: actions, links */
+  --accent-soft: #e2eff4;
+  --budget: #a8641b;        /* budget / penalty amber */
+  --budget-soft: #f6ebdd;
+  --ok: #2f7a4b;
+  --ok-soft: #e1f0e6;
+  --frame-off: #e6e9ed;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171d; --surface: #1a2129; --fg: #e3e8ee; --muted: #9aa6b2; --line: #2d3742;
+    --accent: #6cb7d4; --accent-soft: #1d3440; --budget: #e0a45e; --budget-soft: #3a2c1c;
+    --ok: #7cc79a; --ok-soft: #1d3527; --frame-off: #26303a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171d; --surface: #1a2129; --fg: #e3e8ee; --muted: #9aa6b2; --line: #2d3742;
+  --accent: #6cb7d4; --accent-soft: #1d3440; --budget: #e0a45e; --budget-soft: #3a2c1c;
+  --ok: #7cc79a; --ok-soft: #1d3527; --frame-off: #26303a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 40px 80px; display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 48px; }
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14px; }
+nav.toc p { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-size: 12px; margin: 0 0 8px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+nav.toc a { color: var(--muted); text-decoration: none; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent); }
+main { min-width: 0; max-width: 70ch; }
+header.top { margin-bottom: 40px; }
+.eyebrow { font-family: var(--f-mono); font-size: 13px; color: var(--muted); letter-spacing: .02em; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(2rem, 4.5vw, 2.8rem); line-height: 1.1; margin: 8px 0 14px; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 1.6rem; line-height: 1.2; margin: 56px 0 12px; text-wrap: balance; scroll-margin-top: 24px; }
+h3 { font-family: var(--f-display); font-weight: 600; font-size: 1.2rem; margin: 28px 0 6px; text-wrap: balance; }
+p { margin: 0 0 14px; }
+.lede { font-size: 1.1rem; color: var(--muted); }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, .mono { font-family: var(--f-mono); font-size: .9em; }
+strong { font-weight: 600; }
+ul, ol.steps { padding-left: 1.2em; margin: 0 0 14px; }
+li { margin-bottom: 6px; }
+.tablebox { overflow-x: auto; margin: 16px 0 20px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--f-display); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.note { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 16px 0 20px; }
+.note.budget { border-left-color: var(--budget); background: var(--budget-soft); }
+.note p:last-child { margin-bottom: 0; }
+.label { font-family: var(--f-display); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: block; margin-bottom: 4px; }
+.method { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 28px; }
+.method h3 { margin-top: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+.chip { font-family: var(--f-mono); font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-weight: 400; }
+.chip.ran { color: var(--ok); border-color: var(--ok); background: var(--ok-soft); }
+.chip.now { color: var(--budget); border-color: var(--budget); background: var(--budget-soft); }
+.chip.queued { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 24px; margin: 10px 0 6px; }
+.facts > div { min-width: 0; }
+.facts p { margin: 0; font-size: 15px; }
+figure { margin: 20px 0 24px; }
+figcaption { font-size: 13.5px; color: var(--muted); margin-top: 8px; }
+.diagram { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; }
+.diagram svg { display: block; width: 100%; min-width: 520px; height: auto; }
+svg .box { fill: var(--surface); stroke: var(--fg); stroke-width: 1.5; }
+svg .box.enc { fill: var(--accent-soft); stroke: var(--accent); }
+svg .t { fill: var(--fg); font-family: var(--f-display); font-size: 17px; font-weight: 600; }
+svg .s { fill: var(--muted); font-family: var(--f-mono); font-size: 12.5px; }
+svg .arrow { stroke: var(--accent); stroke-width: 2; fill: none; }
+svg .arrow.rew { stroke: var(--budget); }
+svg .head { fill: var(--accent); }
+svg .head.rew { fill: var(--budget); }
+svg .lab { fill: var(--accent); font-family: var(--f-mono); font-size: 12.5px; }
+svg .lab.rew { fill: var(--budget); }
+/* GOP strip */
+.gop { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; margin: 18px 0 22px; }
+.strip { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 3px; margin: 10px 0 8px; }
+.cell { aspect-ratio: 1 / 1.6; max-width: 100%; border-radius: 3px; background: var(--frame-off); position: relative; }
+.cell.past { background: var(--line); }
+.cell.cur { background: var(--accent); }
+.cell.vis { background: var(--accent-soft); outline: 1px solid var(--accent); outline-offset: -1px; }
+.cell.i::after { content: "I"; position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.cell.cur.i::after { color: var(--surface); }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; font-size: 14px; }
+.controls label { display: flex; align-items: center; gap: 8px; font-family: var(--f-mono); }
+.controls input[type="range"] { width: 160px; accent-color: var(--accent); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); margin-top: 8px; }
+.legend span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--sw); outline: 1px solid var(--swo, transparent); outline-offset: -1px; }
+#gop-read { font-family: var(--f-mono); font-size: 13.5px; color: var(--fg); margin: 6px 0 0; }
+footer { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 8px; padding-block: 24px 64px; }
+  nav.toc { position: static; border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; background: var(--surface); }
+  nav.toc ol { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Contents">
+    <p>Contents</p>
+    <ol>
+      <li><a href="#basics">RL in one page</a></li>
+      <li><a href="#search">The hindsight search</a></li>
+      <li><a href="#lookahead">Lookahead k</a></li>
+      <li><a href="#ran">Methods run on v1</a></li>
+      <li><a href="#other">Other methods in the code</a></li>
+      <li><a href="#ours">What we're testing next</a></li>
+      <li><a href="#read">Reading the results</a></li>
+      <li><a href="#glossary">RL terms in ML language</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="top">
+      <div class="eyebrow">EE599 · per-frame QP rate control · 30-frame GOPs, 320×180</div>
+      <h1>RL Rate Control Field Guide</h1>
+      <p class="lede">What each policy in our project is, written for someone who knows supervised learning, CNNs, LSTMs and transformers, but not reinforcement learning. Every RL idea is tied back to the encoder problem we're solving.</p>
+    </header>
+
+    <section id="basics">
+      <h2>RL in one page</h2>
+      <p>In supervised learning you have inputs and correct labels, and you minimise a loss. Reinforcement learning is for problems where nobody can give you the correct label. You only find out how good a whole sequence of decisions was after you've made them.</p>
+      <p>Our problem fits that shape. We encode a GOP one frame at a time, choosing each frame's QP. Nobody knows the "correct" QP for frame 7. We only learn, after frame 30, how many bits the GOP used and how good it looks.</p>
+
+      <figure>
+        <div class="diagram">
+          <svg viewBox="0 0 640 230" role="img" aria-labelledby="loop-t loop-d">
+            <title id="loop-t">The agent and environment loop</title>
+            <desc id="loop-d">The policy sends a QP offset to the encoder. The encoder returns the next observation, and at the end of the GOP a reward.</desc>
+            <rect class="box" x="20" y="70" width="190" height="90" rx="8"/>
+            <text class="t" x="115" y="108" text-anchor="middle">Agent (policy)</text>
+            <text class="s" x="115" y="132" text-anchor="middle">MLP, 346 inputs</text>
+            <text class="s" x="115" y="148" text-anchor="middle">→ 7 action scores</text>
+            <rect class="box enc" x="430" y="70" width="190" height="90" rx="8"/>
+            <text class="t" x="525" y="108" text-anchor="middle">Environment</text>
+            <text class="s" x="525" y="132" text-anchor="middle">x264 / x265 encoder</text>
+            <text class="s" x="525" y="148" text-anchor="middle">+ one 30-frame GOP</text>
+            <path class="arrow" d="M210 92 C 290 40, 350 40, 430 92"/>
+            <polygon class="head" points="430,92 418,90 425,81"/>
+            <text class="lab" x="320" y="38" text-anchor="middle">action: QP offset −3…+3 for frame t</text>
+            <path class="arrow" d="M430 128 C 350 170, 290 170, 210 128"/>
+            <polygon class="head" points="210,128 222,130 215,139"/>
+            <text class="lab" x="320" y="178" text-anchor="middle">observation: bits spent, budget left, frame costs</text>
+            <text class="lab rew" x="320" y="205" text-anchor="middle">reward: 0 for frames 1–29, the GOP's score after frame 30</text>
+          </svg>
+        </div>
+        <figcaption>One episode is one GOP. The loop runs 30 times, once per frame. Every step is a real encode.</figcaption>
+      </figure>
+
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>RL term</th><th>Meaning</th><th>In our project</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Policy</strong> π</td><td>The model that picks actions</td><td>An MLP that picks each frame's QP offset</td></tr>
+            <tr><td><strong>Environment</strong></td><td>The world that responds to actions</td><td>The encoder plus one GOP</td></tr>
+            <tr><td><strong>Observation</strong> s</td><td>What the policy sees before deciding</td><td>346 numbers: frame position, bits spent vs budget, first-pass complexity of this frame (and of k future frames), cut flags</td></tr>
+            <tr><td><strong>Action</strong> a</td><td>The decision</td><td>One of 7 offsets (−3…+3) added to a base QP</td></tr>
+            <tr><td><strong>Episode</strong></td><td>One full run from start to end</td><td>One GOP: 30 decisions</td></tr>
+            <tr><td><strong>Reward</strong> r</td><td>Feedback after an action</td><td>0 until the end, then the GOP's score: % bits saved at equal quality, minus 2 per 1% over budget</td></tr>
+            <tr><td><strong>Return</strong></td><td>Sum of rewards in an episode</td><td>Here, just the final score</td></tr>
+            <tr><td><strong>Value</strong> V(s)</td><td>Expected return from a state</td><td>"With this much budget left at frame 12, how good will this GOP end up?"</td></tr>
+            <tr><td><strong>Q-value</strong> Q(s, a)</td><td>Expected return if you take action a now</td><td>"If frame 12 gets QP+2, how good will this GOP end up?"</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Why this is harder than supervised learning</h3>
+      <ul>
+        <li><strong>Credit assignment.</strong> The reward arrives only after frame 30. If the GOP went over budget, the learner has to work out which of the 30 QP choices caused it, from many episodes.</li>
+        <li><strong>The data depends on the policy.</strong> A supervised dataset is fixed. In RL the data comes from the policy's own behaviour, so changing the policy changes what it sees.</li>
+        <li><strong>Data is expensive here.</strong> Every step is a real encode, so a training run gets about 2,000 episodes. Most RL successes use millions.</li>
+      </ul>
+      <p>A loose analogy: an LSTM or transformer that emits a sequence of decisions, where the loss is computed only on the final outcome and never per token.</p>
+    </section>
+
+    <section id="search">
+      <h2>The hindsight search</h2>
+      <p>The search is <strong>not RL and not a policy</strong>. It's a brute-force optimiser that cheats on purpose:</p>
+      <ul>
+        <li>It knows the whole GOP in advance.</li>
+        <li>It starts from a fixed QP pattern and nudges one or more frames' QPs, keeping a change if the score doesn't get worse. That's hill-climbing.</li>
+        <li>Every candidate plan gets a real encode, about 600 per GOP and budget.</li>
+      </ul>
+      <p>It has two jobs:</p>
+      <ol class="steps">
+        <li><strong>Reference point:</strong> how good could we be with perfect knowledge? On v1 test it scores <span class="mono">9.09</span> (x264) and <span class="mono">9.62</span> (x265).</li>
+        <li><strong>Teacher:</strong> its logged plans, with their scores, are the training data for BC and offline RL.</li>
+      </ol>
+      <p>The research question is how much of the search's score a real single-pass policy can capture, and whether lookahead helps.</p>
+    </section>
+
+    <section id="lookahead">
+      <h2>Lookahead k</h2>
+      <p>At frame t, a policy with lookahead k may also see the first-pass complexity and cut flags of frames t+1 … t+k. A real encoder gets this by buffering k frames, which adds k frames of delay. k = 0 is strictly causal; k = 29 sees the rest of the GOP.</p>
+      <p>The input size stays at 346 numbers whatever k is. Slots for frames the policy may not see are zeros, much like padding and masking in a transformer.</p>
+
+      <div class="gop" aria-labelledby="gop-h">
+        <span class="label" id="gop-h">What the policy sees at frame t</span>
+        <div class="controls">
+          <label for="t-range">t <input id="t-range" type="range" min="0" max="29" value="8"> <span id="t-val">8</span></label>
+          <label for="k-range">k <input id="k-range" type="range" min="0" max="29" value="5"> <span id="k-val">5</span></label>
+        </div>
+        <div class="strip" id="strip" aria-hidden="true"></div>
+        <div class="legend">
+          <span style="--sw: var(--line)">already coded</span>
+          <span style="--sw: var(--accent)">frame t (deciding now)</span>
+          <span style="--sw: var(--accent-soft); --swo: var(--accent)">visible lookahead</span>
+          <span style="--sw: var(--frame-off)">not visible (zeros)</span>
+        </div>
+        <p id="gop-read">Frame 8: sees frames 9–13 ahead; 16 later frames are hidden.</p>
+      </div>
+    </section>
+
+    <section id="ran">
+      <h2>Methods run on v1</h2>
+      <p>Pavneet's code implements about 18 methods. Three have been run on data v1, for both encoders, at k = 0, 2, 5, 10 and 29, with 3 seeds each.</p>
+
+      <div class="method">
+        <h3>Behavioural cloning (BC) <span class="chip ran">run on v1</span></h3>
+        <p>Plain supervised learning. Training pairs are "observation at frame t → the action the search chose at frame t", using only the best search plan per GOP and budget. The model is an MLP classifier over 7 classes, trained with cross-entropy, like an image classifier whose image is the observation and whose label is the QP offset. At test time it picks the most probable action.</p>
+        <div class="facts">
+          <div><span class="label">Weakness</span><p>It copies what the search did but never learns why. Once it drifts from the search's plan, for example by overspending at frame 5, it reaches states the search never visited and doesn't know how to recover. This is called <strong>distribution shift</strong> or compounding error.</p></div>
+          <div><span class="label">On v1</span><p>Overshoots the budget on 16–26% of test GOPs. It gains the most from lookahead, mainly because lookahead helps it avoid overspending.</p></div>
+        </div>
+      </div>
+
+      <div class="method">
+        <h3>CQL → PPO <span class="chip ran">run on v1</span></h3>
+        <p>Pavneet's core recipe, in three steps.</p>
+        <p><strong>1. CQL (Conservative Q-Learning), offline RL.</strong> It learns from the fixed set of search plans, with no new encodes.</p>
+        <ul>
+          <li><strong>What it learns:</strong> Q(s, a), the expected final score. The policy is "pick the action with the highest Q".</li>
+          <li><strong>How:</strong> through the Bellman equation, Q(s, a) ≈ reward + Q(next state, best next action). It's a regression whose target uses the network's own predictions, which spreads the end-of-GOP score back to earlier frames. That's how it handles credit assignment.</li>
+          <li><strong>The fix CQL adds:</strong> with a fixed dataset, the network can wrongly give high Q to actions that never appear in the data, and the policy then picks exactly those. CQL penalises Q for actions not in the data: if you haven't seen it, don't trust it.</li>
+          <li><strong>Advantage over BC:</strong> it uses all logged plans, good and bad, with their scores, so it learns what makes a plan good.</li>
+        </ul>
+        <p><strong>2. Distillation.</strong> The CQL result is copied into a policy network by training it to match a softmax over CQL's Q-values. That's supervised learning again, as in knowledge distillation.</p>
+        <p><strong>3. PPO (Proximal Policy Optimisation), online fine-tuning.</strong> The policy now acts in the real encoder for 60,000 steps (about 2,000 GOPs). PPO is a policy-gradient, actor-critic method:</p>
+        <ul>
+          <li><strong>Actor:</strong> the policy network, observation → probabilities over the 7 actions. During training it samples actions, which is how it explores.</li>
+          <li><strong>Critic:</strong> a second network that predicts V(s), the expected final score.</li>
+          <li><strong>Update:</strong> compare each episode's actual score with what the critic expected. The difference is the <strong>advantage</strong>. Raise the probability of actions in better-than-expected episodes and lower it for worse ones, by gradient ascent on advantage × log-probability of the chosen action.</li>
+          <li><strong>The "proximal" part:</strong> clipping stops any single update from moving the policy too far. Without it RL training often collapses. It plays a role similar to a KL penalty in LLM fine-tuning.</li>
+        </ul>
+        <div class="note"><p>PPO is the same algorithm used in RLHF for LLMs, where the environment is a reward model that scores the LLM's text.</p></div>
+        <div class="facts">
+          <div><span class="label">Why combine them</span><p>PPO from scratch would need far more than 2,000 episodes. CQL gives it a good start; PPO then fixes some of the offline policy's distribution-shift problems with real experience.</p></div>
+          <div><span class="label">On v1</span><p>Overshoots on 14–37% of test GOPs. Before the penalty it saves more than any other method: 5.56% on x265 at k = 5.</p></div>
+        </div>
+      </div>
+
+      <div class="method">
+        <h3>Lagrangian PPO <span class="chip ran">run on v1 · best so far</span></h3>
+        <p>The same CQL → PPO pipeline, with a different reward:</p>
+        <p class="mono">reward = savings − λ × overshoot, with λ = 4</p>
+        <p>The idea comes from constrained optimisation (Lagrange multipliers): turn the hard rule "don't exceed the budget" into a price per unit of violation. λ = 4 is twice the price the final score uses, so the policy learns to be careful.</p>
+        <div class="facts">
+          <div><span class="label">On v1</span><p>Score <span class="mono">4.67</span> (x264) and <span class="mono">4.12</span> (x265) at k = 0, about 66–75% of the search's gain, and over budget on only about 3% of GOPs.</p></div>
+          <div><span class="label">Catch</span><p>It wins because it stays in budget, not because it saves the most. Lookahead adds at most about +0.6 for it.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="other">
+      <h2>Other methods in the code</h2>
+      <p>Implemented by Pavneet, not yet run on v1:</p>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>Method</th><th>Idea</th></tr></thead>
+          <tbody>
+            <tr><td><code>pid</code></td><td>Lagrangian PPO where λ is adjusted during training, like a thermostat: raise it when too many GOPs go over budget, lower it when almost none do, aiming at a target violation rate</td></tr>
+            <tr><td><code>iql</code></td><td>Another offline-RL method; it avoids evaluating actions not in the data at all, instead of penalising them</td></tr>
+            <tr><td><code>ppo</code>, <code>a2c</code>, <code>dqn</code></td><td>Online RL from scratch with no teacher. His paper shows these are weak at this number of episodes</td></tr>
+            <tr><td><code>anyk</code></td><td>One network trained with a random k each episode, so it works at any lookahead</td></tr>
+            <tr><td><code>gate</code></td><td>A small policy that decides per frame whether to pay for lookahead</td></tr>
+            <tr><td><code>ensemble</code></td><td>Averages the action probabilities of the 3 seeds; standard ensembling, no training</td></tr>
+            <tr><td><code>mpc</code></td><td>Model-based planning (see C below)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="ours">
+      <h2>What we're testing next</h2>
+      <p>Each experiment answers a question raised by the v1 results.</p>
+
+      <div class="method">
+        <h3>A. Budget shield <span class="chip now">in progress</span></h3>
+        <p>Not a new learner, but a <strong>safety layer</strong> wrapped around any trained policy:</p>
+        <ol class="steps">
+          <li>Before each frame, predict the GOP's total bits if we accept the policy's choice.</li>
+          <li>If the prediction exceeds the budget, raise the QP until it fits, up to QP 51.</li>
+        </ol>
+        <p>The prediction may only use what the policy is allowed to see, so the lookahead comparison stays fair. The closest analogue is constrained decoding in LLMs: tokens that would break the output format are masked at generation time, without retraining. In RL this is called <strong>shielding</strong>.</p>
+        <div class="facts">
+          <div><span class="label">Question</span><p>BC and CQL → PPO save more than Lagrangian but overspend. If we stop them overspending, do they beat it?</p></div>
+          <div><span class="label">Status</span><p>The smoke test on 10 val GOPs removed every overshoot, but the bit predictor was too pessimistic and fired when it didn't need to (score 2.44 → −2.40). Fixing the predictor comes next.</p></div>
+        </div>
+      </div>
+
+      <div class="method">
+        <h3>B. λ sweep and PID-Lagrangian <span class="chip queued">queued</span></h3>
+        <p>Train Lagrangian PPO at several prices (λ = 2, 4, 8) and with the PID controller at target violation rates of 1% and 5%. Plotting savings against violation rate gives a trade-off curve, a fairer comparison than one λ.</p>
+        <p>Each run also picks its best checkpoint on val, which is the RL version of early stopping. Training scores on v1 peak mid-training and then fall, so the final checkpoint is not the best one.</p>
+      </div>
+
+      <div class="method">
+        <h3>C. Model predictive control (MPC) <span class="chip queued">queued</span></h3>
+        <ol class="steps">
+          <li>Learn a model of the environment by supervised regression: frame features + QP → predicted bits and PSNR.</li>
+          <li>At each frame, simulate many candidate QP sequences over the visible lookahead with that model, keep the best, and apply only the first frame's QP.</li>
+          <li>Repeat at the next frame. This is receding-horizon planning.</li>
+        </ol>
+        <p>The analogy is a chess engine or beam search: search over futures with a model, commit to one move, search again. It's the classic approach in rate control, and it uses lookahead explicitly, so it may show the effect of k more clearly.</p>
+      </div>
+
+      <div class="method">
+        <h3>D. Residual policy on a causal controller <span class="chip">later · needs P2's estimator</span></h3>
+        <p>Today the policy adds ±3 to a base QP that secretly comes from hindsight: the budget QP is the QP that exactly meets the budget. The fix is to use a simple, honest controller as the base, "budget per frame + complexity → QP", calibrated as frames are coded. The policy then learns only corrections to it.</p>
+        <p>It's the same idea as a residual connection in a ResNet: learn the difference from something that already works. It removes both validity problems found in the review (the oracle base QP and the budget leak), and the policy no longer has to learn rate control from scratch.</p>
+      </div>
+
+      <div class="method">
+        <h3>E. Decision Transformer or attention encoder <span class="chip">later · new code</span></h3>
+        <p>A <strong>Decision Transformer</strong> treats RL as sequence modelling. A GPT-style model reads (target score, state, action, state, action, …) and predicts the next action; asking for a high target score makes it act like a good plan. It trains offline on every logged plan, and the remaining budget can be an input token. Of everything here, it's the closest to models you already know.</p>
+        <p>An <strong>attention encoder</strong> over the visible lookahead frames, in place of one flat MLP over 346 numbers, gives the policy a natural way to use whatever k it's given.</p>
+      </div>
+    </section>
+
+    <section id="read">
+      <h2>Reading the results</h2>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>Number</th><th>What it means</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Score</strong></td><td>% bits saved at equal PSNR vs constant QP, minus 2 per 1% over budget. 0 = as good as constant QP; the search gets about 9–10</td></tr>
+            <tr><td><strong>Saving</strong></td><td>The same, before the budget penalty</td></tr>
+            <tr><td><strong>% over</strong></td><td>Share of GOPs that exceeded the budget at all</td></tr>
+            <tr><td><strong>Overshoot size</strong></td><td>How far over, when over. On v1 the median is 1–6% and the worst runs reach 48–61%</td></tr>
+            <tr><td><strong>Share of search gain</strong></td><td>Fraction of the search's improvement over the fixed STATIC pattern that a policy captures</td></tr>
+            <tr><td><strong>k curve</strong></td><td>Score as lookahead grows. A flat curve means lookahead isn't helping, which is mostly what we see so far</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note budget">
+        <p><strong>The main v1 lesson so far.</strong> For BC and CQL → PPO, most of the gain from lookahead is a smaller budget penalty. From k = 0 to k = 5, x264 CQL → PPO's saving rises by 1.56 while its penalty falls by 2.36. Lookahead mostly helps them avoid overspending, not allocate bits better.</p>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <h2>RL terms in ML language</h2>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>RL term</th><th>Closest idea you already know</th></tr></thead>
+          <tbody>
+            <tr><td>Behavioural cloning</td><td>Supervised classification on expert demonstrations</td></tr>
+            <tr><td>Offline RL</td><td>Learning from a fixed logged dataset, with the outcome as a weak, delayed label</td></tr>
+            <tr><td>Bellman target / bootstrapping</td><td>A regression target built from the model's own next-step prediction</td></tr>
+            <tr><td>Policy gradient</td><td>Gradient ascent on log-probability, weighted by how much better the outcome was than expected</td></tr>
+            <tr><td>Actor-critic</td><td>Two heads: one picks actions, one predicts expected outcome as a baseline</td></tr>
+            <tr><td>Exploration</td><td>Sampling instead of argmax during training, like temperature in text generation</td></tr>
+            <tr><td>Distribution shift</td><td>Train/test mismatch caused by the model's own earlier decisions</td></tr>
+            <tr><td>Lagrangian constraint</td><td>A penalty term in the loss whose weight is the price of breaking a constraint</td></tr>
+            <tr><td>Shielding</td><td>Constrained decoding: mask actions that would break a rule</td></tr>
+            <tr><td>Model-based planning</td><td>Learn a simulator by regression, then search over it like beam search</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      <p>Numbers come from the v1 rerun of Pavneet's pipeline: <code>results_v1/v1_headline.md</code>, <code>results_v1/v1_overshoot.md</code> and <code>docs/rl-models-review-2026-11-04.md</code> in <code>/scratch1/aayushso/ee599</code>. Test split; scores averaged over seeds and both budgets. Written 2026-11-04.</p>
+    </footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  var strip = document.getElementById("strip");
+  var tR = document.getElementById("t-range"), kR = document.getElementById("k-range");
+  var tV = document.getElementById("t-val"), kV = document.getElementById("k-val");
+  var read = document.getElementById("gop-read");
+  var cells = [];
+  for (var i = 0; i < 30; i++) {
+    var c = document.createElement("div");
+    c.className = "cell" + (i === 0 ? " i" : "");
+    strip.appendChild(c);
+    cells.push(c);
+  }
+  function draw() {
+    var t = +tR.value, k = +kR.value;
+    tV.textContent = t; kV.textContent = k;
+    var v = Math.min(k, 29 - t);
+    for (var i = 0; i < 30; i++) {
+      var cls = "cell" + (i === 0 ? " i" : "");
+      if (i < t) cls += " past";
+      else if (i === t) cls += " cur";
+      else if (i <= t + v) cls += " vis";
+      cells[i].className = cls;
+    }
+    var hidden = 29 - t - v;
+    var ahead = v === 0 ? "sees nothing ahead" : (v === 1 ? "sees frame " + (t + 1) + " ahead" : "sees frames " + (t + 1) + "–" + (t + v) + " ahead");
+    read.textContent = "Frame " + t + ": " + ahead + "; " + hidden + " later frame" + (hidden === 1 ? " is" : "s are") + " hidden.";
+  }
+  tR.addEventListener("input", draw);
+  kR.addEventListener("input", draw);
+  draw();
+})();
+</script>
