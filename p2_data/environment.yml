@@ -17,3 +17,4 @@ dependencies:
   - scipy
   - scikit-learn
   - matplotlib
+  - tabulate        # pandas.to_markdown (added 2026-11-04; installed into the existing env with pip)

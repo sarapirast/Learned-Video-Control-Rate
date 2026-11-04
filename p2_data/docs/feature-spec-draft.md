@@ -14,7 +14,7 @@ lists what needs deciding.
 | `clip_id`, `split`, `group` | category | identity; `group` is the split unit | no |
 | `gop`, `pos_in_gop`, `frame` | int32 | GOP index in the clip, frame index within the GOP (0 = IDR), frame index in the clip | `pos_in_gop` yes |
 | `gop_label` | category | `stable` / `cut` / `gradual` from the **reviewed** labels | **no** (analysis only) |
-| `fp_bits` | float32 | first-pass bits (pilot: ultrafast encode at QP 32) | yes. **Empty until the encoder is decided** |
+| `fp_bits` | float32 | first-pass bits (definition open: pilot ultrafast at QP 32 vs Pavneet's QP 30; computed on P1's frozen x264 settings, and x265) | yes. **Empty until P2 computes it (next task; the encoder is now decided)** |
 | `si`, `ti` | float32 | ITU-T P.910 spatial / temporal information | yes (cheap complexity proxies) |
 | `hist_delta`, `scdet_score` | float32 | raw cut-detector signals | yes |
 | `y_mean` | float32 | mean luma | yes |
@@ -56,7 +56,7 @@ definition.
 
 ## 3. Questions for Sara
 
-1. **Complexity input:** `fp_bits` once it exists. Until the encoder is decided, should training
+1. **Complexity input:** `fp_bits` once it exists. Until P2 has computed it, should training
    prototypes use `si` (or `si * ti`) as a stand-in?
 2. **Normalisation:** running mean over the current GOP so far (the proposal), or over the clip so far,
    which carries information across GOP boundaries?
@@ -67,5 +67,6 @@ definition.
    - Should `si`/`ti` of the current frame enter the state?
    - Should `cut_flag` of the current frame enter it? Visible at k = 0, since the encoder sees the
      current frame.
-6. **Budget features:** these depend on the budget definition (`docs/p2-plan.md`, policy sees only B).
+6. **Budget features:** these depend on the budget definition (`docs/p2-plan.md`, policy sees only B;
+   revised 2026-11-03 so budgets no longer come from the GOP's own encodes).
    They're out of scope here.

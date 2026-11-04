@@ -141,15 +141,27 @@ Fixed-size summaries remove that confound. For frame t and window t+1..t+k:
 - **Cut in window:** 0 or 1.
 - **Window length:** k itself. At k = 0 the summaries are zero and this flag tells the policy so.
 
-## Budget definition (draft P2 proposal)
+## Budget definition (draft P2 proposal, revised 2026-11-03)
 
 **The problem with the pilot's definition.** The pilot sets the budget B to native constant-QP spend at q,
 and puts q in the state. Finding q needs the whole GOP encoded, which makes q hindsight.
 
+**A second problem (found 2026-11-03).** This is finding C1 in `docs/review-paper-draft-2026-11-03.md`.
+- Any budget computed from the GOP's own encodes (native constant QP or CRF on that GOP) tells the policy
+  the GOP's total cost before it encodes a frame. That holds even at k = 0.
+- The first version of this proposal took budget levels "from native or CRF encodes" of the GOP, so it
+  had the same flaw.
+- On data v1 this inflates the k = 0 scores. Randomising Pavneet's budget by s ~ U(0.8, 1.25) drops x264
+  Lagrangian PPO at k = 0 from 4.7 to 3.4 (`results_v1/x264_arm_compare.md`).
+
 **Proposal:**
 - **What the policy sees:** only B, as bits per frame per pixel.
-- **Budget levels:** 3-4 per GOP, taken from native or CRF encodes. Record how each one was set in
-  `how_set`.
+- **Budget levels:** 3-4 per GOP, from **clip-level** targets, never from the GOP's own encodes.
+  - Source: a whole-clip CRF or constant-QP encode split evenly across its GOPs, or a fixed
+    bits-per-pixel grid.
+  - Record how each level was set in `how_set`.
+  - Cover a wider range than the pilot's QP 30/38 (Atharva, 2026-11-03).
+- **Bits:** slice (picture) bits only; header bits are reported separately (agreed with P1 2026-11-03).
 - **Base QP:** comes from a causal estimator fitted on train only. A simple model to start:
   `q_hat = a + b*log(B/T/pixels) + c*log(fp_bits of frame 0)`.
   Report its MAE in QP on validation.

@@ -24,8 +24,8 @@ To change the list, edit `config/clip_sources.csv` (curated sources) or the UGC 
 LDV 720p, HDgreetings, video conferencing, Netflix, the 4K-only UVG clips, and the 4th UGC clip per
 category.
 
-**38 of these clips (15 priority 1) are flagged for high frame rate** and wait on a team decision; see
-the frame-rate rule below.
+**38 of these clips (15 priority 1) have a high frame rate.** Decided 2026-11-02: they are decimated to 25/30 fps
+and used normally (the 15 priority-1 clips are in v1); see the frame-rate rule below.
 
 The plan's requirements and where each stands:
 - Split by clip, never by GOP: met, and stricter. The split unit is the group (film, shoot or uploader),
@@ -181,7 +181,8 @@ clips everyone uses.
   - `trim` starts on the right frame;
   - mean luma is preserved through YUV passthrough (134.48 in, 134.49 out);
   - the 1422x800 ToS crop is as calculated.
-- **Not handled yet:** UVG `.7z` (all UVG clips are flagged), and the decimation of flagged clips.
+- **Handled since (2026-11-02):** UVG `.7z` streaming and the decimation of high-frame-rate clips (15 priority-1
+  clips decoded, job 13668089; tracker work-queue item 8).
 
 ## Downloading
 
@@ -437,5 +438,5 @@ recipe.
 - **Cut detection:** run it on everything, then update `cuts` and the test cut-GOP count.
 - **Confidence intervals:** for P5, resample by `group`, not by clip. The test cut GOPs mostly come from
   two films.
-- **Team decisions:** resolution, GOP length, the crop rule, and what to do with the 38 flagged
-  high-frame-rate clips.
+- **Team decisions:** resolution, GOP length and the crop rule. (High-frame-rate clips: decided 2026-11-02,
+  decimate and keep.)
