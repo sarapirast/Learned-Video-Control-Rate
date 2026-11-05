@@ -1,0 +1,28 @@
+--method cql_ppo --k 5 --extra fb --seed 0
+--method cql_ppo --k 5 --extra fb --seed 1
+--method cql_ppo --k 5 --extra fb --seed 2
+--method cql_ppo --k 5 --extra sum --seed 0
+--method cql_ppo --k 5 --extra sum --seed 1
+--method cql_ppo --k 5 --extra sum --seed 2
+--method cql_ppo --k 29 --extra sum --seed 0
+--method cql_ppo --k 29 --extra sum --seed 1
+--method cql_ppo --k 29 --extra sum --seed 2
+--method cql_a2c --k 5 --seed 0
+--method cql_a2c --k 5 --seed 1
+--method cql_a2c --k 5 --seed 2
+--method cql_dqn --k 5 --seed 0
+--method cql_dqn --k 5 --seed 1
+--method cql_dqn --k 5 --seed 2
+--method ensemble --k 5 --seed 0
+--method gate --k 5 --gate-lam 1 --seed 0
+--method gate --k 5 --gate-lam 1 --seed 1
+--method gate --k 5 --gate-lam 1 --seed 2
+--method gate --k 5 --gate-lam 3 --seed 0
+--method gate --k 5 --gate-lam 3 --seed 1
+--method gate --k 5 --gate-lam 3 --seed 2
+--method lagr_ft --k 5 --seed 0
+--method lagr_ft --k 5 --seed 1
+--method lagr_ft --k 5 --seed 2
+--method pid_ft --k 5 --seed 0
+--method pid_ft --k 5 --seed 1
+--method pid_ft --k 5 --seed 2

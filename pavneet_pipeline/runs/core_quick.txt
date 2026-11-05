@@ -1,0 +1,14 @@
+--method cql_ppo --k 0 --seed 0 --quick
+--method cql_ppo --k 1 --seed 0 --quick
+--method cql_ppo --k 2 --seed 0 --quick
+--method cql_ppo --k 3 --seed 0 --quick
+--method cql_ppo --k 4 --seed 0 --quick
+--method cql_ppo --k 5 --seed 0 --quick
+--method cql_ppo --k 6 --seed 0 --quick
+--method cql_ppo --k 7 --seed 0 --quick
+--method cql_ppo --k 8 --seed 0 --quick
+--method cql_ppo --k 9 --seed 0 --quick
+--method cql_ppo --k 10 --seed 0 --quick
+--method cql_ppo --k 15 --seed 0 --quick
+--method cql_ppo --k 20 --seed 0 --quick
+--method cql_ppo --k 29 --seed 0 --quick

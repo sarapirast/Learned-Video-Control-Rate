@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pkl
+*.pt
+*.zip
+*.npy
+*.log
+*.aux
+*.out
+results/quick_old/
+results/infos_quick_report.md
