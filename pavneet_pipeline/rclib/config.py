@@ -14,12 +14,16 @@ assert CODEC in ("x265", "x264"), CODEC
 WORK = os.environ.get("RC_WORK", f"/scratch1/{os.environ.get('USER', 'user')}/rcwork")
 WORKERS = int(os.environ.get("RC_WORKERS", max(1, (os.cpu_count() or 4) - 2)))
 N_ENVS = int(os.environ.get("RC_ENVS", 14))
+# budget arm (data-v1 branch): "orig" = his budget; "dec" = budgets rescaled by tools/budget_arm.py and per-frame
+# costs normalised by the episode's own budget (not the QP-30 budget)
+ARM = os.environ.get("RC_ARM", "orig")
+assert ARM in ("orig", "dec"), ARM
 TMP = os.environ.get("RC_TMP") or ("/dev/shm" if os.path.isdir("/dev/shm") else "/tmp")
 
 CLIPS = os.path.join(WORK, "clips")
 GOPS = os.path.join(WORK, "gops")
 PROJECT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REPORTS = os.path.join(PROJECT, "results", CODEC)   # one report folder per encoder
+REPORTS = os.environ.get("RC_REPORTS") or os.path.join(PROJECT, "results", CODEC)   # one report folder per encoder
 
 # picture and GOP
 W, H = 320, 180

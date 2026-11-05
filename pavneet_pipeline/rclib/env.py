@@ -37,10 +37,12 @@ GROUPS = {
 }
 
 
-def frame_table(info):
+def frame_table(info, b=None):
     """Per-frame features of a whole GOP (row t = frame t), computed once per GOP from infos."""
     an, fp = info["an"], np.asarray(info["fp_bits"], float)
-    per_frame_budget = info["budget"][C.BUDGET_QPS[0]] / C.GOP
+    # orig arm: always the QP-30 budget (his code); dec arm: the episode's own budget (no QP-30 info at b=38)
+    nb = b if (C.ARM == "dec" and b is not None) else C.BUDGET_QPS[0]
+    per_frame_budget = info["budget"][nb] / C.GOP
     T = np.zeros((C.GOP, F_FRAME), np.float32)
     T[:, 0] = np.log2(np.maximum(fp, 8) / per_frame_budget) / 4
     T[:, 1] = an["spatial"] / 20
@@ -124,14 +126,16 @@ class RateEnv(gym.Env):
             self.b = self.budgets[self.rng.integers(len(self.budgets))]
             self.k_ep = self.k_sampler(self.rng) if self.k_sampler else self.k
         self.info = self.infos[self.gid]
-        if self.gid not in self._tables:
-            self._tables[self.gid] = frame_table(self.info)
-        self.T = self._tables[self.gid]
+        key = (self.gid, self.b)
+        if key not in self._tables:
+            self._tables[key] = frame_table(self.info, self.b)
+        self.T = self._tables[key]
         self.budget = self.info["budget"][self.b]
         self.cut = self.info["an"]["cut"]
         self.path = data.gop_path(self.info["gop"])
         self.t, self.qps, self.acts, self.bits, self.psnr = 0, [], [], [], []
         self.k_seen = []
+        self.q_override, self.n_shield = None, 0     # set by policies.Shield (eval only, v1-data branch)
         return self._obs(), {}
 
     # -- observation
@@ -216,6 +220,8 @@ class RateEnv(gym.Env):
         a = int(a)
         t = self.t
         q = int(self.b + STATIC_OFF[t] + C.ACTIONS[a])
+        if getattr(self, "q_override", None) is not None:      # budget shield forced a QP outside the action range
+            q, self.q_override = int(self.q_override), None
         self.qps.append(q)
         self.acts.append(a)
         last = t == C.GOP - 1
@@ -243,7 +249,7 @@ class RateEnv(gym.Env):
         return {"gid": self.gid, "budget": self.b, "bits": r["total_bits"], "psnr": r["mean_psnr"], "saving": sav,
                 "over_pct": over, "over": r["total_bits"] > self.budget, "score": score, "reward": rew,
                 "static_score": st["score"], "qps": list(self.qps), "frame_bits": [int(x) for x in r["bits"]],
-                "frames_seen": float(np.mean(self.k_seen))}
+                "frames_seen": float(np.mean(self.k_seen)), "shield_fires": int(getattr(self, "n_shield", 0))}
 
 
 # ---------------------------------------------------------------- offline trajectories

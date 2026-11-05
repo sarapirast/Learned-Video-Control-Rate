@@ -124,8 +124,70 @@ class Ensemble:
         return int(p.argmax(1))
 
 
+class Shield:
+    """Budget shield around any policy (evaluation only; Aayush, v1-data branch, 2026-11-04).
+
+    Before frame t it predicts the GOP's total bits if frame t gets the policy's QP and every later frame j gets
+    b + STATIC[j] + `fut_off` (3 = lenient 'max', 0 = strict 'neutral'). Bit model: bits_j(q) = c x fp_j x
+    2^(-(q-30)/s), with slopes s fitted on the TRAIN search logs (I and P frames separately). c is calibrated online:
+    frame 0 from its own bits; P frames by shrinking the P frames coded so far towards the train prior with `w0`
+    pseudo-frames. Strictly causal at the policy's lookahead: frames beyond the visible window use the mean first-pass
+    cost of P frames 1..t+v (or fp_0 / ip_ratio before any P frame is known). It fires when the prediction exceeds
+    budget x margin x (1 + tol x frames_left / 29): early predictions need a stronger signal; the last frame is held
+    to margin x budget. When it fires, frame t's QP is raised to the smallest QP (up to 51) that fits."""
+
+    def __init__(self, base, margin=1.0, future="max", prior=(0.6, 0.6), ip_ratio=5.5, qmax=51,
+                 slopes=(6.0, 6.0), w0=3.0, tol=0.0):
+        self.base, self.margin, self.qmax = base, float(margin), int(qmax)
+        self.fut_off = {"max": C.ACTIONS[-1], "neutral": 0}[future]
+        self.prior_i, self.prior_p = map(float, prior)
+        self.ip_ratio = float(ip_ratio)
+        self.s_i, self.s_p = map(float, slopes)
+        self.w0, self.tol = float(w0), float(tol)
+
+    def __call__(self, env, obs):
+        a = int(self.base(env, obs))
+        t, S = env.t, E.STATIC_OFF
+        q0 = int(env.b + S[t] + C.ACTIONS[a])
+        fp = np.maximum(np.asarray(env.info["fp_bits"], float), 8)
+        v = E.visible_len(t, env.mode, env.k_ep, env.cut)
+        known_p = fp[1:t + v + 1]
+        fh = fp.copy()
+        fh[t + v + 1:] = known_p.mean() if len(known_p) else fp[0] / self.ip_ratio
+        bits = np.asarray(env.bits, float)
+        qp = np.asarray(env.qps, float)
+        c_i = bits[0] / (fp[0] * 2 ** (-(qp[0] - 30) / self.s_i)) if t >= 1 else self.prior_i
+        if t >= 2:
+            pp = fp[1:t] * 2 ** (-(qp[1:t] - 30) / self.s_p)
+            m = pp.mean()
+            c_p = (bits[1:t].sum() + self.w0 * self.prior_p * m) / (pp.sum() + self.w0 * m)
+        else:
+            c_p = self.prior_p
+
+        def cost(j, q):
+            return c_i * fh[0] * 2 ** (-(q - 30) / self.s_i) if j == 0 else c_p * fh[j] * 2 ** (-(q - 30) / self.s_p)
+        rest = sum(cost(j, min(self.qmax, env.b + S[j] + self.fut_off)) for j in range(t + 1, C.GOP))
+        limit = self.margin * env.budget * (1 + self.tol * (C.GOP - 1 - t) / (C.GOP - 1))
+        spent = bits.sum()
+        q = q0
+        while q < self.qmax and spent + cost(t, q) + rest > limit:
+            q += 1
+        if q == q0:
+            return a
+        env.n_shield += 1
+        off = int(q - env.b - S[t])
+        if off <= C.ACTIONS[-1]:
+            return C.ACTIONS.index(off)
+        env.q_override = q
+        return len(C.ACTIONS) - 1
+
+
 def make(spec):
     k = spec["kind"]
+    if k == "shield":
+        return Shield(make(spec["base"]), spec.get("margin", 1.0), spec.get("future", "max"),
+                      spec.get("prior", (0.6, 0.6)), spec.get("ip_ratio", 5.5), slopes=spec.get("slopes", (6.0, 6.0)),
+                      w0=spec.get("w0", 3.0), tol=spec.get("tol", 0.0))
     if k == "static":
         return Static()
     if k == "rule":

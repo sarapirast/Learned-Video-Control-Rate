@@ -41,6 +41,8 @@ def detect(x, params, which="cut"):
 def fit(infos):
     tr = [x for x in infos.values() if x["gop"]["family"] == "splice" and x["gop"]["split"] == "train"]
     te = [x for x in infos.values() if x["gop"]["family"] == "splice" and x["gop"]["split"] == "test"]
+    if not te:   # data v1: splices are train only; evaluate on natural test GOPs with reviewed cut labels instead
+        te = [x for x in infos.values() if x["gop"]["split"] == "test" and "cuts" in x["gop"]]
     truth_tr = [x["gop"]["cuts"] for x in tr]
     best = None
     for vals in itertools.product(*GRID.values()):
