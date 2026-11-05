@@ -38,8 +38,8 @@ scratch_ok start || { retry_elsewhere "scratch check failed at start"; exit 75; 
 module purge
 module load ver/2506 gcc/14.3.0 ffmpeg/7.1.1 x264/20250608
 export PATH=$(dirname "$(command -v x264)"):/scratch1/aayushso/envs/codecs/bin:/scratch1/aayushso/envs/ee599/bin:$PATH
-x264 --version 2>&1 | grep -q '0.165.' || { echo "wrong x264 on $(hostname): $(command -v x264)"; exit 1; }
-x265 --version 2>&1 | grep -q 'version 4.1' || { echo "wrong x265 on $(hostname): $(command -v x265)"; exit 1; }
+x264 --version 2>&1 | grep -q '0.165.' || { echo "wrong x264 on $(hostname): $(command -v x264): $(x264 --version 2>&1 | head -2)"; retry_elsewhere "x264 version check failed"; exit 75; }
+x265 --version 2>&1 | grep -q 'version 4.1' || { echo "wrong x265 on $(hostname): $(command -v x265): $(x265 --version 2>&1 | head -2)"; retry_elsewhere "x265 version check failed"; exit 75; }
 export PYTHONNOUSERSITE=1 PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 TMPDIR=/scratch1/aayushso/tmp
 export RC_TMP=/dev/shm/rd_$SLURM_JOB_ID
 mkdir -p "$RC_TMP" "$TMPDIR"

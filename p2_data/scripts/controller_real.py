@@ -20,7 +20,9 @@ Score: % saved at equal PSNR vs the GOP's own constant-QP curve (PSNR = mean of 
   python scripts/controller_real.py --encoder x264 --split val --ks 0,5 --settings "1.0:3:1.0:2,0.97:3:0.6:2" \
       --shard 0 --nshards 8 --tag tune
   python scripts/controller_real.py --report
-Settings string: margin:dI:i_cap:w0[:dmax:fcap[:init:pmin]] (comma-separated list); dmax = max QP change per frame,
+Settings string: margin:dI:i_cap:w0[:dmax:fcap[:init:pmin[:a:b]]] (comma-separated list); a = spend-early ramp
+(P-frame QP offset from -a at frame 1 to +a at frame 29), b = extra QP drop on first-pass-flagged cut frames that
+are visible (v2; a = b = 0 is v1); dmax = max QP change per frame,
 fcap = max predicted bits of one frame as a multiple of its share of the remaining budget, init = 0 (I QP from the
 solver) or 1 (I QP = GOP-start estimate base_qp_est_k from budgets.csv - dI), pmin = P QP >= I QP + pmin.
 """
@@ -70,8 +72,8 @@ def fit_model():
     return out
 
 
-def decide(t, bits, qps, fp, B, k, M, margin, dI, i_cap, w0, dmax=51, fcap=1e9, init=0, pmin=-99, qhat=None,
-           wfp=2.0):
+def decide(t, bits, qps, fp, B, k, M, margin, dI, i_cap, w0, dmax=51, fcap=1e9, init=0, pmin=-99, a=0.0, b=0.0,
+           qhat=None, cut=None, wfp=2.0):
     vis = min(k, GOP - 1 - t)
     known = fp[1:t + vis + 1]
     prior_p = fp[0] / M["ip"]                         # P-frame first-pass cost implied by the I frame (train ratio)
@@ -88,9 +90,18 @@ def decide(t, bits, qps, fp, B, k, M, margin, dI, i_cap, w0, dmax=51, fcap=1e9, 
     if rem <= 0:
         return QHI
     jj = np.arange(max(t, 1), GOP)
+    # v2 QP profile on P frames: spend-early ramp (-a at frame 1 .. +a at frame 29) and a -b boost on frames that the
+    # first pass flags as a scene cut, only where that flag is visible (frames t..t+k). a = b = 0 is v1.
+    off = np.zeros(GOP)
+    off[1:] = -a + 2 * a * np.arange(GOP - 1) / (GOP - 2)
+    is_cut = np.zeros(GOP, bool)
+    if cut is not None and b:
+        is_cut[t:t + vis + 1] = cut[t:t + vis + 1]
+        is_cut[0] = False
+        off[is_cut] -= b
 
     def spend(q):
-        s = c_p * (fh[jj] * 2 ** (-(q - 30) / M["s_p"])).sum()
+        s = c_p * (fh[jj] * 2 ** (-(q + off[jj] - 30) / M["s_p"])).sum()
         if t == 0:
             s += min(M["c_i"] * fp[0] * 2 ** (-(q - dI - 30) / M["s_i"]), i_cap * B)
         return s
@@ -105,16 +116,17 @@ def decide(t, bits, qps, fp, B, k, M, margin, dI, i_cap, w0, dmax=51, fcap=1e9, 
         while M["c_i"] * fp[0] * 2 ** (-(q_i - 30) / M["s_i"]) > i_cap * B and q_i < QHI:
             q_i += 0.5
         return int(np.clip(round(q_i), QLO, QHI))
-    qt = round(q)
+    qt = round(q + off[t])
     # per-frame spend cap: frame t may not be predicted to use more than fcap x its share of what is left
     share = rem / (GOP - t)
     while c_p * fp[t] * 2 ** (-(qt - 30) / M["s_p"]) > fcap * share and qt < QHI:
         qt += 1
     # limit the QP change: vs the previous P frame, or vs I QP + dI at frame 1
     ref = qps[-1] if t >= 2 else qps[0] + dI
+    boost = b if is_cut[t] else 0.0                  # a flagged cut frame may drop by an extra b
     if dmax < 51:
-        qt = int(np.clip(qt, ref - dmax, ref + dmax))
-    qt = max(qt, qps[0] + pmin)                      # P frames never get a lower QP than I QP + pmin
+        qt = int(np.clip(qt, ref - dmax - boost, ref + dmax))
+    qt = max(qt, qps[0] + pmin - boost)              # P frames never below I QP + pmin (cut frames: - b)
     return int(np.clip(qt, QLO, QHI))
 
 
@@ -158,7 +170,7 @@ def episode(args):
         src.tofile(yuv)
         bits, qps = [], []
         for t in range(GOP):
-            qps.append(decide(t, bits, qps, fp, B, k, M, *setting, qhat=qhat))
+            qps.append(decide(t, bits, qps, fp, B, k, M, *setting, qhat=qhat, cut=g.get("cut")))
             sl, out = encode_prefix(enc, yuv, t + 1, qps, g["fps"], d)
             assert len(sl) == t + 1 and (t == 0 or list(sl[:t]) == bits), "prefix property broken"
             bits = [int(x) for x in sl]
@@ -176,6 +188,23 @@ def episode(args):
         os.rmdir(d)
 
 
+def cut_flags(enc):
+    """Causal scene-cut flags from the first pass: a P frame whose share of intra blocks exceeds a threshold. The
+    threshold maximises F1 against the reviewed cut labels on TRAIN GOPs only (controller v2's cut boost)."""
+    st = pd.read_parquet(f"{D}/features/fp_stats.parquet").query("encoder == @enc and fp_qp == @FPQ")
+    gops = pd.read_csv(f"{D}/gops.csv")
+    cuts = {(r.clip_id, r.gop, int(c)) for r in gops.itertuples() if isinstance(r.cut_frames, str)
+            for c in r.cut_frames.split()}
+    st = st.merge(gops[["clip_id", "gop", "split"]], on=["clip_id", "gop"])
+    st["fi"] = st.intra_blocks / 240.0
+    st["lab"] = [(c, g, f) in cuts for c, g, f in zip(st.clip_id, st.gop, st.frame)]
+    tr = st[(st.split == "train") & (st.frame > 0)]
+    best = max(np.arange(0.3, 0.96, 0.05), key=lambda th: 2 * ((tr.fi > th) & tr.lab).sum()
+               / max((tr.fi > th).sum() + tr.lab.sum(), 1))
+    st["cut"] = (st.fi > best) & (st.frame > 0)
+    return {k: v.sort_values("frame").cut.to_numpy() for k, v in st.groupby(["clip_id", "gop"])}, float(best)
+
+
 def run(a):
     M = json.load(open(MODEL_FILE))[a.encoder] if os.path.exists(MODEL_FILE) else fit_model()[a.encoder]
     man = {r.clip_id: r for r in pd.read_csv(f"{D}/manifest.csv").itertuples()}
@@ -185,6 +214,7 @@ def run(a):
     rd = pd.read_parquet(f"{D}/rd/rd_native.parquet").query("encoder == @a.encoder")
     fp = pd.read_parquet(f"{D}/features/fp_bits.parquet").query("encoder == @a.encoder and fp_qp == @FPQ")
     fpd = {k: v.sort_values("frame").fp_slice_bits.to_numpy() for k, v in fp.groupby(["clip_id", "gop"])}
+    cutd, thr = cut_flags(a.encoder)
     curves = {k: {"bits": v.slice_bits.to_numpy(float), "psnr": v.psnr_yuv_mean_frames.to_numpy(float)}
               for k, v in rd.groupby(["clip_id", "gop"])}
     glist = list(gops.itertuples())[a.shard::a.nshards]
@@ -200,7 +230,7 @@ def run(a):
     for g in glist:
         m = man[g.clip_id]
         gd = {"clip_id": g.clip_id, "gop": g.gop, "start_frame": g.start_frame, "fps": m.fps,
-              "y4m": os.path.join(D, m.path), "fp": fpd[(g.clip_id, g.gop)]}
+              "y4m": os.path.join(D, m.path), "fp": fpd[(g.clip_id, g.gop)], "cut": cutd[(g.clip_id, g.gop)]}
         bb = bud[(bud.clip_id == g.clip_id) & (bud.gop == g.gop)].set_index("level_q0")
         for lv in levels:
             for k in ks:
@@ -212,6 +242,8 @@ def run(a):
         rows = list(p.imap_unordered(episode, items, chunksize=1))
     os.makedirs(OUT, exist_ok=True)
     name = f"{a.tag + '_' if a.tag else ''}{a.encoder}_{a.split}_{a.shard}of{a.nshards}"
+    if os.path.exists(f"{OUT}/{name}.parquet"):                 # never overwrite earlier results with the same tag
+        name += f"_{os.environ.get('SLURM_JOB_ID') or time.strftime('%H%M%S')}"
     pd.DataFrame(rows).to_parquet(f"{OUT}/{name}.parquet", index=False)
     print(f"{name}: {len(rows)} episodes from {len(glist)} GOPs in {time.time() - t0:.0f}s "
           f"({(time.time() - t0) * a.workers / max(len(rows), 1):.1f} CPU-s/episode)")

@@ -40,7 +40,18 @@ and how does that change with lookahead k? Results are split into cut, gradual a
 - [ ] Manifest, YUV, GOP table, feature files, budget table, R-D curves and estimator all exist and the README describes them
 
 ### Later weeks
-- [ ] W2: native QP, ABR+VBV, CRF and two-pass (references), `rc-lookahead` over k (mb-tree off; defaults separately), fixed pattern (both versions); baseline table in results-row format
+- [x] W2: native QP, ABR+VBV, CRF and two-pass (references), `rc-lookahead` over k (mb-tree off; defaults separately), fixed pattern (both versions); baseline table in results-row format
+  IN PROGRESS 2026-11-04 17:45 (Aayush asked): scripts/baselines_v1.py, P1 settings, leak-free budgets, both encoders,
+  val+test: cqp_best (all splits, also P3's search start), cqp_est (estimator, constant), abr_vbv (1-pass ABR with
+  VBV = one GOP, rc-lookahead k in 0/2/5/10/29; mb-tree off), two_pass, crf_best (hindsight), fixed_best (pattern I
+  q-6, P q-3..q+3, hindsight base) and fixed_causal (estimator base at k). Jobs 13732323/25/26/27 + gather
+  13732328 -> results_v1/baselines_v1.parquet + results_v1/baselines_v1_table.md (also includes controller v1 rows).
+  Smoke (2 val GOPs): ABR+VBV over budget on 50-100% of GOPs; crf_best/fixed_best +1.5..+3.3; fixed_causal
+  overshoots almost always (estimator 3-4 QP off, no feedback). x264/x265 need integer --bitrate/--vbv-*.
+  DONE 17:38 (17/17 OK; counts complete). TEST score (% GOPs over), x264 / x265: fixed_best +2.62 (0.5) / +1.96 (0);
+  cqp_best 0 / 0; crf_best -1.04 / -1.46; two_pass -4.59 (3%) / -12.23 (45%; 86% over at level 42); controller v1 k5
+  -0.94 / -0.20; abr_vbv -27..-35 (48-83%) / -26..-27 (47-91%), no k effect; cqp_est k0->29 -90 -> -31 / -103 -> -26;
+  fixed_causal -100 -> -37 / -115 -> -33. cqp_best also for all train GOPs (P3's search start).
 - [ ] W3: gain breakdown by GOP class; QP trajectories around cuts; before vs at/after cut measurement; written hypotheses
 - [ ] W4: split k-curves; adaptive gate (k=0/k=1 sub-policies; fixed rule on stable + learned around cuts)
 - [ ] W5: quality vs delay figure; report section
@@ -192,7 +203,7 @@ order was agreed with Aayush.
   also 30/30; plain --qp clamps 24/30 frames into base +-3 (her finding, only for --qp). So Pavneet's x264 results are
   NOT affected. But the two forced-QP methods are not bit-identical (6-27 of 30 frames differ by a few bytes, totals
   within 0.3%), and preset fast/psy-on vs medium/no-psy changes total bits by 1.8% at the same QPs.
-- [~] 18. (2026-11-04) Causal online base-QP controller = P2's causal baseline, under the clip-level budgets
+- [x] 18. (2026-11-04; PAUSED by Aayush 17:30) Causal online base-QP controller = P2's causal baseline, under the clip-level budgets
   (budgets.csv). Offline prototype scripts/controller_v1.py: PSNR side INVALID (it reads P-frame distortion from
   constant-QP encodes, but a skipped P frame's quality follows its reference's QP; e.g. near-static lyric GOP gave
   +70% / -236% artifacts) -> kept only as a record. Real-encode version scripts/controller_real.py (prefix re-encodes,
@@ -224,6 +235,42 @@ order was agreed with Aayush.
   early frames (and post-cut frames) are references for later ones (spend-early / mb-tree effect). Small k front-
   loads by accident. Loss k10 -> k29 concentrated in cut (-3.0) and gradual (-6.3) GOPs vs stable (-0.95). Fix for
   controller v2: explicit spend-early QP profile + QP boost on the first frame after a visible cut, tuned on val.
+  REVISED 11-04 12:20: v2 implemented (a = ramp, b = cut boost on first-pass-flagged cuts: intra share > threshold,
+  F1-fit on train: recall 0.95-0.97, precision 0.52-0.70 at 0.7). Equivalence a=b=0 vs final run 16/16 identical.
+  4-GOP check (stable GOPs): ramp a=2 HURTS (k5 3.49 -> 2.51, k29 -1.19 -> -2.84), cut boost b=3 helps a little
+  (k5 4.06). Likelier cause of the k=29 drop: I frame gets fewer bits with more lookahead (I QP 29.0 -> 30.4) and
+  settings were tuned only at k=0/5. v2 tuning per k on val submitted: 13718830 (x264), 13718831 (x265), tag v2tune,
+  grid dI {3,5,7} x a {0,1} x b {0,3}, every 3rd val GOP.
+  v2 TUNING RESULT (13718830/31, all OK): small, inconsistent gains at k<=10 (best per k vs v1: x264 +0.0..0.4,
+  x265 +0.0..0.4), within noise; k=29 not fixed (x264 -10.3 -> -8.7, x265 -5.7 -> -4.3) and 11-15% of runs over
+  budget at k=29 vs 2-5% at k<=5. Tail problem: median k29-k5 drop only -0.76, worst 10% of episodes = 76% of the
+  drop. Worst: LyricVideo_720P-2d24 (near-static) at level 42: at k29 the controller sees P frames are nearly free,
+  plans almost the whole budget on the I frame (I QP 35), I-frame cost is under-predicted (train-median
+  calibration, no feedback) -> I frame alone 157% of budget, score -115; at k5 the reserve for unseen frames
+  acts as a safety margin (I QP 40). ROOT CAUSE: I-frame rate-model error amplified by full lookahead. Test of
+  an I-frame budget cap (i_cap 1.0/0.7/0.5) at all k submitted: 13720914 (x264), 13720915 (x265), tag icap.
+  I-CAP RESULT (12:44, 8/8 OK, val every 3rd GOP): cap 0.5 is best at every k and fixes the tail. x264 score
+  k0/2/5/10/29 = -4.15/-2.40/-2.01/-2.06/-2.64 (no cap: .../-2.26/-3.12/-6.42); x265 -4.35/-1.74/-0.75/-0.76/-1.17
+  (no cap: .../-0.86/-1.40/-3.70); k=29 over-rate 9.1% -> 2.4% (x264), 7.7% -> 0.5% (x265). k<=2 unchanged (cap never
+  binds). 0.5 is the edge of the grid -> check 0.3/0.4 on val before the final test run.
+  CAP 0.3/0.4 (13731127/31): mean val score over k: x264 -2.43 (0.3) / -2.46 (0.4) / -2.65 (0.5) / -3.67 (none);
+  x265 -1.57 / -1.63 / -1.75 / -2.41 -> plateau, chose 0.3. (Earlier icap files backed up as icap*A*_*.parquet;
+  controller_real.py now never overwrites results files.)
+  FINAL v2 (cap 0.3) 13731564-67 + rerun 13731810 (shard 3 failed on a01-08: x265 version check; a01-08 added to
+  bad_nodes; version-check failures now trigger auto-retry in p2_step/rd_native sbatch). Report:
+  results_v1/controller_final2.md (scripts/controller_report.py final2). TEST, v1 -> v2, score (% over):
+  x264 k0 -3.94 (4.2) = ; k2 -2.21 (3.6) -> -2.39 (2.8); k5 -0.94 (2.6) -> -1.41 (1.5); k10 -1.02 (2.2) -> -1.74 (1.2);
+  k29 -2.48 (2.1) -> -3.06 (1.3). x265 k0 = ; k2 -1.96 -> -1.87; k5 -0.20 -> -0.39; k10 -0.81 -> -0.92; k29 -2.19 ->
+  -1.80; over-rate down by 1/3-1/2 at k>=2. VAL improved strongly (as tuned). => The cap mostly fixed one near-static
+  VAL clip (LyricVideo_720P-2d24, 7 GOPs); on test it trades efficiency (x264 -0.2..-0.7) for fewer overshoots.
+  Report v1 as the efficiency number and v2 as the overshoot-safe variant. Lookahead (test, v2, paired vs k0):
+  x264 k5 +2.53 +- 0.72, x265 k5 +4.06 +- 1.50. k=29 on TEST still below k5, driven by cut/gradual GOPs (x264 -3.63
+  vs -0.15) in both versions: second, unexplained issue -> next: analyse stored QP sequences around cuts (no compute).
+  Cut analysis (test, x264, v1): k29-k5 on cut GOPs = -3.0, all efficiency; mid-GOP cuts worst (frames 8-15: -6.2,
+  16-22: -5.4). k29 reserves bits for the expensive second scene (I QP 30.4 vs 29.5 at k5) and spends MORE on the
+  frames just before the cut (QP -0.6 vs mean), which nothing references. Idea parked: v3 reference-aware offsets.
+  DECISION (Aayush 17:30): report v1 as the controller result; v2 = "tried, didn't work well"; controller work paused
+  (it went beyond the plan's simple causal fixed-pattern baseline).
 - [x] 20. (2026-11-04) Richer first-pass statistics (x264/x265 --pass 1 --stats): scripts/fp_stats.py -> features/
   fp_stats.parquet (jobs 13717883/84/85; pass-1 stream bits identical to fp_bits). Gate test scripts/fp_stats_gate.py
   -> docs/fp-stats-gate.md: (a) per-frame bits at a QP: GBM median error 27% -> 21% (x264), 22% -> 18% (x265) =

@@ -46,7 +46,13 @@ Conventions:
 | 11-04 | **Offline prototype** (replays stored constant-QP frames) | `scripts/controller_v1.py` | **INVALID for quality:** a P frame's distortion depends on its reference's QP (artifacts of +70% / -236%). Kept as a record only. |
 | 11-04 | **Real-encode controller, tuning v1** | `scripts/controller_real.py`, `jobs/p2_step.sbatch` | Exposed 2 flaws: one odd frame set the whole P estimate (frame 1 at QP 11), and the I frame was starved at k=0 on low-motion GOPs. The scoring chain was checked (forced-QP = plain constant QP within 0.4%). |
 | 11-04 | **Controller with safeguards, tuning v2 + final run** (val and test, k = 0/2/5/10/29, 4 levels) | `results_v1/controller_final.md` (`scripts/controller_report.py`); setting `0.97:3:1.0:2:3:4:0:1` | Test score: x264 -3.9 / -2.2 / -0.9 / -1.0 / -2.5; x265 -4.5 / -2.0 / -0.2 / -0.8 / -2.2 (k = 0/2/5/10/29). 2-4.5% of runs over budget, mean 0.1-0.35% over. The start-of-GOP estimate held fixed scores -25 to -103, so online feedback is essential. First clean, leak-free k-curve. |
-| 11-04 | **k=29 anomaly diagnosis** | `docs/p2-tracker.md` item 18 | With full lookahead the plan flattens to one QP, ignoring that early and post-cut frames are references. Losses are concentrated in cut (-3.0) and gradual (-6.3) GOPs. Smaller k front-loads by accident. Fix: controller v2. |
+| 11-04 | **k=29 anomaly diagnosis (revised)** | `docs/p2-tracker.md` item 18 | Losses are concentrated in cut (-3.0) and gradual (-6.3) GOPs. First guess, "the P-frame plan flattens", was contradicted: a spend-early ramp over P frames made things WORSE (4-GOP check). Likelier cause: the I frame gets fewer bits as lookahead grows (I QP 29.0 at k=0 -> 30.4 at k=29), plus settings tuned only at k=0/5 and reused at k=10/29. v2 tuning (11-04): ramp/boost/dI give only small gains; ROOT CAUSE found: a tail of near-static GOPs where full lookahead makes the controller plan almost the whole budget on the I frame, whose cost is under-predicted (no feedback yet) - e.g. one GOP 57% over. Worst 10% of episodes = 76% of the drop. I-frame budget cap 0.5 FIXES it on val: k=29 x264 -6.4 -> -2.6, x265 -3.7 -> -1.2; k<=2 unchanged; k-curve now flat beyond k=5 (results in `results_v1/controller_real/icap_*`). Caps 0.3/0.4 plateau; chose 0.3. FINAL v2 on test (`results_v1/controller_final2.md`): **tried, didn't work well**: overshoot rate down by 1/3-1/2 at k>=2, but x264 efficiency -0.2..-0.7 and x265 mixed; the val gain came from one near-static val clip (16 val clips are too few to tune on). The reported controller is v1 (`results_v1/controller_final.md`); v2 is reported only as an attempt. Lookahead on test: k5 vs k0 +2.5 +- 0.7 (x264), +4.1 +- 1.5 (x265). k=29 on test still below k5, driven by cut/gradual GOPs: second issue, open. |
+
+### Week-2 baselines (plan week 2)
+
+| Date | Experiment | Where | TL;DR |
+|---|---|---|---|
+| 11-04 | **Baseline table** on P1 settings + leak-free budgets, both encoders, val/test: best constant QP, estimator constant QP, ABR+VBV with rc-lookahead k, two-pass, best CRF, fixed pattern (hindsight / causal), controller v1 | `scripts/baselines_v1.py`; `results_v1/baselines_v1.parquet`, `results_v1/baselines_v1_table.md` | Test (x264 / x265): best-shifted fixed pattern +2.6 / +2.0 (the bar to aim for); best CQP 0; best CRF -1.0 / -1.5; two-pass -4.6 / -12.2 (x265 overshoots at small budgets); controller v1 at k5 -0.9 / -0.2 (best causal); encoder ABR+VBV -26..-35, over budget on 47-91% of GOPs, no gain from rc-lookahead; causal methods without feedback (estimator constant QP, causal fixed pattern) -25..-115, over on ~50-68%. |
 
 ### Surveys and explainers
 
@@ -61,7 +67,7 @@ Conventions:
 
 | # | Experiment | Why | Needs | Cost |
 |---|---|---|---|---|
-| P1 | **Controller v2**: QP profile `q + offset[j]` with a spend-early ramp (±a) and a boost (-b) on the first frame after a visible cut; same binary search for q; tune a, b on val; then the final val/test run | Fixes the k=29 anomaly and cut GOPs; shows what lookahead is worth when used sensibly | nothing | about 30 CPU-h |
+| P1 | **Controller work: PAUSED 2026-11-04 (Aayush).** Beyond the plan's simple "causal fixed pattern" baseline. Parked idea: v3 with reference-aware QP offsets (raise QP on frames just before a visible cut or the GOP end, lower it on the I frame and scene starts), the likely fix for k=29 on mid-GOP cuts (test analysis: k29 vs k5 loses 6.2 / 5.4 points for cuts at frames 8-15 / 16-22, all efficiency). | resume only if the team wants it | - | ~42 CPU-h |
 | P2 | **Reward shaping for RL:** potential-based shaping on predicted overshoot (then optionally a per-frame rate-distortion reward); Lagrangian PPO at k = 0/5, 3 seeds, with vs without | Dense reward without changing the optimum; targets overshoot and instability | team decision (meeting 11-04, decision 6); RL stream | tens of CPU-h |
 | P3 | **Residual RL on the causal controller** (proposal D) under the leak-free budgets | The honest version of every learned result (removes C1 + U1) | controller v2; agreement on codebase and action space | ~100+ CPU-h |
 | P4 | **λ sweep + PID-Lagrangian with val checkpoint selection** (proposal B) | Turns the method comparison into a savings vs violation-rate curve; fixes the instability | best done on the leak-free setup | ~150 CPU-h |
@@ -70,6 +76,8 @@ Conventions:
 | P7 | **Richer first-pass statistics in the RL observation** | The literature's mainstream state; the gate says they help per frame | Sara (P4) agreement on the observation spec | with P3 |
 | P8 | **Decision Transformer / attention encoder over the visible frames** (proposal E); a learned embedding over per-frame statistic sequences (as in MuZero-RC) | Uses lookahead structurally | after P3 | new code |
 | P9 | **Pixel CNN features** (supervised on the R-D curves, or self-supervised temporal / contrastive, frozen) | Only if the statistics show remaining headroom | gate first (offline prediction test) | deferred |
+
+| P0 | **Week-2 baseline table** (DONE 11-04 17:38 -> moved to Done below; plan week 2): best constant QP, estimator constant QP, ABR+VBV with rc-lookahead over k, two-pass, best CRF, fixed pattern hindsight + causal, plus controller v1, on P1 settings + leak-free budgets, both encoders | The plan's week-2 deliverable; P3 needs the best constant QP, P5 the table | nothing | ~5-8 CPU-h |
 
 **Smaller pending items:**
 - **Budget levels:** extend the curves below QP 18 (P1's env allows 11) or move the lowest level to 26; team decision.
