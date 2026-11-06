@@ -79,7 +79,7 @@ Run every baseline on all GOPs × budgets as CARC job arrays.
 - **CRF and two-pass:** references only. They use the encoder's own lookahead, so they are not causal.
 - **`rc-lookahead` over the k grid:** gives a non-learned lookahead curve to set against the learned one.
   Run it with mb-tree off; report the defaults separately.
-- **Fixed pattern:** IDR at q-6, P-frames ramping q-3 to q+3.
+- **Fixed pattern (STATIC):** IDR at q-6, P frames 1-9 at q-3, P frames 10-29 at q+3 (a step; `repo-pavneet/rclib/config.py`).
   - Hindsight-shifted version: reference only.
   - Causal version: the shift comes from the base-QP estimator, or a budget shield forces max QP when the
     remaining budget can't cover the remaining frames.

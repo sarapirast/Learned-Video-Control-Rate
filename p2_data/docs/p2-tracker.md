@@ -30,14 +30,15 @@ and how does that change with lookahead k? Results are split into cut, gradual a
 - [x] Data README: `docs/data-v1-README.md` via `scripts/data_readme.py`; regenerated at the freeze 2026-11-03 (marked frozen; numbers unchanged)
 
 ### Week 1: encoder-dependent (UNBLOCKED 2026-11-03: P1 froze x264 settings; x265 4.1 available)
-- [ ] First-pass bits (pilot: ultrafast at QP 32; Pavneet: QP 30; run on P1's frozen settings) -> work-queue item 13
-- [ ] Native R-D curves, QP 18-50 per GOP (item 13), both PSNR conventions (`rd_native.parquet`). Note: pilot "native" = IDR at q-3, P at q.
-- [ ] Budget table: 3-4 levels per GOP, `how_set` recorded (`budgets.csv`); NOT from the GOP's own encodes (item 14)
-- [ ] Causal base-QP estimator, fit on train, MAE in QP on val (item 14)
-- [ ] Baselines (Pavneet's pipeline on v1 already gives his versions; P2's on P1's settings still to do): native constant QP; fixed pattern with hindsight shift (reference); causal fixed pattern (pilot's naive causal version went over budget on 91% of GOPs, so use the estimator shift or a budget shield)
+- [x] (11-04, item 13: `features/fp_bits.parquet`; richer stats `fp_stats.parquet`) First-pass bits (pilot: ultrafast at QP 32; Pavneet: QP 30; run on P1's frozen settings) -> work-queue item 13
+- [x] (11-04, item 13: `rd/rd_native.parquet`, `rd_frames.parquet`; STATIC curves 11-05 `rd/static_rd.parquet`) Native R-D curves, QP 18-50 per GOP (item 13), both PSNR conventions (`rd_native.parquet`). Note: pilot "native" = IDR at q-3, P at q.
+- [x] (11-04, item 14: `budgets.csv`, 4 levels QP 24/30/36/42) Budget table: 3-4 levels per GOP, `how_set` recorded (`budgets.csv`); NOT from the GOP's own encodes (item 14)
+- [x] (11-04, item 14: `docs/budget-estimator-v1.md`) Causal base-QP estimator, fit on train, MAE in QP on val (item 14)
+- [x] (11-04/05: `results_v1/baselines_v1_table.md`, incl. STATIC via `scripts/static_rd.py`) Baselines (Pavneet's pipeline on v1 already gives his versions; P2's on P1's settings still to do): native constant QP; fixed pattern with hindsight shift (reference); causal fixed pattern (pilot's naive causal version went over budget on 91% of GOPs, so use the estimator shift or a budget shield)
 
 ### Week 1 checkpoint
-- [ ] Manifest, YUV, GOP table, feature files, budget table, R-D curves and estimator all exist and the README describes them
+- [~] Manifest, YUV, GOP table, feature files, budget table, R-D curves and estimator all exist and the README describes them
+  (11-05: all exist; README NOT yet regenerated for rd/, budgets, fp_stats, static_rd -> extend `scripts/data_readme.py`)
 
 ### Later weeks
 - [x] W2: native QP, ABR+VBV, CRF and two-pass (references), `rc-lookahead` over k (mb-tree off; defaults separately), fixed pattern (both versions); baseline table in results-row format
@@ -52,6 +53,9 @@ and how does that change with lookahead k? Results are split into cut, gradual a
   cqp_best 0 / 0; crf_best -1.04 / -1.46; two_pass -4.59 (3%) / -12.23 (45%; 86% over at level 42); controller v1 k5
   -0.94 / -0.20; abr_vbv -27..-35 (48-83%) / -26..-27 (47-91%), no k effect; cqp_est k0->29 -90 -> -31 / -103 -> -26;
   fixed_causal -100 -> -37 / -115 -> -33. cqp_best also for all train GOPs (P3's search start).
+  CORRECTION 11-05: fixed_* used a linear ramp, not the pilot's STATIC step; relabelled ramp_best/ramp_causal.
+  STATIC itself (scripts/static_rd.py, every GOP x base q 12-51, all splits): test static_best +0.14 / -1.81,
+  static_causal -85 -> -30 / -98 -> -26 (k=0 -> 29). The ramp beats STATIC by ~2.5-3.8 points.
 - [ ] W3: gain breakdown by GOP class; QP trajectories around cuts; before vs at/after cut measurement; written hypotheses
 - [ ] W4: split k-curves; adaptive gate (k=0/k=1 sub-policies; fixed rule on stable + learned around cuts)
 - [ ] W5: quality vs delay figure; report section
@@ -193,7 +197,7 @@ order was agreed with Aayush.
   k=0. Budget only (no first pass): 4.17 / 3.94. Cut/gradual GOPs ~1 QP harder. fp QP 30 vs 32: no clear winner.
   So a GOP-start estimate is off by 2.4-4 QP: the base QP needs online recalibration per frame (next step), and
   the biggest lookahead gain for rate estimation is k=0 -> 2 (seeing the first P frames).
-- [ ] 16. (2026-11-03 call w/ Atharva, docs/zoom_meeting_summary.txt) MILESTONE REPORT due Wed 2026-11-04: lock readings
+- [x] 16. (DONE 11-05: Pavneet's V3 `docs/milestone_report_v3.docx` approved by Aayush; v1 data not in the body by choice, kept for the final report) (2026-11-03 call w/ Atharva, docs/zoom_meeting_summary.txt) MILESTONE REPORT due Wed 2026-11-04: lock readings
   by then. Aayush: post group summary (draft given in session 2026-11-03), shared clips (done). Atharva: wider budget
   QP range, longer clips, bare-bones vs full-feature encoders. Open from P1 (docs/Ahhana_update.txt): encoder flags
   differ from Pavneet's harness (preset medium vs fast, psy off vs on); forced-QP clamp check (ipratio/pbratio vs
