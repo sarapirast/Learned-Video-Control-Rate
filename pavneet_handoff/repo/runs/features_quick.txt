@@ -1,0 +1,10 @@
+--method cql_ppo --k 5 --drop history --seed 0 --quick
+--method cql_ppo --k 5 --drop fp --seed 0 --quick
+--method cql_ppo --k 5 --drop pixel --seed 0 --quick
+--method cql_ppo --k 5 --drop scene --seed 0 --quick
+--method cql_ppo --k 5 --drop history,fp,pixel --seed 0 --quick
+--method cql_ppo --k 5 --drop history,fp,scene --seed 0 --quick
+--method cql_ppo --k 5 --drop history,pixel,scene --seed 0 --quick
+--method cql_ppo --k 5 --drop fp,pixel,scene --seed 0 --quick
+--method cql_ppo --k 5 --drop history,fp,pixel,scene --seed 0 --quick
+--method cql_ppo --k 5 --prior --seed 0 --quick

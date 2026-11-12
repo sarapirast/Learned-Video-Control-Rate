@@ -1,0 +1,11 @@
+--method cql_ppo --k 5 --mode scene_trunc --seed 0 --quick
+--method cql_ppo --k 10 --mode scene_trunc --seed 0 --quick
+--method cql_ppo --k 29 --mode scene_trunc --seed 0 --quick
+--method cql_ppo --k 5 --mode scene_ext --seed 0 --quick
+--method cql_ppo --k 10 --mode scene_ext --seed 0 --quick
+--method cql_ppo --k 29 --mode scene_ext --seed 0 --quick
+--method cql_ppo --k 5 --mode cut_trig --seed 0 --quick
+--method cql_ppo --k 10 --mode cut_trig --seed 0 --quick
+--method cql_ppo --k 29 --mode cut_trig --seed 0 --quick
+--method anyk --kmax 29 --eval-modes fixed:0,fixed:1,fixed:2,fixed:3,fixed:5,fixed:7,fixed:10,fixed:15,fixed:20,fixed:29,scene_trunc:5,scene_trunc:10,scene_trunc:29,scene_ext:29,cut_trig:5,cut_trig:10 --seed 0 --quick
+--method cql_ppo --k 5 --train-family cut --tag cutspec --seed 0 --quick
