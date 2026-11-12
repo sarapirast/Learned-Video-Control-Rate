@@ -38,6 +38,7 @@ scratch_ok start || { retry_elsewhere "scratch check failed at start"; exit 75; 
 cd /scratch1/aayushso/ee599/repo-pavneet || { retry_elsewhere "cd failed"; exit 75; }
 source tools/job_env_v1.sh || exit 1
 ARGS=$(sed -n "$((SLURM_ARRAY_TASK_ID + 1))p" "$1")
+[[ -n $ARGS ]] || { echo "no run arguments: line $((SLURM_ARRAY_TASK_ID + 1)) of $1 (missing file or empty line)"; exit 2; }
 L=$RC_WORK/logs/${SLURM_JOB_NAME}.log
 mkdir -p "$RC_WORK/logs"
 echo "$(date +%F\ %T) START $SLURM_ARRAY_JOB_ID[$SLURM_ARRAY_TASK_ID] $(hostname): $RC_CODEC/$RC_ARM rl.py $ARGS" >> "$L"

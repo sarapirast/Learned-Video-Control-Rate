@@ -270,3 +270,6 @@ controlled_burn,260,gradual,gradual,,"claude only (dissolve-detector check, fram
 ed_s00,4,no_cut,no_cut,,"claude only (dissolve-detector check, frame-by-frame)",cables sweep past the moving camera; not a dissolve,0.279,7.8
 ed_s00,5,no_cut,no_cut,,"claude only (dissolve-detector check, frame-by-frame)",cables sweep past the moving camera; not a dissolve,0.222,5.2
 ed_s00,6,no_cut,no_cut,,"claude only (dissolve-detector check, frame-by-frame)",cables sweep past the moving camera; not a dissolve,0.214,9.0
+Gaming_360P-3eb6,19,cut,cut,,"claude only (round 3, 2026-11-09, frames f-2..f+1)",hard switch: cinematic third-person shot -> dark top-down view with HUD,0.397,5.3
+Gaming_360P-3eb6,38,cut,cut,,"claude only (round 3, 2026-11-09, frames f-2..f+1)",hard switch: top-down HUD view -> cinematic shot,0.461,9.7
+Gaming_360P-3eb6,200,cut,cut,,"claude only (round 3, 2026-11-09, frames f-2..f+1)",hard switch: cinematic shot -> top-down HUD view,0.399,5.6

@@ -5,8 +5,11 @@ Every number in the README comes from these inputs, so rerun this whenever they 
   data/v1/<res>/manifest.csv, gops.csv, features/siti.csv, cuts/cut_frames.csv
   data/clip_candidates.csv, data/v1/<res>/skipped.csv, config/cut_review_v1.csv,
   config/exclude_clips.csv, data/meta/ugc_ATTRIBUTION.txt
+and, for the encoder-derived section (needs pandas + pyarrow, i.e. the project env):
+  rd/rd_native.parquet, rd/rd_frames.parquet, rd/static_rd.parquet, features/fp_bits.parquet,
+  features/fp_stats.parquet, features/frames.parquet, budgets.csv
 
-  python3 scripts/data_readme.py [--res 320x180]
+  /scratch1/aayushso/envs/ee599/bin/python -I scripts/data_readme.py [--res 320x180]
 """
 import argparse
 import csv
@@ -44,6 +47,72 @@ def binned(values_by_split, edges):
         hi = edges[i] if i < len(edges) else float('inf')
         rows.append([lab] + [sum(1 for v in values_by_split[s] if lo <= v < hi) for s in SPLITS])
     return rows
+
+
+def encoder_section(data, w):
+    """Encoder-derived files (P1's frozen settings, both encoders). Needs pandas; skipped with a note otherwise."""
+    w('## Encoder-derived data (P1 frozen settings, x264 and x265)\n')
+    try:
+        import numpy as np
+        import pandas as pd
+    except ImportError:
+        w('(Not generated: run this script with the project env to fill this section.)\n')
+        return
+    p = lambda *a: os.path.join(data, *a)  # noqa: E731
+    rdn = pd.read_parquet(p('rd', 'rd_native.parquet'))
+    rdf = pd.read_parquet(p('rd', 'rd_frames.parquet'), columns=['encoder', 'kind'])
+    st = pd.read_parquet(p('rd', 'static_rd.parquet'))
+    fpb = pd.read_parquet(p('features', 'fp_bits.parquet'))
+    fps = pd.read_parquet(p('features', 'fp_stats.parquet'), columns=['encoder'])
+    frm = pd.read_parquet(p('features', 'frames.parquet'))
+    bud = pd.read_csv(p('budgets.csv'))
+    w('Settings: `docs/Ahhana_update.txt` (x264 module 20250608, preset medium, IPPP, keyint 30, AQ / mb-tree / '
+      'psy off, 1 thread; x265 4.1 with the same choices). Bits are **slice (picture) bits**; stream headers are '
+      'stored separately. Scripts: `scripts/rd_native.py`, `scripts/fp_stats.py`, `scripts/static_rd.py`, '
+      '`scripts/budgets_v1.py`, `scripts/build_features.py`.\n')
+    w(table(['file', 'rows', 'contents'], [
+        ['`rd/rd_native.parquet`', len(rdn), 'per GOP x encoder x QP %d-%d: constant-QP slice/header bits, I-frame '
+         'bits, PSNR (Y and 6:1:1 YUV, mean of frames and from mean MSE)' % (rdn.qp.min(), rdn.qp.max())],
+        ['`rd/rd_frames.parquet`', len(rdf), 'per frame of those encodes (kind cqp) and of the first passes (kind fp): '
+         'slice/header bits, MSE per plane'],
+        ['`rd/static_rd.parquet`', len(st), "the pilot's STATIC pattern (I q-6, P1-9 q-3, P10-29 q+3) at every base q "
+         '%d-%d, per GOP x encoder' % (st.base_q.min(), st.base_q.max())],
+        ['`features/fp_bits.parquet`', len(fpb), 'first-pass slice bits per frame (ultrafast, QP %s)' %
+         ' and '.join(str(q) for q in sorted(fpb.fp_qp.unique()))],
+        ['`features/fp_stats.parquet`', len(fps), 'richer first-pass stats per frame (tex / mv / misc bits, intra / '
+         'inter / skip blocks)'],
+        ['`features/frames.parquet`', len(frm), 'per-frame feature table; first-pass columns merged 2026-11-09 '
+         '(`fp_bits` = x264 at QP 32; all variants as `fp_bits_<enc>_q<qp>`, stats as `fps_<enc>_<stat>`)'],
+        ['`budgets.csv`', len(bud), 'budgets per GOP x encoder x level, hindsight q_fit, causal base-QP estimates'],
+    ]) + '\n')
+    rows = []
+    for enc, d in rdn.groupby('encoder'):
+        d = d.sort_values(['clip_id', 'gop', 'qp'])
+        steps = (d.groupby(['clip_id', 'gop']).slice_bits.diff() > 0).sum()
+        med = d.groupby('qp').slice_bits.median()
+        rows.append([enc, d.groupby(['clip_id', 'gop']).ngroups] + ['%.0f' % (med[q] / 1000) for q in (24, 30, 36, 42)]
+                    + ['%d of %d' % (steps, len(d) - d.groupby(['clip_id', 'gop']).ngroups)])
+    w('Constant-QP curves: median GOP slice bits (kbit) and QP steps where bits went UP with QP (should be 0):\n')
+    w(table(['encoder', 'GOPs', 'QP 24', 'QP 30', 'QP 36', 'QP 42', 'non-monotonic steps'], rows) + '\n')
+    rows = []
+    for (enc, lv), d in bud.groupby(['encoder', 'level_q0']):
+        r = d.budget_over_own_cqp
+        rows.append([enc, lv, '%.0f' % (d.budget_bits.median() / 1000), '%.2f' % r.quantile(.1), '%.2f' % r.median(),
+                     '%.2f' % r.quantile(.9), '%.1f%%' % (100 * d.q_fit_flag.notna().mean())])
+    w('Budgets (`budgets.csv`): clip-level, the clip\'s mean constant-QP slice bits per GOP at level q0; never the '
+      'GOP\'s own spend. Ratio = budget / the GOP\'s own constant-QP spend at q0. Flagged = the hindsight q_fit falls '
+      'outside the curve (QP 18-50) and is clipped:\n')
+    w(table(['encoder', 'level q0', 'median budget (kbit)', 'ratio p10', 'ratio median', 'ratio p90', 'flagged'],
+            rows) + '\n')
+    rows = []
+    for (enc, q), d in fpb.groupby(['encoder', 'fp_qp']):
+        g = d.groupby(['clip_id', 'gop']).fp_slice_bits.sum().rename('fp')
+        c = rdn[(rdn.encoder == enc) & (rdn.qp == q)].set_index(['clip_id', 'gop']).slice_bits
+        j = pd.concat([g, c], axis=1, join='inner')
+        rows.append([enc, q, '%.3f' % np.corrcoef(np.log(j.fp), np.log(j.slice_bits))[0, 1],
+                     '%.2f' % (j.fp / j.slice_bits).median()])
+    w('First pass vs the real encode at the same constant QP, per GOP:\n')
+    w(table(['encoder', 'first-pass QP', 'log-log correlation', 'median first-pass / real bits'], rows) + '\n')
 
 
 def main():
@@ -152,6 +221,8 @@ def main():
     w(table(['SI', 'train', 'val', 'test'], binned(gsi, [40, 60, 80, 100, 120, 150])) + '\n')
     w('GOP-mean TI, number of GOPs per bin:\n')
     w(table(['TI', 'train', 'val', 'test'], binned(gti, [2, 5, 10, 20, 30])) + '\n')
+
+    encoder_section(data, w)
 
     # ---- licences
     w('## Licences and attribution\n')

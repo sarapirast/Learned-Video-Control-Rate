@@ -14,7 +14,7 @@ lists what needs deciding.
 | `clip_id`, `split`, `group` | category | identity; `group` is the split unit | no |
 | `gop`, `pos_in_gop`, `frame` | int32 | GOP index in the clip, frame index within the GOP (0 = IDR), frame index in the clip | `pos_in_gop` yes |
 | `gop_label` | category | `stable` / `cut` / `gradual` from the **reviewed** labels | **no** (analysis only) |
-| `fp_bits` | float32 | first-pass bits (definition open: pilot ultrafast at QP 32 vs Pavneet's QP 30; computed on P1's frozen x264 settings, and x265) | yes. **Empty until P2 computes it (next task; the encoder is now decided)** |
+| `fp_bits` | float32 | first-pass bits (definition open: pilot ultrafast at QP 32 vs Pavneet's QP 30; computed on P1's frozen x264 settings, and x265) | yes. **Filled 2026-11-09:** default = x264 first pass at QP 32 (P1 settings, slice bits); all variants are separate columns `fp_bits_<x264|x265>_q<30|32>`, plus richer first-pass stats at QP 32 `fps_<enc>_<tex|mv|misc|intra|inter|skip>` |
 | `si`, `ti` | float32 | ITU-T P.910 spatial / temporal information | yes (cheap complexity proxies) |
 | `hist_delta`, `scdet_score` | float32 | raw cut-detector signals | yes |
 | `y_mean` | float32 | mean luma | yes |

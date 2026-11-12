@@ -18,6 +18,7 @@ FILES=(
     docs/clip-selection.md docs/p2-plan.md docs/p2-tracker.md docs/data-v1-README.md docs/feature-spec-draft.md
     docs/EXPERIMENTS.md docs/budget-estimator-v1.md docs/rd-native-summary.md docs/fp-stats-gate.md
     docs/lit-survey-features-2026-11-04.md docs/rl-models-review-2026-11-04.md docs/rl-field-guide.html
+    docs/w4-hypotheses.md docs/report-w5-quality-vs-delay.md
     jobs/*.sh runs_v1/*.txt
     environment.yml environment.lock.txt
     p2_data_README.md:README.md

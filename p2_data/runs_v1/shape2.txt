@@ -1,0 +1,6 @@
+--method lagr --k 0 --seed 0 --shape 0.5
+--method lagr --k 0 --seed 1 --shape 0.5
+--method lagr --k 0 --seed 2 --shape 0.5
+--method lagr --k 0 --seed 0 --shape 1 --gae-lambda 1
+--method lagr --k 0 --seed 1 --shape 1 --gae-lambda 1
+--method lagr --k 0 --seed 2 --shape 1 --gae-lambda 1
