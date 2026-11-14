@@ -14,6 +14,7 @@ whole GOP)? Results are split by GOPs with scene cuts vs stable GOPs.
 |---|---|---|
 | [`p2_data/`](p2_data) | P2: data, features, baselines | Builds dataset v1 (109 clips, 1,042 GOPs at 320x180, natural cuts only in test), scene-cut labels, first-pass features, constant-QP and STATIC R-D curves, leak-free clip-level budgets with a causal base-QP estimator, and the baseline table. See [`p2_data/README.md`](p2_data/README.md). |
 | [`pavneet_pipeline/`](pavneet_pipeline) | P3/P5: search, learners, evaluation | Hindsight search, imitation / offline RL / PPO variants, lookahead sweeps and reports on CARC. A copy of [pbanga-alt/ee599-rl-rate-control](https://github.com/pbanga-alt/ee599-rl-rate-control) at da7cc53, plus a separate commit with the edits for dataset v1. See [`pavneet_pipeline/README.md`](pavneet_pipeline/README.md). |
+| [`p4/`](p4) | P4: RL training, budget handling | Per-length retuning of the stream rule (leave-one-film-out) and PID-Lagrangian PPO for budget reliability, x264 + x265. See [`p4/README.md`](p4/README.md). |
 | branch `p1` (not merged yet) | P1: encoder wrapper and Gym env | x264 encoder shim and the Gymnasium rate-control environment, with a teammate quick start. |
 
 ## Team
