@@ -14,10 +14,11 @@ ap.add_argument("--target", type=float, default=0.05)    # max share of streams 
 ap.add_argument("--kp", type=float, default=2.0)
 ap.add_argument("--ki", type=float, default=0.05)
 ap.add_argument("--steps", type=int, default=2_000_000)
+ap.add_argument("--bc", action="store_true")
 a = ap.parse_args()
 
 CFG, BASE = S.CFG, 0.17
-name = f"ppo_pid_L{a.look}_s{a.seed}"
+name = f"{'bc_ppo_pid' if a.bc else 'ppo_pid'}_L{a.look}_s{a.seed}"
 out = os.path.join(S.C.results_dir("stream"), name)
 os.makedirs(out, exist_ok=True)
 torch.set_num_threads(2)
@@ -29,10 +30,12 @@ c0 = S.train_c0(infos)
 venv = DummyVecEnv([(lambda i=i: SE.StreamEnv(infos, tr, look=a.look, c0=c0, seed=1000 * a.seed + i, lam=BASE))
                     for i in range(CFG["n_envs"])])
 pk = {"net_arch": {"pi": [128, 128], "vf": [128, 128]}, "activation_fn": torch.nn.ReLU}
-model = PPO("MlpPolicy", venv, learning_rate=CFG["lr_scratch"], n_steps=CFG["n_steps"], batch_size=CFG["batch"],
+model = PPO("MlpPolicy", venv, learning_rate=CFG["lr_ft"] if a.bc else CFG["lr_scratch"], n_steps=CFG["n_steps"], batch_size=CFG["batch"],
             n_epochs=CFG["epochs"], gamma=1.0, gae_lambda=0.95, ent_coef=CFG["ent"], policy_kwargs=pk,
             seed=a.seed, device="cpu", verbose=0)
-
+if a.bc:
+    X, Y = S.bc_data(infos, c0, a.look, a.seed, CFG["bc_eps"])
+    print("BC accuracy", S.train_bc(model, X, Y, CFG["bc_steps"], a.seed), flush=True)
 curve, lams = [], []      # curve: (step, score, over, use) per finished stream; lams: (step, rate, lambda)
 
 class PID(BaseCallback):

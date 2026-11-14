@@ -28,3 +28,9 @@ for look in (2, 0):
     lag_seeds = [pickle.load(open(os.path.join(S.C.WORK, "results_stream", f"bc_ppo_lag_L{look}_s{s}", "eval.pkl"), "rb"))["res"]["test"] for s in (0, 1, 2)]
     lag = np.mean([[r["score"] for r in rows] for rows in lag_seeds], axis=0)
     print(look, "bc_ppo_lag vs rule@0.96:", S.cboot(lag - np.array([r["score"] for r in rule]), groups))
+    if look == 2:
+        bp_seeds = [pickle.load(open(os.path.join(S.C.WORK, "results_stream", f"bc_ppo_pid_L2_s{s}", "eval.pkl"), "rb"))["res"]["test"]
+                    for s in (0, 1, 2)]
+        bp = np.mean([[r["score"] for r in rows] for rows in bp_seeds], axis=0)
+        print(look, "bc_ppo_pid vs rule@0.96:", S.cboot(bp - np.array([r["score"] for r in rule]), groups))
+        print(look, "bc_ppo_pid vs bc_ppo_lag:", S.cboot(bp - lag, groups))
