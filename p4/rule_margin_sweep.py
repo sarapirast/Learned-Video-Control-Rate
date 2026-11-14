@@ -14,8 +14,17 @@ for look in (2, 0):
     for split in ("val", "test"):
         for m in (0.88, 0.90, 0.92, 0.94, 0.96, 0.98, 1.00):
             rows = S.evaluate(zero, infos, split, look, c0, m, "rule", rp)
-            # TODO: print look, split, m, mean score, share over (mean of r["over"]), mean use
             print(look, split, m,
             f"score {np.mean([r['score'] for r in rows]):+.3f}",
             f"over {100 * np.mean([r['over'] for r in rows]):.1f}%",
             f"use {100 * np.mean([r['use'] for r in rows]):.1f}%")
+    rule = S.evaluate(zero, infos, "test", look, c0, 0.96, "rule", rp)
+    seeds = [pickle.load(open(os.path.join(S.C.WORK, "results_stream", f"ppo_pid_L{look}_s{s}", "eval.pkl"), "rb"))["res"]["test"] for s in (0, 1, 2)]
+    assert all(a["stream"] == b["stream"] and a["q0"] == b["q0"] and a["s"] == b["s"] for a, b in zip(rule, seeds[0]))
+    pid = np.mean([[r["score"] for r in rows] for rows in seeds], axis=0)
+    diff = pid - np.array([r["score"] for r in rule])
+    groups = np.array([r["group"] for r in rule])
+    print(look, "ppo_pid vs rule@0.96:", S.cboot(diff, groups))    
+    lag_seeds = [pickle.load(open(os.path.join(S.C.WORK, "results_stream", f"bc_ppo_lag_L{look}_s{s}", "eval.pkl"), "rb"))["res"]["test"] for s in (0, 1, 2)]
+    lag = np.mean([[r["score"] for r in rows] for rows in lag_seeds], axis=0)
+    print(look, "bc_ppo_lag vs rule@0.96:", S.cboot(lag - np.array([r["score"] for r in rule]), groups))
