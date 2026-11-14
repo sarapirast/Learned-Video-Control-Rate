@@ -36,5 +36,5 @@ for ax, (codec, d) in zip(axes, DATA.items()):
     ax.grid(alpha=0.3)
 axes[0].legend(fontsize=8, loc="lower right")
 fig.tight_layout()
-fig.savefig("tradeoff_L2.png", dpi=200)
+fig.savefig("figures/tradeoff_L2.png", dpi=200)
 print("wrote tradeoff_L2.png")
