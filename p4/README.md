@@ -64,6 +64,12 @@ Full per-case output: `results/lofo_x264.txt`, `results/lofo_x265.txt`.
    ToS. Retuning improved the rule on the held-out film in only 10 of 16 cases; 5 of the 6 failures were tuned on
    ToS and tested on ED.
 
+5. **Target sweep (BC start, targets 2/5/10 %, L=2):** RL reaches 3.4 / 5.8 / 11.1 % over at −0.431 / −0.402 / −0.375 dB
+   on x264, and 2.8 / 4.8 / 9.5 % at −0.268 / −0.228 / −0.220 dB on x265. Cutting overspends to ~3 % costs RL
+   0.05–0.06 dB but the rule 0.16–0.21 dB, so RL's edge grows as the reliability requirement tightens (read off the
+   rule's margin curve: ≈ +0.14 → +0.29 dB on x264, ≈ +0.22 → +0.31 dB on x265). The 2 % target was not quite
+   reached (λ still rising at 2M steps); at 10 % the constraint barely binds (λ ≈ 0.17–0.2).
+
 ### Caveats
 - Only 2 films, 6 segments each, so the CIs are wide.
 - `ed_s*` / `tos_s*` clips are in v1's **test** split, so these films are not "unseen" in the sense of being outside

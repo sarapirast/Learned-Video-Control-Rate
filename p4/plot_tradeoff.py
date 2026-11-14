@@ -8,11 +8,13 @@ DATA = {
         "rule": ([1.2, 1.7, 2.8, 4.3, 7.0, 13.2, 29.2], [-0.905, -0.813, -0.723, -0.637, -0.566, -0.517, -0.528]),
         "points": {"PPO": (15, -0.378), "bc_ppo_lag (fixed λ)": (7, -0.400),
                    "ppo_pid": (7, -0.408), "bc_ppo_pid": (5.8, -0.402)},
+        "pid_curve": ([3.4, 5.8, 11.1], [-0.431, -0.402, -0.375]),
     },
     "x265": {
         "rule": ([0.9, 1.1, 2.1, 3.5, 6.2, 11.9, 29.4], [-0.806, -0.710, -0.622, -0.540, -0.468, -0.423, -0.433]),
         "points": {"PPO": (12, -0.222), "bc_ppo_lag (fixed λ)": (5, -0.217),
                    "ppo_pid": (5.3, -0.263), "bc_ppo_pid": (4.8, -0.228)},
+        "pid_curve": ([2.8, 4.8, 9.5], [-0.268, -0.228, -0.220]),
     },
 }
 MARGINS = [0.88, 0.90, 0.92, 0.94, 0.96, 0.98, 1.00]
@@ -23,6 +25,11 @@ fig, axes = plt.subplots(1, 2, figsize=(11, 4.5))
 for ax, (codec, d) in zip(axes, DATA.items()):
     xs, ys = d["rule"]
     ax.plot(xs, ys, "-", color="black", lw=1.5, label="remaining-budget rule (margin sweep)")
+    if "pid_curve" in d:
+        px, py = d["pid_curve"]
+        ax.plot(px, py, "--", color="#d62728", lw=1.5, label="bc_ppo_pid, targets 2/5/10 %")
+        for x, y, t in zip(px, py, ("2%", "5%", "10%")):
+            ax.annotate(t, (x, y), textcoords="offset points", xytext=(0, 8), fontsize=7, color="#d62728", ha="center")
     for x, y, m in zip(xs, ys, MARGINS):
         ax.annotate(f"{m:.2f}", (x, y), textcoords="offset points", xytext=(4, -10), fontsize=7, color="gray")
     for name, (x, y) in d["points"].items():
@@ -34,6 +41,7 @@ for ax, (codec, d) in zip(axes, DATA.items()):
     ax.set_ylabel("score (dB, higher is better)")
     ax.set_title(f"{codec}, v1 test, lookahead 2 GOPs")
     ax.grid(alpha=0.3)
+    ax.margins(y=0.08)
 axes[0].legend(fontsize=8, loc="lower right")
 fig.tight_layout()
 fig.savefig("figures/tradeoff_L2.png", dpi=200)
