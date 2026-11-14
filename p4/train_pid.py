@@ -18,7 +18,8 @@ ap.add_argument("--bc", action="store_true")
 a = ap.parse_args()
 
 CFG, BASE = S.CFG, 0.17
-name = f"{'bc_ppo_pid' if a.bc else 'ppo_pid'}_L{a.look}_s{a.seed}"
+tag = "" if a.target == 0.05 else f"_t{round(a.target * 100)}"
+name = f"{'bc_ppo_pid' if a.bc else 'ppo_pid'}{tag}_L{a.look}_s{a.seed}"
 out = os.path.join(S.C.results_dir("stream"), name)
 os.makedirs(out, exist_ok=True)
 torch.set_num_threads(2)
@@ -71,5 +72,5 @@ res = {s: S.evaluate(act, infos, s, a.look, c0) for s in ("val", "test")}
 for s, rows in res.items():
     print(name, s, f"score {np.mean([r['score'] for r in rows]):+.3f} dB, "
           f"over {100 * np.mean([r['over'] for r in rows]):.1f}%, use {100 * np.mean([r['use'] for r in rows]):.1f}%")
-pickle.dump({"args": vars(a) | {"method": "ppo_pid"}, "cfg": CFG, "info": {"c0": c0, "lams": lams},
+pickle.dump({"args": vars(a) | {"method": name.rsplit("_L", 1)[0]}, "cfg": CFG, "info": {"c0": c0, "lams": lams},
              "res": res, "seconds": time.time() - t0}, open(os.path.join(out, "eval.pkl"), "wb"))
