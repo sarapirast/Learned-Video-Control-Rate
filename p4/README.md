@@ -14,6 +14,8 @@ p4/
 ├── rule_margin_sweep.py    Part 2: rule margin curve + equal-reliability CIs
 ├── plot_tradeoff.py        Part 2: figures/tradeoff_L2.png
 ├── pid_fresh.py            Part 3
+├── fix_method_labels.py    one-off: relabel eval.pkl method names
+├── models/                 trained PID policies: <codec>/<run>/model.zip, eval.pkl, lam_curve.npy
 ├── figures/                plots
 ├── logs/                   training logs (pid_*, bcpid_*)
 └── outputs/                outputs of every script (lofo_*, rule_margin_*, pid_fresh_*, report_pid_*)
@@ -64,11 +66,6 @@ Full per-case output: `outputs/lofo_x264.txt`, `outputs/lofo_x265.txt`.
    ToS. Retuning improved the rule on the held-out film in only 10 of 16 cases; 5 of the 6 failures were tuned on
    ToS and tested on ED.
 
-5. **Target sweep (BC start, targets 2/5/10 %, L=2):** RL reaches 3.4 / 5.8 / 11.1 % over at −0.431 / −0.402 / −0.375 dB
-   on x264, and 2.8 / 4.8 / 9.5 % at −0.268 / −0.228 / −0.220 dB on x265. Cutting overspends to ~3 % costs RL
-   0.05–0.06 dB but the rule 0.16–0.21 dB, so RL's edge grows as the reliability requirement tightens (read off the
-   rule's margin curve: ≈ +0.14 → +0.29 dB on x264, ≈ +0.22 → +0.31 dB on x265). The 2 % target was not quite
-   reached (λ still rising at 2M steps); at 10 % the constraint barely binds (λ ≈ 0.17–0.2).
 
 ### Caveats
 - Only 2 films, 6 segments each, so the CIs are wide.
@@ -117,11 +114,17 @@ Per-run logs: `logs/`. Full tables: `outputs/report_pid_*_test.md`, `outputs/rul
 3. **The BC start matters more than how λ is set:** from scratch, the PID was 0.04 dB behind on x265.
 4. Constrained policies halve PPO's overspends (12–15 % → 5–7 %) for 0–0.04 dB. Like Aayush's frame-level finding,
    a penalty above the metric's 0.17 trades a little score for reliability.
+5. **Target sweep (BC start, targets 2/5/10 %, L=2):** RL reaches 3.4 / 5.8 / 11.1 % over at −0.431 / −0.402 / −0.375 dB
+   on x264, and 2.8 / 4.8 / 9.5 % at −0.268 / −0.228 / −0.220 dB on x265. Cutting overspends to ~3 % costs RL
+   0.05–0.06 dB but the rule 0.16–0.21 dB, so RL's edge grows as the reliability requirement tightens (read off the
+   rule's margin curve: ≈ +0.14 → +0.29 dB on x264, ≈ +0.22 → +0.31 dB on x265). The 2 % target was not quite
+   reached (λ still rising at 2M steps); at 10 % the constraint barely binds (λ ≈ 0.17–0.2).
+
 
 ### Caveats
 - 8-GOP v1 streams only; BC-start PID run at L = 2 only.
 - Train/test gap in reliability: ~5 % over during training became 6–7 % on x264 test.
-- Single PID setting (Kp 2, Ki 0.05, target 5 %); no sweep over targets.
+- Single PID gains (Kp 2, Ki 0.05); targets 2/5/10 % swept with the BC start only.
 
 ---
 
@@ -167,7 +170,7 @@ From `p4/` in PowerShell. Use a copy of `pavneet_handoff\artifacts\<codec>\v1` o
 $env:RC_V1="1"; $env:RC_CODEC="x264"
 $env:RC_WORK="<repo>\pavneet_handoff\artifacts\x264\fresh"
 $env:RC_V1WORK="<repo>\pavneet_handoff\artifacts\x264\v1"
-python -u stream_rule_lofo.py | Tee-Object results\lofo_x264.txt
+python -u stream_rule_lofo.py | Tee-Object outputs\lofo_x264.txt
 ```
 
 **Part 2:**
@@ -175,7 +178,7 @@ python -u stream_rule_lofo.py | Tee-Object results\lofo_x264.txt
 $env:RC_V1="1"; $env:RC_CODEC="x264"; $env:RC_WORK="C:\HW\work\x264_v1"
 python -u train_pid.py --look 2 --seed 0 | Tee-Object logs\pid_x264_L2_s0.txt        # ppo_pid, ~15-30 min
 python -u train_pid.py --bc --look 2 --seed 0 | Tee-Object logs\bcpid_x264_L2_s0.txt # bc_ppo_pid
-python -u rule_margin_sweep.py | Tee-Object results\rule_margin_x264.txt             # rule curve + CIs
+python -u rule_margin_sweep.py | Tee-Object outputs\rule_margin_x264.txt             # rule curve + CIs
 python plot_tradeoff.py                                                               # figures\tradeoff_L2.png
 ```
 
@@ -184,7 +187,7 @@ python plot_tradeoff.py                                                         
 $env:RC_V1="1"; $env:RC_CODEC="x264"
 $env:RC_WORK="<repo>\pavneet_handoff\artifacts\x264\fresh"
 $env:RC_V1WORK="C:\HW\work\x264_v1"
-python -u pid_fresh.py | Tee-Object results\pid_fresh_x264.txt
+python -u pid_fresh.py | Tee-Object outputs\pid_fresh_x264.txt
 ```
 
 For x265, replace `x264` with `x265` in the variables and file names.
