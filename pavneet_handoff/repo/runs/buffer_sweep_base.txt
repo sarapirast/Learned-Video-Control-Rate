@@ -1,0 +1,8 @@
+- --baselines2
+RC_BUF_SIGMA=0.15 --baselines2
+RC_BUF_SIGMA=0.5 --baselines2
+RC_BUF_CAP=0.5 --baselines2
+RC_BUF_CAP=2 --baselines2
+RC_BUF_LAM=0.25 --baselines2
+RC_BUF_LAM=1 --baselines2
+RC_BUF_CHANNEL=trace --baselines2

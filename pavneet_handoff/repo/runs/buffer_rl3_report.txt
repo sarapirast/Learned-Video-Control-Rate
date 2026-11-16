@@ -1,0 +1,2 @@
+- --report
+RC_BUF_CHANNEL=trace --report

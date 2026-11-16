@@ -155,3 +155,120 @@ Debug passed (quick subset, pipeline check only): spend/budget ctrl 89.8% / 94.5
 - H7 PASS: gain does not shrink with length; ppo L=2 grows (x265 +0.05 / +0.12 / +0.16 at N = 8 / 16 / 32, CIs > 0 at 16 and 32; x264 +0.07 / +0.09 / +0.15, all CIs > 0). L=0 learners +0.20 to +0.40 at N = 16/32, mainly because the N=8-tuned rule degrades on long streams (rule L0 −0.50 → −0.81).
 - H8 PASS: >1 % over within 1–2 points of the rule; bc_ppo_lag 1–5 %.
 - Net: on unseen films the stream gain shrinks to +0.03–0.07 dB at N=8 (≈ the v1 same-clip number), and is clearest for plain PPO on longer streams. 12 segments from 2 films; rule and policies both tuned/trained at N=8.
+
+### 2026-11-12 — handoff package (user request)
+- `/scratch1/pbanga/ee599_handoff/` (+ `ee599_handoff.zip`, 58 MB): README (project, standing rules, environment, history, D34/D35 setup, code map, how to run), RESULTS_AND_INTERPRETATION.md, NEXT_STEPS.md, a copy of the repo without .git, and artifacts (D34 policies + eval, baselines, v1 and fresh curves, D35 results). Train curves and raw video not included.
+- Uploaded (user approved, incl. force-adding past Sara's .gitignore) to the public repo sarapirast/Learned-Video-Control-Rate, folder `pavneet_handoff/`, commit eb08445 on main (365 files). Clone used: /scratch1/pbanga/tmp/sara_repo.
+
+### 2026-11-12 — D36 meta-RL prepared and tested (user: "run it")
+- New `rclib/metastream.py` (variable-length / playlist streams, length + quality-feedback observations), `experiments/stream_meta.py` (PPO / RecurrentPPO, evaluation on v1 val/test and fresh n = 8/16/32, report vs rule and D34 ppo), `runs/stream_meta.txt` (12 runs), `tools/submit_meta.sh`. D34 code unchanged.
+- Quick tests in the interactive allocation (14067045): rppo_fb 40k steps ~1 min incl. evaluation (x265); ppo_fb and rppo on x264 OK; report OK. Quick outputs in `rcwork_v1/<codec>/results_stream_meta_quick` (not results). Estimated 2M-step runs: 30–50 min (LSTM), ~6 min (MLP).
+
+### 2026-11-13 — D36 results (`results/v1_stream_meta/<codec>/meta_report.md`)
+- x264 12/12 runs; x265 10/12 (rppo_fb L2 s0 and ppo_fb L2 s1 died at ~7 min, empty logs, rc 135 / cancelled; x265 rows for those two methods are 2-seed means).
+- H10 PASS: rppo_fb L2 vs rule, v1 test: x265 +0.161 [+0.117, +0.215], x264 +0.112 [+0.049, +0.160].
+- H11 SPLIT: fresh n=8 vs rule: x265 +0.046 [−0.007, +0.107] FAIL, x264 +0.083 [+0.035, +0.133] PASS (same pattern as D34 H6). ppo_fb L2 on x265: +0.061 [+0.010, +0.121] (not the pre-registered method).
+- H12 SPLIT: vs D34 ppo L2, fresh n=32: x265 +0.044 [−0.047, +0.136] FAIL, x264 +0.083 [+0.020, +0.150] PASS. All D36 variants are above D34 ppo at n=32 (+0.04 to +0.08) and above the rule by +0.20 to +0.23 (D34 ppo +0.15/+0.16).
+- H13 PASS (point estimate): v1 test vs D34 ppo: x265 −0.041, x264 −0.028 (x265 CI [−0.076, −0.015] is below 0: a small real cost at n = 8).
+- H14 FAIL at fresh n=32 only (144 cases): >1 % over 9 % vs rule 3 % (x265), 10 % vs 3 % (x264); within 5 pts on every other set.
+- Ablations (L=2, score differences, seeds averaged): memory (rppo_fb − ppo_fb) −0.03 to +0.02, feedback (rppo_fb − rppo) −0.01 to +0.04. Neither the LSTM nor quality feedback gives a consistent gain; the effect of D36 comes from variable-length training (helps long streams, costs ~0.03–0.06 dB at n = 8).
+- L=0 at n=32: rppo_fb +0.46/+0.48 vs rule and +0.06/+0.10 vs D34 ppo (x264 CI > 0), but the rule is tuned at n = 8, so not claimed.
+
+### 2026-11-13 — user: "do all 3, reruns, direction B, direction A with the message to aayush"
+- Reruns of the two dead x265 D36 runs submitted (14188936, report 14188937).
+- A (D37): built `rclib/yrd.py`; found our controller port far weaker than final3 (−1.6 vs −0.24 dB per GOP), so A is not run until Aayush allows using final3; message drafted in `docs/MESSAGE_TO_AAYUSH.md`. Found the YUV-vs-luma PSNR scale difference (D34–D36 dB ≈ 3/4 of luma dB).
+- B (D38): `rclib/bufenv.py`, `experiments/buffer_rl.py`, `runs/buffer.txt`, `tools/submit_buffer.sh`; pyarrow installed into /scratch1/pbanga/envs/rc to read the v1 per-frame table. Quick tests: buffer-blind rule stalls 4–11 % of the time, vbv rule ~1 %; quick ppo +0.12 vs vbv (60k steps, not a result). Submitted 14190548–53.
+
+### 2026-11-13 — D38 results and D36 x265 reruns
+- D36 x265 now 3 seeds everywhere (reruns 14188936 OK). rppo_fb L2: v1 test vs rule +0.160 [+0.119, +0.213]; fresh n=8 +0.042 [−0.012, +0.103] (H11 x265 still FAIL); vs D34 ppo at n=32 +0.066 [−0.011, +0.145] (H12 x265 still FAIL); v1 test vs D34 ppo −0.041 (H13 pass). Conclusions unchanged.
+- D38 (`results/v1_buffer/<codec>/buffer_report.md`), ppo L=2 vs tuned vbv rule: v1 test x265 +0.559 [+0.475, +0.678], x264 +0.432 [+0.374, +0.495] (HB1 PASS); test playlists n=16 x265 +0.483 [+0.429, +0.521], x264 +0.436 [+0.378, +0.488] (HB2 PASS); stall % ppo ≤ vbv on every set (x265 test 0.44 vs 0.74, x264 0.68 vs 0.74) (HB3 PASS); vbv > buffer-blind rule +0.40 to +2.6 (HB4 PASS). L=0 similar (+0.40 to +0.73 vs vbv). Gain = more of the channel used (use 79 vs 74 %) with fewer stalls. Best constant QP (offline, buffer-blind) stalls 10–25 % of the time. Caveats: synthetic AR(1) channel, stall weight 0.5 dB/% chosen by us, vbv is our analogue of encoder VBV (not x264/x265 VBV itself), no hindsight ceiling under the buffer.
+
+### 2026-11-13 — D39 submitted (user: "do all 3")
+- Real traces: Norway HSDPA site is gone; used the Belgium 4G/LTE logs from the authors' site (users.ugent.be/~jvdrhoof/dataset-4g, 393 KB zip, 40 logs) in /scratch1/pbanga/data/traces/belgium4g; kept throughput only (throughput.pkl). 1-s log-rate change std 1.2 (vs 0.3 synthetic).
+- Added vbv2 / mpc baselines, ppo_v2, RC_BUF_* settings, trace channel, fresh-film evaluation; `tools/buf_task.sbatch`, `runs/buffer_sweep*.txt`. Quick tests: vbv2 beats vbv by ~0.37 dB on val (default) — the D38 margin will likely shrink; trace setting: vbv2 / mpc / ppo_v2 all run.
+- Submitted x265 14228788–91, x264 14228792–95.
+
+### 2026-11-13 — D39 interim (base tuning done; ppo_v2 running)
+- Default setting, L=2, v1 test: vbv2 beats the D38 vbv rule by +0.48 (x265) / +0.50 (x264) dB; mpc ≈ vbv2 (−0.02). The D38 policy (ppo on vbv) vs vbv2: x265 +0.081 [−0.029, +0.241], x264 −0.064 [−0.179, +0.077] — not significant. On n=16 playlists ppo vs vbv2 still +0.255 [+0.138, +0.360] / +0.213 [+0.109, +0.311]; vs mpc +0.167 [+0.082, +0.316] / −0.027 [−0.131, +0.088].
+- So most of the D38 margin was a weak baseline. Whether RL on top of vbv2 (ppo_v2) adds anything is what the running jobs test.
+
+### 2026-11-14 — D39 final (all 66 jobs COMPLETED)
+- ppo_v2 (PPO on vbv2, L=2, 3 seeds) vs vbv2, default setting: v1 test x265 +0.436 [+0.366, +0.539], x264 +0.347 [+0.262, +0.435]; n=16 playlists +0.576 / +0.576. vs mpc: +0.459 / +0.370 (v1 test).
+- Sweep, ppo_v2 vs vbv2 on v1 test (x265 / x264): sigma 0.15 +0.43 / +0.37; sigma 0.5 +0.52 / +0.41; cap 0.5 s +0.62 / +0.55; cap 2 s +0.47 / +0.30; stall weight 0.25 +0.46 / +0.33; weight 1 +0.53 / +0.43; real LTE traces +0.23 [+0.06, +0.44] / +0.41 [+0.26, +0.60]. All CIs > 0.
+- Fresh films (6:1:1 YUV): n=16 +0.19 / +0.23, n=32 +0.30 / +0.40 vs vbv2; vs mpc +0.12 / +0.15 (n=16), +0.24 / +0.03 [−0.13, +0.20] (n=32).
+- HC1–HC5 all pass. The gain is both quality (ppo_v2 spends ~3 % more of the channel) and fewer stalls (0.61 vs 0.97 % on x265 default).
+- Caveats: curve lookups and simulated buffer, not real encodes; mpc is a crude planner (it loses to vbv2 at sigma 0.15 and cap 2 s), so HC2 is weaker evidence than HC1; real traces have deep fades and every method stalls ~2–2.5 %.
+
+### 2026-11-14 — D40 built and debug-tested (real encoder in the loop)
+- Why: a real encode of our per-GOP constant-QP decisions equals the curve lookups (closed GOPs; D34 check), so the real gaps are the baseline (encoder's own frame-level RC) and the simulated network. D40 adds E2 (encoder ABR+VBV, channel-blind, target fraction tuned on val) and E3 (encoder ABR+VBV per second, target set by vbv2 or ppo_v2).
+- Debug (debug partition; x265 14246288, 14246393; x264 14246459): replay = lookups exactly; lookups = D39 rows exactly after the psi/alpha env fix (ppo_v2 had been trained with the tuned alpha 0.6, vbv2 with 0.5; 4/12 cases differed before the fix). Report code dry-run OK. Timing ~20 s per n=8 case (x265), about half on x264.
+- Full run (44 shards per encoder + report) waiting for approval.
+
+### 2026-11-14 — D40 results (real encoder in the loop; all 92 tasks COMPLETED)
+- E1 replay: real encodes of vbv2's / ppo_v2's QPs = lookups exactly (96 cases per set, all four reports, both encoders).
+- ppo_v2 vs E2 (encoder ABR+VBV whole stream, target 0.9 x channel mean tuned on val): x265 n=8 +0.41 [+0.16, +0.60], n=16 +2.97; x264 n=8 −0.05 [−0.45, +0.22] (tie), n=16 +2.81; traces (f = 0.6, grid edge) +2.83 / +2.46. Untuned E2 (target = channel mean) stalls 3.5–25 % of the time.
+- ppo_v2 vs E3 (encoder ABR+VBV per second, target from vbv2): x265 +0.49 / +0.77 / trace +0.64; x264 +1.25 / +1.01 / trace +1.99. All CIs > 0. E3 is weaker than vbv2 with constant QP (enc_vbv2 − vbv2 −0.02 to −1.71): the encoders' 1-s ABR is less RD-efficient than a constant QP per GOP.
+- RL as the E3 target setter (enc_ppo_v2 − enc_vbv2): x265 −0.05 / −0.07 / trace −0.81; x264 +0.56 / −0.05 / trace +0.34. The QP-trained policy does not transfer to setting encoder bit targets (it was never trained with the encoder in the loop).
+- Caveat: E2's trace tuning picked the lowest grid value (f = 0.6); a wider grid could make E2 stronger on traces.
+
+### 2026-11-14 — D40 E2 caveat closed (trace targets 0.2–0.5; all 20 tasks COMPLETED)
+- Trace val now picks f = 0.3 (interior of 0.2–1.0) on both encoders. ppo_v2 vs E2: x265 +2.86 [+2.20, +3.43], x264 +3.09 [+2.09, +3.80]. vs E2 with f picked on test in hindsight (0.4 / 0.5): +2.22 [+1.59, +2.90] / +2.15 [+1.28, +3.14].
+- Also added the hindsight E2 everywhere. n=16 playlists: E2 was tuned on n=8 val (f 0.9), but f 0.7 is best at n=16, so the +2.97 / +2.81 overstated it; vs hindsight E2 RL is +1.42 [+1.17, +1.61] / +1.11 [+0.84, +1.37]. n=8 unchanged (0.9 is best on test too): x265 +0.41, x264 −0.05 (tie).
+- E2 needs very different targets by setting (0.9 at n=8, 0.7 at n=16, 0.3–0.5 on LTE traces); the rule/RL adapt to the channel online.
+
+## 2026-11-15 — D41 hindsight oracle (headroom check), debug passed
+- `experiments/buffer_oracle.py`: per case, knows every GOP's curve and the whole future channel; Lagrangian DP over the binned buffer level + exact local search, seeded with the vbv2 / mpc / ppo_v2 QP sequences (never below them). Exact scorer reproduces stored scores (max diff 1e-14).
+- Debug (10–20 cases per set, single clip each, so no real CIs): oracle 0.6–3.0 dB above vbv2; ppo_v2 closes roughly 10–35 % of that gap (one x264 set −5 %).
+- Caveat: the oracle also knows future content, not only the future channel, so 100 % is not reachable by a live controller; it is an upper bound, not a target.
+- Next: full run (tools/submit_buffer_oracle.sh, 16 shards + report per encoder), awaiting approval.
+
+## 2026-11-15 — D41 oracle full results (36 tasks COMPLETED; x265 14261514/15, x264 14261516/17)
+Oracle − vbv2 (dB) and share of that gap ppo_v2 closes (95 % cluster bootstrap):
+| setting | x265 oracle gap | x265 RL closes | x264 oracle gap | x264 RL closes |
+|---|---|---|---|---|
+| sim n=8 | +1.68 | 26 % [23, 29] | +1.92 | 18 % [13, 22] |
+| sim n=16 | +1.74 | 33 % [29, 36] | +1.96 | 29 % [26, 32] |
+| LTE n=8 | +3.03 | 8 % [2, 14] | +3.55 | 12 % [8, 15] |
+| LTE n=16 | +2.69 | 7 % [1, 13] | +3.24 | 8 % [4, 11] |
+- Oracle beats every seeded method on 100 % of cases; mpc closes ≤ 12 %, often < 0.
+- vbv2's stall penalty is about 30 % (sim) to 35 % (LTE) of the gap; the rest is quality allocation, part of which needs future content and is not reachable live.
+- Headroom is largest, and RL's share smallest, on real LTE traces (RL is trained only on the AR(1) channel) → priority: mixed / trace training (idea 2) and oracle imitation (idea 1).
+
+## 2026-11-15 — D42 RL variants built; debug 14261600 (x265) ran all paths
+- Correction to an earlier claim: D39 trace ppo_v2 *was* trained on the LTE training traces (runs/buffer_sweep.txt 22–24), with trace-tuned vbv2. The small trace gap closure is not from never seeing traces.
+- `experiments/buffer_rl2.py`: ppo_mix (AR(1) rho/sigma randomised + LTE train traces, one policy, per-channel base), ppo_mixh (+ last 8 channel rates), il (DAgger on the D41 oracle, 4 iters x 1000 eps, beta 0.5^k) and il_ppo (critic warm-up + 1M PPO steps at lr 1e-4).
+- Debug finding: with offsets +-6 the oracle teacher's QP was clipped on 24 % of labels (median -3, 5th pct -15 vs the vbv2 base), so the student could not follow it. vbv2 is often too conservative for +-6 to reach the best QP; this also limits ppo_v2.
+- Added --wide (offsets -24..+6): clipped labels 2.5 %, teacher-followed episodes match the teacher's plan exactly on 32 / 40 (mean gap -0.015 dB). Control: ppo_wide (ppo_v2 with the wide range) so il_w vs ppo_wide separates imitation from range.
+- Full plan: 24 runs per encoder (runs/buffer_rl2.txt) + report (D39 buffer report and D41 oracle report regenerated with the new methods).
+
+## 2026-11-15 — D42 results (52 tasks COMPLETED; x265 14261624/25, x264 14261626/27)
+Paired vs ppo_v2 (seeds averaged, 95 % cluster bootstrap), test n=8 / test16 n=16:
+| | x265 sim | x265 LTE | x264 sim | x264 LTE |
+|---|---|---|---|---|
+| il_ppo − ppo_v2 | +0.07 [+0.03,+0.11] / +0.08 [+0.02,+0.13] | +0.26 [+0.14,+0.37] / +0.09 [+0.02,+0.18] | +0.10 [+0.06,+0.15] / +0.05 [+0.01,+0.08] | +0.15 [+0.04,+0.24] / +0.14 [+0.06,+0.21] |
+- il_ppo (oracle imitation -> PPO fine-tune, same +-6 action space as ppo_v2) beats ppo_v2 in 8 / 8 settings, CI > 0 in all, with ~1.06 M env steps vs ppo_v2's 2 M. Gap to oracle closed: x265 sim 30 % / 38 % (ppo_v2 26 / 33), LTE 16 / 10 (8 / 7); x264 sim 23 / 32 (18 / 29), LTE 16 / 12 (12 / 8).
+- Imitation alone (il, il_w) is far worse than vbv2 (−0.7 to −6 dB, stalls 4–18 %): the student matches the teacher on only 25–42 % of training labels because the teacher's choices depend on the future. Useful only as an initialisation.
+- Wide action range (−24..+6): no consistent gain (ppo_wide ≈ ppo_v2, worse on x265 LTE n=16 −0.19; il_w_ppo mixed).
+- Mixed-channel training (ppo_mix): worse on the simulated channel (−0.06 to −0.14), ≈ ppo_v2 on LTE except x265 n=8 (+0.13). Rate history (ppo_mixh): no consistent effect.
+
+## 2026-11-15 — D43 build + debug (privileged critic, throughput predictor, il_ppo real-encoder check)
+- New: `experiments/buffer_rl3.py` (ppo_pc, il_pc, ppo_pred, il_rr), `buffer_real.py --model NAME`, `tools/rl3_task.sbatch`, `tools/rl3_debug.sbatch`, `tools/submit_buffer_rl3.sh`, runs/buffer_rl3{,_debug,_report}.txt, runs/buffer_real_model.txt. `buffer_rl2.py`: make_env2 / evaluate_all / run_il take env extras, a model builder, output names and save=True (defaults unchanged, D42 behaviour identical).
+- D42 never saved its models, so il_ppo is re-run (seed 0) as il_ppo_rr with model.zip for the real-encoder check; D42's il_ppo numbers stay as reported.
+- Debug (x265, run in the interactive allocation on a01-16, not sbatch; all --quick): all 5 lines rc 0 after one fix (sklearn 1.9 MLPRegressor takes hidden_layer_sizes by keyword only).
+  - Privileged critic mask: policy probabilities change by exactly 0 when the privileged inputs are randomised, the value changes (2.0 / 8.1) — before and after training. Saved PCPolicy reloads with PPO.load; actions identical with zero or random privileged inputs (so buffer_real can pad with zeros).
+  - Predictor (trace, debug size): val R^2 next-1..4 / min = 0.20 / 0.07 / 0.03 / 0.04 / 0.19, vs last-value −0.05 / −0.38 / −0.56 / −0.62 / −0.34: the last rate is a poor forecast on LTE; a learned forecast is better.
+  - buffer_real --model ppo_v2 --limit 2: lookup = ppo_v2 eval rows (0 diff), real replay = lookup.
+
+## 2026-11-15 — D43 results (96 tasks COMPLETED, no failures; x265 14267390–93, x264 14267394–97)
+Paired, seeds averaged (il_ppo_rr: 1 seed), 95 % cluster bootstrap, test n=8 / test16 n=16 (* = CI excludes 0):
+| | x265 sim | x265 LTE | x264 sim | x264 LTE |
+|---|---|---|---|---|
+| ppo_pc − ppo_v2 | −0.04* / +0.01 | −0.08 / −0.30* | +0.00 / +0.01 | −0.15* / −0.04 |
+| ppo_pred − ppo_v2 | −0.02 / +0.02 | +0.07 / +0.02 | −0.00 / −0.01 | −0.09 / +0.14* |
+| il_pc − il_ppo | −0.06* / +0.00 | −0.06 / −0.08 | −0.01 / +0.02* | −0.15* / −0.03 |
+| il_ppo_rr − il_ppo | −0.00 / −0.01 | +0.05 / −0.02 | −0.01 / −0.01 | +0.03 / −0.04 |
+- Privileged critic: no gain, sometimes worse (ppo_pc and il_pc). A better value estimate does not fix the imitation gap; il_ppo stays the best learner.
+- Throughput predictor: better forecasts than last-value (debug R^2) but ≈ ppo_v2 except x264 LTE n=16 (+0.14 [+0.02, +0.29]); one positive of 8, not a consistent gain.
+- il_ppo reproduces (il_ppo_rr within noise of the 3-seed il_ppo everywhere).
+- Real encoder (il_ppo_rr, buffer_real --model): lookup = eval rows on all 48 shards (0 diff); real constant-QP replay = lookups (0.000 on every set). il_ppo_rr − vbv2 +0.46 to +0.68 (all CI > 0); vs the encoder's own live RC with hindsight-best target: x265 +0.45 (n=8), +1.44 (n=16), +2.39 (LTE); x264 +0.06 [−0.28, +0.29] (n=8, tie as ppo_v2), +1.14 (n=16), +2.52 (LTE). vs ppo_v2 on the real-encoder subset: +0.04 / +0.02 (x265), +0.11* / +0.03 (x264), LTE +0.17 / +0.37*.
+- Reports: results/v1_buffer/<codec>/{,trace/}buffer_report.md, .../oracle/oracle_report.md, results/v1_buffer/<codec>/{real,trace/real}/real_report.md. Paired table above from a scratchpad script (seeds averaged, S.cboot).

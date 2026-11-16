@@ -1,0 +1,4 @@
+- --split test --shard 0 --nshards 1 --limit 2 --replay 2
+- --split test16 --shard 0 --nshards 1 --limit 1 --replay 1
+RC_BUF_CHANNEL=trace --split test --shard 0 --nshards 1 --limit 2 --replay 2
+- --split val --shard 0 --nshards 1 --limit 2
