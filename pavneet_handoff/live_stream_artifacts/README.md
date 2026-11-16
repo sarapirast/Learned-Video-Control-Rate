@@ -30,7 +30,7 @@ Inside each `results_buffer*` folder:
 Method names: `vbv2` (tuned hand rule), `mpc` (model-predictive rule), `ppo` (D38), `ppo_v2` (D39, RL on vbv2),
 `il` / `il_ppo` (D42, oracle imitation, then PPO), `il_w*`, `ppo_wide`, `ppo_mix`, `ppo_mixh` (D42 variants),
 `ppo_pc`, `il_pc`, `ppo_pred`, `il_ppo_rr` (D43). Not included: PPO training curves (`train_curve.npy`, 370 MB),
-debug / quick runs, and raw video.
+debug / quick runs. Raw video: see `VIDEO.md` (GitHub Release `pavneet-live-stream-video`).
 
 ## Also needed (already in this repo)
 
@@ -93,9 +93,9 @@ except D40 / D43-real.
 PPO runs on 2 CPUs; GPUs are not used. Seeds are fixed, but PyTorch on different hardware may not reproduce runs
 bit for bit; compare at the level of the paired confidence intervals in the reports.
 
-The real-encoder steps (D40, D43 real) also need dataset v1's 320×180 GOP video files (`rclib/data.py`,
-`gop_path`), which are not included here (raw video from Xiph, Blender films and YouTube UGC; get them from the
-dataset owner or the original sources).
+The real-encoder steps (D40, D43 real) also need dataset v1's video (`rclib/data.py`, `gop_path`). The
+redistributable clips are in the GitHub Release `pavneet-live-stream-video`; the rest are rebuilt from their
+sources. See `VIDEO.md`.
 
 ## LTE traces
 

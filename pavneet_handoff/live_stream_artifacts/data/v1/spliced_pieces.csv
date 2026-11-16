@@ -1,0 +1,43 @@
+clip_id,piece,src_clip,src_group,src_start,n_frames,out_start
+spliced_01,0,NewsClip_360P-5052,ugc:Inc News,111,22,0
+spliced_01,1,CoverSong_360P-5a24,ugc:Allana Lopamia,69,54,22
+spliced_01,2,red_kayak,red_kayak,223,57,76
+spliced_01,3,CoverSong_360P-5a24,ugc:Allana Lopamia,160,53,133
+spliced_01,4,NewsClip_360P-5052,ugc:Inc News,94,64,186
+spliced_01,5,touchdown_pass,touchdown_pass,153,34,250
+spliced_01,6,CoverSong_360P-0aa2,ugc:Subscribe! :),28,16,284
+spliced_02,0,LiveMusic_360P-54d0,ugc:MusicalBeeVideos,33,48,0
+spliced_02,1,Animation_360P-3e40,ugc:Loki 3D,217,69,48
+spliced_02,2,Vlog_360P-1e5b,ugc:Life with the Kogers,234,28,117
+spliced_02,3,Gaming_480P-14fc,ugc:WOT TSS and more,121,35,145
+spliced_02,4,red_kayak,red_kayak,171,37,180
+spliced_02,5,TelevisionClip_720P-1862,ugc:Steamy Affair Productions,96,21,217
+spliced_02,6,NewsClip_360P-0ff8,ugc:bmt tv,272,25,238
+spliced_02,7,MusicVideo_480P-7955,ugc:KassographyMedia,190,37,263
+spliced_03,0,LiveMusic_360P-54d0,ugc:MusicalBeeVideos,214,56,0
+spliced_03,1,HowTo_360P-6a0e,ugc:Photoshop Tutorial,170,56,56
+spliced_03,2,controlled_burn,controlled_burn,234,61,112
+spliced_03,3,speed_bag,speed_bag,107,27,173
+spliced_03,4,TelevisionClip_720P-1862,ugc:Steamy Affair Productions,87,44,200
+spliced_03,5,CoverSong_360P-0aa2,ugc:Subscribe! :),97,53,244
+spliced_03,6,Animation_360P-4edc,ugc:Amil Neal Productions,147,3,297
+spliced_04,0,touchdown_pass,touchdown_pass,72,29,0
+spliced_04,1,Animation_480P-52af,ugc:Charlie Keeper Revealed,226,43,29
+spliced_04,2,TelevisionClip_720P-1862,ugc:Steamy Affair Productions,121,42,72
+spliced_04,3,TelevisionClip_360P-74dd,ugc:love.fútbol Brasil,19,56,114
+spliced_04,4,Gaming_480P-14fc,ugc:WOT TSS and more,156,36,170
+spliced_04,5,LyricVideo_720P-0940,ugc:Jimmy Gilstrap,179,62,206
+spliced_04,6,speed_bag,speed_bag,126,32,268
+spliced_05,0,LiveMusic_360P-5b57,ugc:federicobellomi,130,38,0
+spliced_05,1,Sports_360P-1d5c,ugc:MADONARPTV,78,68,38
+spliced_05,2,HowTo_360P-4e4c,ugc:Show TheEllen,238,50,106
+spliced_05,3,tractor,tractor,128,63,156
+spliced_05,4,LiveMusic_360P-5b57,ugc:federicobellomi,2,35,219
+spliced_05,5,Sports_360P-1d5c,ugc:MADONARPTV,232,46,254
+spliced_06,0,station2,station2,230,48,0
+spliced_06,1,NewsClip_360P-2986,ugc:Анна Агеева,229,23,48
+spliced_06,2,Sports_360P-1d5c,ugc:MADONARPTV,241,32,71
+spliced_06,3,riverbed,riverbed,167,62,103
+spliced_06,4,HowTo_360P-4e4c,ugc:Show TheEllen,243,47,165
+spliced_06,5,LiveMusic_360P-5b57,ugc:federicobellomi,172,62,212
+spliced_06,6,pedestrian_area,pedestrian_area,64,26,274
