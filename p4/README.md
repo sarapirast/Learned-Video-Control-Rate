@@ -16,7 +16,7 @@ p4/
 ├── pid_fresh.py            Part 3
 ├── figures/                plots
 ├── logs/                   training logs (pid_*, bcpid_*)
-└── results/                outputs of every script (lofo_*, rule_margin_*, pid_fresh_*, report_pid_*)
+└── outputs/                outputs of every script (lofo_*, rule_margin_*, pid_fresh_*, report_pid_*)
 ```
 
 All experiments use Pavneet's stream-level env and models from `pavneet_handoff/` (D34/D35), Aayush's metric
@@ -50,7 +50,7 @@ mistuned at longer lengths?
 | BC→PPO, x264 | 7/8 | 2/8 | −0.045 |
 | BC→PPO, x265 | 7/8 | 3/8 | −0.132 |
 
-Full per-case output: `results/lofo_x264.txt`, `results/lofo_x265.txt`.
+Full per-case output: `outputs/lofo_x264.txt`, `outputs/lofo_x265.txt`.
 
 ### Findings
 1. **Plain PPO's long-stream gain is real.** It beats the retuned rule in 16/16 cases (+0.07 to +0.39 dB; 14/16 CIs
@@ -107,7 +107,7 @@ does it still beat the rule *at equal reliability*?
 
 ![quality vs reliability](figures/tradeoff_L2.png)
 
-Per-run logs: `logs/`. Full tables: `results/report_pid_*_test.md`, `results/rule_margin_*.txt`.
+Per-run logs: `logs/`. Full tables: `outputs/report_pid_*_test.md`, `outputs/rule_margin_*.txt`.
 
 ### Findings
 1. **At equal budget reliability, constrained RL beats the rule by 0.14–0.25 dB** on both codecs (all CIs > 0).
@@ -130,7 +130,7 @@ Per-run logs: `logs/`. Full tables: `results/report_pid_*_test.md`, `results/rul
 ### Method
 `pid_fresh.py`: bc_ppo_pid, bc_ppo_lag and PPO (L = 2, trained on 8-GOP v1 streams, unchanged) on the fresh-film
 segments at N = 8/16/32 GOPs. Each is compared with the rule at the margin (0.92–1.00) whose over-budget rate is
-closest to the policy's. Outputs: `results/pid_fresh_x264.txt`, `results/pid_fresh_x265.txt`.
+closest to the policy's. Outputs: `outputs/pid_fresh_x264.txt`, `outputs/pid_fresh_x265.txt`.
 
 ### Results (score, dB; L = 2)
 
