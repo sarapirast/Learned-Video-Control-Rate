@@ -8,6 +8,7 @@ quantisation and cutree/mb-tree off, which FORCED_ARGS sets; `tools/codec_check.
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -17,6 +18,10 @@ from . import config as C
 
 PRESET = os.environ.get("RC_PRESET", "medium" if C.LF else "fast")   # lf: P1 frozen settings
 FPS = 30
+# RC_BACKEND=shim (P1): forced-QP encodes go through P1's x264 ctypes shim (x264env/rclib_backend.py, on PYTHONPATH)
+# instead of the CLI: one open encoder per episode, only the newest frame encoded. x264 + lf settings only.
+BACKEND = os.environ.get("RC_BACKEND", "cli")
+assert BACKEND in ("cli", "shim"), BACKEND
 TIMEOUT, RETRIES = 120, 3
 
 COMMON = {
@@ -167,6 +172,10 @@ def encode(gop_path, qps, codec=None, preset_args=(), measure=True, src=None):
     codec = codec or C.CODEC
     qps = [int(np.clip(q, 0, 51)) for q in qps]
     n = len(qps)
+    if BACKEND == "shim":
+        assert codec == "x264" and C.LF and not preset_args, "RC_BACKEND=shim: x264, lf settings, no extra args"
+        from x264env import rclib_backend
+        return rclib_backend.encode(sys.modules[__name__], gop_path, qps, measure=measure, src=src)
     d = tempfile.mkdtemp(dir=_tmpdir())
     try:
         qf, out = os.path.join(d, "qp.txt"), os.path.join(d, "out." + ("hevc" if codec == "x265" else "264"))

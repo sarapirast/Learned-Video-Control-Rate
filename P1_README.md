@@ -303,3 +303,61 @@ env would run at **23–26 episodes/s per core**.
   - Random actions: -10.3%, shield fired on 7 frames.
   - Half budget: shield fired on every frame. The budget (22,500) is below the
     all-QP-51 cost (23,928), so +6.3% overshoot was unavoidable.
+
+## Fast backend for rclib: `RC_BACKEND=shim` (2026-11-16)
+
+The team pipeline's forced-QP encodes (`pavneet_pipeline/rclib/codec.py`, `encode()`) can run through the P1 shim
+instead of the x264 CLI. The CLI stays the default; nothing changes unless the variable is set.
+
+**Switch it on** (P1 shim built with `make`; adapter = `x264env/rclib_backend.py`):
+
+```bash
+export RC_BACKEND=shim                       # default: cli
+export PYTHONPATH=<repo>:$PYTHONPATH         # so rclib can import x264env
+# plus the usual rclib variables, e.g. RC_CODEC=x264 RC_ARM=res RC_METRIC=dpsnr ...
+```
+
+**How it works:** rclib's env re-encodes frames 0..t with the CLI at every step (30 CLI runs + an ffmpeg decode per
+episode). The adapter keeps one shim encoder open per episode and encodes only the newest frame; a call that does not
+extend an open encoder (new episode, other GOP, changed prefix) starts a fresh encoder and replays the prefix, so
+results depend only on (GOP, QPs). Bits are counted with rclib's own `frame_bits()` on the shim's bitstream (the
+shim's `slice_bits` include Annex-B start codes, rclib's do not); PSNR is rclib's own 6:1:1 YUV `_psnr()` on the
+shim's reconstructed frames instead of an ffmpeg decode.
+
+**What it affects** (only callers of `codec.encode`, and only code that imports the rclib copy that has the hook;
+`p2_data/exp_next` scripts import Aayush's working copy, `p4/` and the stream code import `pavneet_handoff/repo`):
+
+| Caller | Under `RC_BACKEND=shim` |
+|---|---|
+| `rclib/env.py` (RL training / eval, `policies.evaluate`, parity tools) | identical results, verified below; ~13x faster |
+| `rclib/search.py` (hindsight search) | same mechanism, not tested yet; smaller gain (each call is a fresh 30-frame encode) |
+| `experiments/baselines.py`, `experiments/infos.py` (static plan) | same mechanism, not tested; one-off encodes |
+| `encode_cqp()`, `encode_own_rc()` (constant QP, ABR / two-pass) | not hooked: always the CLI |
+| stream / live-stream / clip envs (`streamenv`, `bufenv`, `clipenv`), `p4/` | no encodes at all (precomputed constant-QP curves) |
+| P2 scripts that call x264 themselves (`controller_real.py`, `baselines_v1.py`, `rd_native.py`) | not affected |
+
+**What it refuses** (assertion in `codec.encode`): x265; arms other than `lf` / `res` / `lfq` (Pavneet's original
+`orig` / `dec` settings differ from the shim's); calls with `preset_args`. Never run `tools/codec_check.py` with it:
+that script validates the CLI.
+
+**Checks (2026-11-16, x264, 10 val GOPs = 5 stable + 5 cut, one per clip, x 4 budget levels = 40 episodes):**
+
+| Check | final4 (offset 0, k5) | R3 k5, seed 3, 180k |
+|---|---|---|
+| Input pixels: rclib's GOP `.yuv` vs the clip read with `read_y4m` | 10/10 identical | 10/10 identical |
+| Shim vs CLI: per-frame QPs and bits, PSNR, score | 40/40 exactly equal | 40/40 exactly equal |
+| Shim vs the team's stored results | total bits and score 40/40 | QPs and score 40/40 |
+
+Settings: `RC_ARM=res RC_METRIC=dpsnr RC_RES_RANGE=6 RC_CTRL_SETTING=1.0:6:1.0:2:3:4:1:1:1:0:3`, R3 also
+`RC_RES_RECAP=bit` and the env arguments of `p2_data/exp_next/final/eval_r3.py`. Without `RC_METRIC=dpsnr` the res arm
+scores with the old % saving metric (bits and actions are unaffected).
+
+**Speed** (one core, same 40 episodes, Aayush's `rc` Python env):
+
+| | CLI | shim | speed-up |
+|---|---|---|---|
+| final4 | 0.39 episodes/s | 5.15 episodes/s | 13.2x |
+| R3 | 0.38 episodes/s | 4.67 episodes/s | 12.2x |
+
+The bare shim runs an episode in ~50 ms; with rclib the rest is rclib's own per-step Python (final4's decision, the
+observation, the policy), not profiled yet.
