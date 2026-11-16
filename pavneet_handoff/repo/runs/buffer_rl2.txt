@@ -1,0 +1,24 @@
+- --method ppo_mix --seed 0
+- --method ppo_mixh --seed 0
+- --method ppo_mix --seed 1
+- --method ppo_mixh --seed 1
+- --method ppo_mix --seed 2
+- --method ppo_mixh --seed 2
+- --method ppo_wide --seed 0
+- --method il --seed 0
+- --method il --wide --seed 0
+- --method ppo_wide --seed 1
+- --method il --seed 1
+- --method il --wide --seed 1
+- --method ppo_wide --seed 2
+- --method il --seed 2
+- --method il --wide --seed 2
+RC_BUF_CHANNEL=trace --method ppo_wide --seed 0
+RC_BUF_CHANNEL=trace --method il --seed 0
+RC_BUF_CHANNEL=trace --method il --wide --seed 0
+RC_BUF_CHANNEL=trace --method ppo_wide --seed 1
+RC_BUF_CHANNEL=trace --method il --seed 1
+RC_BUF_CHANNEL=trace --method il --wide --seed 1
+RC_BUF_CHANNEL=trace --method ppo_wide --seed 2
+RC_BUF_CHANNEL=trace --method il --seed 2
+RC_BUF_CHANNEL=trace --method il --wide --seed 2

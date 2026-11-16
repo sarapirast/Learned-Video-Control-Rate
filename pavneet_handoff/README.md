@@ -1,5 +1,12 @@
 # EE599 RL rate control: handoff package (as of 2026-11-12)
 
+> **Update 2026-11-15: live-stream rate control (D36–D43).** `repo/` now includes the work after this package was
+> written. Start with `repo/docs/LIVE_STREAM_FINDING_SIMPLE.md` (plain summary) and `repo/docs/LIVE_STREAM_WRITEUP.md`
+> (full detail: data, environment, baselines, how the RL works, results D38–D42). D43 (privileged critic, throughput
+> predictor, real-encoder check of il_ppo) is in `repo/docs/JOURNAL.md` and `repo/docs/DECISIONS.md`. Code:
+> `repo/rclib/bufenv.py`, `repo/experiments/buffer_rl*.py`, `buffer_oracle.py`, `buffer_real.py`; reports:
+> `repo/results/v1_buffer/<codec>/`. Uses dataset v1. Trained models and the LTE traces are not included.
+
 This folder is for a new Claude session (or a person) picking up the project. Read this file first, then
 `RESULTS_AND_INTERPRETATION.md`, then `NEXT_STEPS.md`.
 

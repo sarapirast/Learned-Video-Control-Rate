@@ -1,0 +1,3 @@
+- --method ppo_wide --seed 0 --quick
+- --method il --wide --seed 0 --quick
+RC_BUF_CHANNEL=trace --method ppo_mix --seed 0 --quick

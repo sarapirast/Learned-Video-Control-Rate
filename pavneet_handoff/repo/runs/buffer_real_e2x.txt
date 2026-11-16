@@ -1,0 +1,8 @@
+RC_BUF_CHANNEL=trace --split val --shard 0 --nshards 2 --e2x
+RC_BUF_CHANNEL=trace --split val --shard 1 --nshards 2 --e2x
+RC_BUF_CHANNEL=trace --split test --shard 0 --nshards 6 --e2x
+RC_BUF_CHANNEL=trace --split test --shard 1 --nshards 6 --e2x
+RC_BUF_CHANNEL=trace --split test --shard 2 --nshards 6 --e2x
+RC_BUF_CHANNEL=trace --split test --shard 3 --nshards 6 --e2x
+RC_BUF_CHANNEL=trace --split test --shard 4 --nshards 6 --e2x
+RC_BUF_CHANNEL=trace --split test --shard 5 --nshards 6 --e2x

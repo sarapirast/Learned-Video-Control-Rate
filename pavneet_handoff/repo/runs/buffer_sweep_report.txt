@@ -1,0 +1,8 @@
+- --report
+RC_BUF_SIGMA=0.15 --report
+RC_BUF_SIGMA=0.5 --report
+RC_BUF_CAP=0.5 --report
+RC_BUF_CAP=2 --report
+RC_BUF_LAM=0.25 --report
+RC_BUF_LAM=1 --report
+RC_BUF_CHANNEL=trace --report

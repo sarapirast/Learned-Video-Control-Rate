@@ -161,3 +161,43 @@ Debug tests: 13726162/63 (own_rc_stream quick, passed), 13726780 (re-analysis + 
 - 2026-11-11: D35 debug: x265 14034168, x264 14034169 (debug, 8 CPU, 50 min).
 - 2026-11-11: D35 debug 14034168/69 cancelled (all debug nodes drained); same steps run in interactive allocation 14028565.
 - 2026-11-12: D35 full. x265: ownrc check 14053031, run 14053032 (8), gather 14053033; fresh infos 14053034 (4), gather 14053035, prep 14053036, eval 14053037, report 14053038. x264: 14053039–46 same order.
+
+## D36 meta-RL (submitted 2026-11-12 ~17:00)
+| Job | What | Resources | Est. | Status |
+|---|---|---|---|---|
+| 14067763 | x265 meta RL array 0-11 (%6) | main, 2 CPU / 8 GB, 3 h | 30–50 min per LSTM run, ~1.5 h total | 10/12 COMPLETED; task 0 (rppo_fb L2 s0) FAILED rc=135 after 7 min, task 7 (ppo_fb L2 s1) CANCELLED 0:53 after 8 min, empty logs (node fault?) |
+| 14067764 | x265 meta report (afterany) | 2 CPU / 8 GB, 30 min | 2 min | COMPLETED (2 seeds for rppo_fb L2, ppo_fb L2) |
+| 14067765 | x264 meta RL array 0-11 (%6) | main, 2 CPU / 8 GB, 3 h | ~1.5 h total | 12/12 COMPLETED (LSTM 21–25 min, MLP 6 min) |
+| 14067766 | x264 meta report (afterany) | 2 CPU / 8 GB, 30 min | 2 min | COMPLETED |
+
+## 2026-11-13: D36 reruns and D38 buffer
+| Job | What | Resources | Est. | Status |
+|---|---|---|---|---|
+| 14188936 | x265 meta RL tasks 0, 7 rerun (rppo_fb L2 s0, ppo_fb L2 s1) | main, 2 CPU / 8 GB, 3 h | 25–55 min | COMPLETED |
+| 14188937 | x265 meta report (afterany) | 2 CPU / 8 GB, 30 min | 1 min | COMPLETED |
+| 14190548 / 14190551 | x265 / x264 D38 baselines (tune on val) | main, 2 CPU / 8 GB, 1 h | ~5 min | COMPLETED (4 min) |
+| 14190549 / 14190552 | x265 / x264 D38 ppo array 0-5 (afterok baselines) | 2 CPU / 8 GB, 2 h | ~10 min each | COMPLETED (14 min each) |
+| 14190550 / 14190553 | x265 / x264 D38 report (afterany) | 2 CPU / 8 GB, 30 min | 1 min | COMPLETED |
+
+## 2026-11-13: D39 robustness of D38 (tools/submit_buffer_sweep.sh)
+| Job | What | Resources | Est. | Status |
+|---|---|---|---|---|
+| 14228788 / 14228792 | x265 / x264 base array 0-7 (%4): baselines + vbv2/mpc tuning per setting | main, 2 CPU / 8 GB, 2 h | 20–30 min each | submitted |
+| 14228789 / 14228793 | x265 / x264 ppo_v2 array 0-23 (%6), afterok base | 2 CPU / 8 GB, 2 h | ~15 min each, ~1 h total | pending |
+| 14228790 / 14228794 | x265 / x264 fresh-film evaluation (default), afterany rl | 2 CPU / 8 GB, 1 h | ~10 min | pending |
+| 14228791 / 14228795 | x265 / x264 reports array 0-7, afterany fresh | 2 CPU / 8 GB, 30 min | 1 min | pending |
+- 2026-11-14: all D39 jobs (x265 14228788–91, x264 14228792–95; 66 tasks) COMPLETED. Reports: results/v1_buffer/<codec>/buffer_report.md and per-setting subfolders.
+- 2026-11-14: D40 debug tests, debug partition: x265 14246288 (pre-fix), 14246393; x264 14246459 — all COMPLETED. Outputs in rcwork_v1/<codec>/results_buffer{,_trace}/real_debug (test only).
+- 2026-11-14: D40 full runs submitted (tools/submit_buffer_real.sh): x265 run 14246478 (44 shards, %6) / report 14246479; x264 run 14246480 / report 14246481. Reports: results/v1_buffer/<codec>/real/real_report.md and results/v1_buffer/<codec>/trace/real/.
+- 2026-11-14: D40 x265 14246478/79, x264 14246480/81: all COMPLETED (92 tasks). Reports results/v1_buffer/<codec>/{real,trace/real}/real_report.md.
+- 2026-11-14: D40 E2 trace extension (f 0.2–0.5, --e2x; runs/buffer_real_e2x.txt): x265 14259220 / report 14259221, x264 14259222 / report 14259223.
+- 2026-11-14: D40 E2 extension x265 14259220/21, x264 14259222/23: all COMPLETED (20 tasks); reports regenerated (adds hindsight E2).
+- 2026-11-15: D41 hindsight oracle debug (tools/oracle_debug.sbatch, debug partition): x265 14261505 (no-op: /usr/bin/time missing on nodes), 14261507 COMPLETED; x264 14261510 COMPLETED. Scorer reproduces stored vbv2/mpc/ppo_v2 scores (max diff 1e-14); ~0.3–0.8 s per case.
+- 2026-11-15: D41 full oracle (tools/submit_buffer_oracle.sh): x265 run 14261514 (16 shards, %6) / report 14261515; x264 run 14261516 / report 14261517. Reports results/v1_buffer/<codec>/{oracle,trace/oracle}/oracle_report.md.
+- 2026-11-15: D42 debug x265 14261600 (debug, 1:22) COMPLETED; all code paths ran; teacher clipping found and fixed with --wide.
+- 2026-11-15: D42 debug v2 (--wide): x265 14261615, x264 14261619 COMPLETED; teacher plan = episode score (x265 -0.224 / -0.228, x264 -0.260 / -0.267).
+- 2026-11-15: D42 full (tools/submit_buffer_rl2.sh): x265 run 14261624 (24, %6, 3 h) / report 14261625; x264 run 14261626 / report 14261627. Est. 20–45 min per task, ~2–3 h per encoder.
+- 2026-11-15: D42 x265 14261624/25, x264 14261626/27: all COMPLETED (52 tasks). Reports regenerated: results/v1_buffer/<codec>/{,trace/}buffer_report.md and .../oracle/oracle_report.md.
+- 2026-11-15: D43 debug run interactively in allocation 14266067 (a01-16), x265, all lines rc 0 after the sklearn fix.
+- 2026-11-15: D43 full (tools/submit_buffer_rl3.sh): x265 rl 14267390 (20, %6, 3 h) / report 14267391 / real il_ppo_rr 14267392 (24, %6, 2 h) / real report 14267393; x264 rl 14267394 / report 14267395 / real 14267396 / real report 14267397. Est. ~1.5 h training + ~1.5–2 h real, ~3–3.5 h per encoder.
+- 2026-11-15: D43 x265 14267390–93, x264 14267394–97: all COMPLETED (96 tasks).

@@ -1,0 +1,5 @@
+- buffer_rl3.py --method ppo_pc --seed 0 --quick
+RC_BUF_CHANNEL=trace buffer_rl3.py --method ppo_pred --seed 0 --quick
+RC_BUF_CHANNEL=trace buffer_rl3.py --method il_pc --seed 0 --quick
+- buffer_rl3.py --method il_rr --seed 0 --quick
+- buffer_real.py --split test --model ppo_v2 --limit 2
