@@ -1,0 +1,46 @@
+  13:31:32 res: P(offset 0) starts at 0.7, lr 0.0001
+  13:31:57   saved checkpoint at 900 steps -> /scratch1/aayushso/ee599/exp_next/smoke_resh_x264/results_rl/res_k5_fixed_f4_lam0.17_st1k_r6_s0/model_900.zip
+  13:32:14   steps 1536: score -0.49 over 42.0% lam 0.17
+  13:32:22 trained res_k5_fixed_f4_lam0.17_st1k_r6_s0 in 55s
+  13:32:39 eval fixed:5 val 28/560  17s elapsed, ~318s left
+  13:32:58 eval fixed:5 val 56/560  36s elapsed, ~322s left
+  13:33:19 eval fixed:5 val 84/560  57s elapsed, ~323s left
+  13:33:37 eval fixed:5 val 112/560  75s elapsed, ~298s left
+  13:33:54 eval fixed:5 val 140/560  91s elapsed, ~274s left
+  13:34:07 eval fixed:5 val 168/560  104s elapsed, ~243s left
+  13:34:24 eval fixed:5 val 196/560  122s elapsed, ~226s left
+  13:34:45 eval fixed:5 val 224/560  142s elapsed, ~213s left
+  13:35:03 eval fixed:5 val 252/560  161s elapsed, ~197s left
+  13:35:18 eval fixed:5 val 280/560  175s elapsed, ~175s left
+  13:35:32 eval fixed:5 val 308/560  189s elapsed, ~155s left
+  13:35:52 eval fixed:5 val 336/560  209s elapsed, ~139s left
+  13:36:13 eval fixed:5 val 364/560  230s elapsed, ~124s left
+  13:36:29 eval fixed:5 val 392/560  246s elapsed, ~106s left
+  13:36:47 eval fixed:5 val 420/560  265s elapsed, ~88s left
+  13:37:02 eval fixed:5 val 448/560  279s elapsed, ~70s left
+  13:37:22 eval fixed:5 val 476/560  299s elapsed, ~53s left
+  13:37:41 eval fixed:5 val 504/560  319s elapsed, ~35s left
+  13:37:58 eval fixed:5 val 532/560  336s elapsed, ~18s left
+  13:38:11 eval fixed:5 val 560/560  349s elapsed, ~0s left
+  13:38:11 res_k5_fixed_f4_lam0.17_st1k_r6_s0 fixed:5 val: score -0.17 saving 0.77 over 54.6% use 1.000 seen 4.5
+  13:38:48 eval ckpt 900 fixed:5 val 28/560  37s elapsed, ~694s left
+  13:39:08 eval ckpt 900 fixed:5 val 56/560  56s elapsed, ~506s left
+  13:39:29 eval ckpt 900 fixed:5 val 84/560  77s elapsed, ~438s left
+  13:39:45 eval ckpt 900 fixed:5 val 112/560  94s elapsed, ~375s left
+  13:40:02 eval ckpt 900 fixed:5 val 140/560  110s elapsed, ~330s left
+  13:40:14 eval ckpt 900 fixed:5 val 168/560  123s elapsed, ~287s left
+  13:40:32 eval ckpt 900 fixed:5 val 196/560  140s elapsed, ~261s left
+  13:40:52 eval ckpt 900 fixed:5 val 224/560  160s elapsed, ~241s left
+  13:41:10 eval ckpt 900 fixed:5 val 252/560  179s elapsed, ~219s left
+  13:41:25 eval ckpt 900 fixed:5 val 280/560  194s elapsed, ~194s left
+  13:41:39 eval ckpt 900 fixed:5 val 308/560  208s elapsed, ~170s left
+  13:41:59 eval ckpt 900 fixed:5 val 336/560  228s elapsed, ~152s left
+  13:42:20 eval ckpt 900 fixed:5 val 364/560  248s elapsed, ~134s left
+  13:42:35 eval ckpt 900 fixed:5 val 392/560  264s elapsed, ~113s left
+  13:42:54 eval ckpt 900 fixed:5 val 420/560  282s elapsed, ~94s left
+  13:43:09 eval ckpt 900 fixed:5 val 448/560  297s elapsed, ~74s left
+  13:43:28 eval ckpt 900 fixed:5 val 476/560  317s elapsed, ~56s left
+  13:43:47 eval ckpt 900 fixed:5 val 504/560  335s elapsed, ~37s left
+  13:44:03 eval ckpt 900 fixed:5 val 532/560  352s elapsed, ~19s left
+  13:44:16 eval ckpt 900 fixed:5 val 560/560  365s elapsed, ~0s left
+  13:44:16 res_k5_fixed_f4_lam0.17_st1k_r6_s0 ckpt 900 fixed:5 val: score -0.168 over 54.6% use 1.000

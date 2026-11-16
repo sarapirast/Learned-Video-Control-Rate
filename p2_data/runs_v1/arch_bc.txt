@@ -1,0 +1,6 @@
+--method bc --k 0 --seed 0 --arch set_attn --train-ks 0,2,5,10,29
+--method bc --k 0 --seed 1 --arch set_attn --train-ks 0,2,5,10,29
+--method bc --k 0 --seed 2 --arch set_attn --train-ks 0,2,5,10,29
+--method bc --k 0 --seed 0 --arch mlp --train-ks 0,2,5,10,29
+--method bc --k 0 --seed 1 --arch mlp --train-ks 0,2,5,10,29
+--method bc --k 0 --seed 2 --arch mlp --train-ks 0,2,5,10,29

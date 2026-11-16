@@ -1,0 +1,142 @@
+diff --git a/experiments/rl.py b/experiments/rl.py
+index ea5d790..3768758 100644
+--- a/experiments/rl.py
++++ b/experiments/rl.py
+@@ -60,6 +60,12 @@ def run_name(a):
+         parts.append(f"lam{a.lam:g}")
+     if a.gae_lambda != 0.95:
+         parts.append(f"gae{a.gae_lambda:g}")
++    if getattr(a, "ppo_steps", 0):
++        parts.append(f"st{a.ppo_steps // 1000}k")
++    if getattr(a, "arch", "mlp") != "mlp" or getattr(a, "train_ks", ""):
++        parts.append({"mlp": "mlp", "set_mm": "mm", "set_attn": "attn"}[a.arch] + ("-kall" if a.train_ks else ""))
++    if getattr(a, "train_levels", ""):
++        parts.append("lv" + "-".join(a.train_levels.split(",")))
+     if a.tag:
+         parts.append(a.tag)
+     parts.append(f"s{a.seed}")
+@@ -80,6 +86,15 @@ def cli(ap):
+     ap.add_argument("--gae-lambda", type=float, default=0.95,
+                     help="PPO GAE lambda (v1-data, P2); 0.95 = the original setting, run name unchanged")
+     ap.add_argument("--train-family", default="", help="restrict training GOPs, e.g. 'cut' for the cut specialist")
++    ap.add_argument("--ppo-steps", type=int, default=0,
++                    help="override cfg ppo_steps (60000) for the PPO phase, e.g. 180000 (P2 tracker 37: under-training test)")
++    ap.add_argument("--arch", default="mlp", choices=("mlp", "set_mm", "set_attn"),
++                    help="BC network: mlp (2 x 256, default) or a shared per-frame encoder (rclib/nets.py; tracker 36)")
++    ap.add_argument("--train-ks", default="",
++                    help="BC only: train ONE net on these k pooled (e.g. 0,2,5,10,29) and evaluate it at each (tracker 36)")
++    ap.add_argument("--train-levels", default="",
++                    help="restrict TRAINING episodes to these budget levels, e.g. 36,42 (targeted residual, P2 tracker "
++                         "35); evaluation still covers every level")
+     ap.add_argument("--extra", default="", help="extra observation features: fb | sum (D23)")
+     ap.add_argument("--lam", type=float, default=None,
+                     help="Lagrangian lam override (dB per 1%% over under dpsnr; P2 11-10: 0.17 = the metric's penalty)")
+@@ -94,7 +109,10 @@ def k_sampler_anyk(kmax):
+ def main():
+     a = runner.args(cli)
+     assert (a.method == "res") == C.RES, "method res <-> RC_ARM=res"
++    assert not ((a.train_ks or a.arch != "mlp") and a.method != "bc"), "--arch / --train-ks: BC only (tracker 36)"
+     cfg = {**CFG, **(QUICK if a.quick else {})}
++    if a.ppo_steps:
++        cfg["ppo_steps"] = a.ppo_steps
+     drop = tuple(x for x in a.drop.split(",") if x)
+     name = run_name(a)
+     out = os.path.join(C.results_dir("rl" + ("_quick" if a.quick else "")), name)
+@@ -136,14 +154,21 @@ def main():
+     ds = None
+     if need_data:
+         srch = runner.Stages("search", a.quick).load("search_train")
+-        items = [(infos[g], srch[g], k_train, a.mode, drop, a.prior, 7 * a.seed + i, offrl.LOG_CAP, a.extra)
+-                 for i, g in enumerate(train_ids) if g in srch]
+-        ds = offrl.Dataset(runner.pmap(offrl.trajectories, items, desc="dataset"))
++        ks_data = [int(x) for x in a.train_ks.split(",")] if a.train_ks else [k_train]
++        items = [(infos[g], srch[g], kd, a.mode, drop, a.prior, 7 * a.seed + i, offrl.LOG_CAP, a.extra)
++                 for kd in ks_data for i, g in enumerate(train_ids) if g in srch]
++        worker = offrl.trajectories_best if (a.method == "bc" and a.train_ks) else offrl.trajectories
++        ds = offrl.Dataset(runner.pmap(worker, items, desc="dataset"))
+         log(f"dataset: {ds.n} transitions from {len(items)} GOPs ({time.time() - t0:.0f}s)")
+ 
+     spec = None
+     if a.method == "bc":
+-        net = offrl.train_bc(ds, cfg["bc_steps"], seed=a.seed)
++        net0 = None
++        if a.arch != "mlp":
++            from rclib import nets
++            torch.manual_seed(a.seed)
++            net0 = nets.make(a.arch, ds.obs.shape[1], len(C.ACTIONS))
++        net = offrl.train_bc(ds, cfg["bc_steps"], seed=a.seed, net=net0)
+         spec = _save_torch(net, out)
+     elif a.method == "cql":
+         net = offrl.train_cql(ds, cfg["cql_steps"], seed=a.seed)
+@@ -178,6 +203,8 @@ def main():
+             log(f"{name} margin {mg} val: {summarize(rows)}")
+         spec["margin"] = max(sweep, key=lambda mg: summarize(sweep[mg])["score"])
+         log(f"chosen margin {spec['margin']}")
++    if a.train_ks:
++        modes = [("fixed", int(x)) for x in a.train_ks.split(",")]
+     if a.method == "anyk":
+         modes = [tuple(m.split(":")) for m in a.eval_modes.split(",") if m] or [("fixed", k) for k in (0, 2, 5, 10, 29)]
+         modes = [(m, int(k)) for m, k in modes]
+@@ -228,6 +255,11 @@ def train_online(a, cfg, infos, train_ids, ds, envkw, out):
+                 from rclib import mbenv
+                 return mbenv.ModelEnv(train_infos, model_path=a.model, seed=1000 * a.seed + i, reward=reward,
+                                       lam=lam0, cut_weight=cw, **envkw)
++            if a.train_levels:
++                lv = tuple(int(x) for x in a.train_levels.split(","))
++                assert set(lv) <= set(C.BUDGET_QPS), (lv, C.BUDGET_QPS)
++                return E.make_env(train_infos, seed=1000 * a.seed + i, reward=reward, lam=lam0, k_sampler=k_sampler,
++                                  cut_weight=cw, shape=a.shape, budgets=lv, **envkw)
+             return E.make_env(train_infos, seed=1000 * a.seed + i, reward=reward, lam=lam0, k_sampler=k_sampler,
+                               cut_weight=cw, shape=a.shape, **envkw)
+         return f
+diff --git a/rclib/offrl.py b/rclib/offrl.py
+index e6f2405..a032acb 100644
+--- a/rclib/offrl.py
++++ b/rclib/offrl.py
+@@ -83,6 +83,17 @@ def trajectories(args):
+     return np.stack(O), np.stack(A), np.stack(R), np.stack(D), np.stack(best)
+ 
+ 
++def trajectories_best(args):
++    """trajectories() keeping only the best plans per (GOP, budget): all that BC (train_bc best_only) trains on.
++    Same targets as the full version (smax is over the same selected plans; the top plans always include the max).
++    Used for BC pooled over k (rl.py --train-ks; tracker 36 day 2), which ran out of memory at 48G with every plan."""
++    p = trajectories(args)
++    if p is None:
++        return None
++    keep = p[4][:, 0]
++    return tuple(x[keep] for x in p)
++
++
+ class Dataset:
+     """Transitions flattened over (plan, t); next obs = obs[t+1] within the plan."""
+ 
+@@ -123,10 +134,11 @@ def mlp(i, o, h=(256, 256)):
+     return nn.Sequential(*layers)
+ 
+ 
+-def train_bc(ds, steps=20000, lr=3e-4, seed=0, best_only=True):
++def train_bc(ds, steps=20000, lr=3e-4, seed=0, best_only=True, net=None):
++    """net: an untrained network to fit (default: the 2 x 256 MLP; P2 tracker 36 passes rclib.nets.FrameSetNet)."""
+     torch.manual_seed(seed)
+     gen = torch.Generator().manual_seed(seed)
+-    net = mlp(ds.obs.shape[1], NA)
++    net = mlp(ds.obs.shape[1], NA) if net is None else net
+     opt = torch.optim.Adam(net.parameters(), lr)
+     for i in range(steps):
+         o, a, *_ = ds.batch(512, gen, best_only)
+diff --git a/tools/job_env_v1.sh b/tools/job_env_v1.sh
+index 0371d32..3cf7e4b 100644
+--- a/tools/job_env_v1.sh
++++ b/tools/job_env_v1.sh
+@@ -7,7 +7,9 @@ X264_BIN=$(dirname "$(command -v x264)")      # the module's x264, captured befo
+ export PATH=$X264_BIN:${RC_X265_BIN:-/scratch1/aayushso/envs/codecs/bin}:/scratch1/aayushso/envs/rc/bin:$PATH
+ case ${RC_CODEC:-x265} in
+   x264) x264 --version 2>&1 | grep -q '0.165.' || { echo "wrong x264 on $(hostname): $(command -v x264): $(x264 --version 2>&1 | head -2)"; return 1 2>/dev/null || exit 1; } ;;
+-  x265) x265 --version 2>&1 | grep -q 'version 4.1' || { echo "wrong x265 on $(hostname): $(command -v x265): $(x265 --version 2>&1 | head -2)"; return 1 2>/dev/null || exit 1; } ;;
++  # read the whole output first: with pipefail, 'x265 --version | grep -q' fails at random when grep exits before
++  # x265's 2nd/3rd stderr write (SIGPIPE) -- the "x265 version guard failed after 1 s" nodes (P2 11-12)
++  x265) grep -q 'version 4.1' <<< "$(x265 --version 2>&1)" || { echo "wrong x265 on $(hostname): $(command -v x265): $(x265 --version 2>&1 | head -2)"; return 1 2>/dev/null || exit 1; } ;;
+ esac
+ export PYTHONNOUSERSITE=1 PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+ export RC_CODEC=${RC_CODEC:-x265}

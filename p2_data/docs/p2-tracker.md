@@ -558,6 +558,423 @@ and how does that change with lookahead k? Results are split into cut, gradual a
         with their own history; lam sweep/PID + val checkpoint; gbm estimator / wide first-pass pair; dB figures).
         Patch 2 regenerated 09:40; data synced to /project2 (sync_project2.sh all).
 
+- [x] 34. BASELINE FROZEN (Aayush 11-11): final4 (1.0:6:1.0:2:3:4:1:1:1:0:3) is the classical baseline for the
+  report; no further controller tuning. Context: x265 level 42 res@hist beats final4 (+0.15 [+0.03, +0.30] test,
+  +0.16 [+0.02, +0.33] val, k0 +0.27 / +0.22; x264 no gain). Diagnosis: final4 hits QP 51 in 38% / 35% of level-42
+  episodes (x265 / x264), which end 4.9% / 6.9% over; budgets are feasible (constant QP 50 meets all x265 and 99% of
+  x264). First guess (solver plans frames above QP 51) was WRONG: a clipped solver gave bit-identical results on 12
+  local x265 L42 val episodes (edit reverted, test files deleted). Likely cause: one rate slope s_p (5.04 x265 / 5.49
+  x264 QP per halving) while the constant-QP curves flatten to 5.8 / 6.4 at QP 47-50. Proposed fix (QP-band slope)
+  NOT pursued: Aayush asked why improve the controller at all; answer = it is the fair deployable baseline, the
+  oracle is not deployable; further tuning would only make the learners look worse. Reported instead as a case where
+  the residual corrects the controller's high-QP mis-modelling (x265 only; x264 unexplained). Numbers:
+  results_v1/w5/w5_numbers.md section 5; report docs/report-w5-quality-vs-delay.md findings 9-10 + "Baseline choice".
+- [x] 34b. ENCODER RATE CONTROL ON THE dB METRIC (Aayush 11-11: "did we check how the latest models fare against
+  ABR+VBV?"; no encodes): scripts/abr_dpsnr.py rescores results_v1/baselines_v1.parquet (week-2 encodes) exactly like
+  lfq_compare scores the controller (budgets checked equal to the lfq infos) -> results_v1/w5/abr_dpsnr.md. TEST:
+  abr_vbv -1.52..-1.65 dB (x264), -1.16..-1.25 (x265), flat in k, over budget on 50-86% / 49-92% of GOPs. final4 -
+  abr +1.29..+1.48 (x264) / +0.82..+0.99 (x265); res@hist +1.08..+1.43 / +0.70..+0.96; bc@prev from k2 (x264) / k5
+  (x265); all CIs > 0. Added to the W5 report (finding 5a).
+- [x] 35. TARGETED RESIDUAL (Aayush 11-11: "lets do the targeted residual"). Residual RL on final4 (arm res, work dir
+  resh, dB reward, same settings as C2) trained ONLY on budget levels 36 and 42 (high-QP regime where final4's single
+  rate slope is wrong; tracker 34); evaluated on all levels. Deployment rule (causal: the budget is known up front):
+  residual at levels 36/42, plain final4 at 24/30. Code: repo-pavneet experiments/rl.py --train-levels (run name part
+  lv36-42; env budgets restricted for TRAINING only); checked: training env draws only 36/42 (200 resets: 99 / 101),
+  run name res_k0_fixed_lv36-42_s0 -> lfq_compare label res_lv36-42@hist. Run list runs_v1/res_lv3642.txt (15 runs,
+  k 0/2/5/10/29 x 3 seeds). Gate (written before the runs): on VAL, the combined rule beats final4 pooled over k and
+  levels with a CI excluding 0 on at least one encoder, and does not lose at 36/42 vs plain res@hist. Report test
+  either way.
+  SUBMITTED 11-11 16:24 (Aayush OK): x264 14024909, x265 14024910 (RC_WORKNAME=resh RC_METRIC=dpsnr
+  RC_CTRL_SETTING=1.0:6:1.0:2:3:4:1:1:1:0:3 RC_RUNS=runs_v1/res_lv3642.txt; x265 RC_TLIM 6:00:00; 16 CPU / 48G).
+  x264 task 4 (k2 s1) FAILED 17:43 on b22-07: an x264 encode in a training worker failed 3x after 1 frame (input
+  intact, /dev/shm empty, 3.7G of 48G; other tasks on b22-07 fine) -> transient; b22-07 added to bad_nodes, task 4
+  RERUN 18:01 as 14027731 (Aayush OK).
+  11-12: x264 complete. x265 13/15: task 10 died on b05-21 (numpy import) -> rerun 14044103 (Aayush OK 06:46); task
+  9 was requeue-held since 20:53 (auto-retry helper timed out) -> released by hand 06:40 with b05-21 excluded.
+  RESULT (11-12, all 15 runs per encoder; scripts/gates_35_36.py -> results_v1/w5/gates_35_36.md): GATE FAIL.
+    Combined rule (res_lv at 36/42, final4 at 24/30) - final4, val, pooled over k and levels: x264 -0.148 [-0.212,
+    -0.084], x265 +0.026 [-0.020, +0.085] (test x265 +0.036 [-0.017, +0.096]). x265 at level 42 alone: +0.239 [+0.080,
+    +0.431] val, +0.227 test (the level-42 finding holds; res@hist was +0.15) but level 36 gives it back. x264: the
+    targeted residual is worse than final4 (-0.30) and than res@hist (-0.22) at 36/42. A level-42-only rule was not
+    pre-registered; it would be a post-hoc pick on val (report as exploratory only). Untrained levels 24/30: -0.3..-0.8.
+  Was: Next when done: lfq_compare.py <enc> --ctrl-tag final4 (rows res_lv36-42@hist), then the combined-rule table
+  (targeted residual at 36/42, final4 at 24/30) vs final4 and res@hist, val gate first.
+- [x] 36. ARCHITECTURE: SHARED PER-FRAME ENCODER (Aayush 11-11: "go ahead with the day-1 offline test. make sure to
+  document this line of experiments"). Budget: at most ~1 week of experimentation before the final proposal.
+  Why: every learner uses Pavneet's flat MLP (2 x 256 ReLU) on the 346-dim observation (16 global + 30 frame slots x
+  11 features, slots beyond k zeroed): separate weights per (slot, feature), so "a cut d frames ahead" is learned
+  separately for each d from ~80 single-cut train GOPs; one model per k. Proposed: one small network phi applied to
+  every visible frame (11 features + relative position j/29 + absolute position (t+j)/29), pooled over the visible
+  window, then a head on [global, frame t, pooled]: weight sharing across offsets (CNN-like), explicit positions
+  (LLM-like), one model for all k. Not this week: attention/transformer policies (data-hungry; only as an attention
+  pooling variant in the offline test) and LSTM / cross-GOP memory (needs clip-long episodes + recurrent PPO; future work).
+  PLAN (gated; stop at the first failed gate):
+  Day 1 (offline, no encodes): BC on the lfqp training data (search plans re-expressed around the previous-GOP base,
+    exactly what bc@prev trains on), val = the search's best val plans re-expressed the same way. Nets: mlp (current
+    2x256), set_mm (shared phi width 32, mean+max pooling), set_attn (attention pooling queried by frame t + global);
+    trained per k (0/2/5/10/29) and on all k pooled ("anyk"; mlp too, as the control for pooling data). Same BC
+    recipe as rl.py (Adam 3e-4, 20k steps, batch 512, best plans only). Metrics on val, per k: per-frame offset MAE
+    (QP) vs the search, accuracy, NLL; split stable / cut; CIs = 95% bootstrap over clips.
+    GATE 1 (written before any result): a shared-encoder net has lower val offset MAE than the per-k mlp, pooled over
+    k, with a CI excluding 0, on both encoders, and is not worse on cut GOPs. Choosing the better of set_mm/set_attn
+    on the same val data makes this slightly optimistic; the real test is days 2-3.
+  Days 2-3 (if gate 1 passes): BC with the winner, real-encode eval at all k, both encoders (sbatch, ask) vs bc@prev.
+  Days 3-5 (if BC improves on bc@prev): residual RL on final4 with the winner as the PPO feature extractor (sbatch, ask)
+    vs res@hist and final4, val gate first. Days 6-7: analysis + report.
+  Code: repo-pavneet rclib/nets.py (FrameSetNet), offrl.train_bc(net=...), tools/arch_offline.py.
+  11-11 change before any result: the val split's search results keep only each best plan's actions (no per-frame
+    bits), so val observations cannot be rebuilt offline. Day-1 validation = a held-out quarter of the NATURAL train
+    clips (seed 0; spliced clips stay in training), split by clip; gate 1 reads "held-out" for "val". Data shortcut:
+    top 4 plans per GOP x budget (BC uses the best ones only). Smoke test (1000 steps, k 0/5) ran end to end in 209 s;
+    nets: mlp 160k params, set_mm 35k, set_attn 35k. Full run = jobs/arch_offline.sbatch (2 tasks: x264, x265; seeds
+    0,1; 20k steps; 8 CPU / 16G / 4 h). SUBMITTED 11-11 17:36 (Aayush OK): 14026936 (flaky nodes excluded).
+    DAY-1 RESULT (14026936 done 19:13; results_v1/arch/offline_<enc>_d1.md; held-out 14 clips / 130 GOPs; seeds 0,1):
+    held-out offset MAE vs the search (QP), pooled over k: mlp per-k 1.197 (x264) / 1.184 (x265); set_attn anyk
+    1.128 / 1.103 (best on both); set_mm anyk 1.133 / 1.111; mlp anyk 1.143 / 1.125.
+    GATE 1: PASS as written. vs mlp per-k: set_attn anyk -0.069 [-0.115, -0.032] (x264), -0.081 [-0.138, -0.034]
+    (x265); cut GOPs -0.124 / -0.097 (not worse; better). Per-k set nets also below mlp per-k (-0.027..-0.050).
+    BUT most of the gain is POOLING k, not the architecture: mlp anyk alone -0.054 / -0.059. Architecture at equal
+    data (set - mlp, both anyk, paired; computed ad hoc 11-11 20:50, not yet in a results file): set_attn -0.015
+    [-0.038, +0.004] (x264, n.s.) / -0.023 [-0.046, -0.004] (x265); on CUT GOPs x264 -0.054 [-0.106, -0.019],
+    x265 -0.019 n.s.; set_mm -0.010 n.s. / -0.015. Size: about 6% lower MAE overall (1.20 -> 1.13 QP), accuracy
+    0.30 -> 0.31. Reading: a structured encoder + pooling k imitates the oracle slightly better, mostly via k
+    pooling; the architecture adds a small extra gain, larger on cut GOPs for x264. Whether ~0.07 QP better
+    imitation moves the encode score is the day-2 question (bc@prev's deficit is mostly the base QP, so expect
+    small effects). Day 2 needs: rl.py BC with --arch and k-pooled training, eval at every k; candidates set_attn
+    anyk + mlp anyk (control, separates pooling from architecture). Waiting for Aayush's go.
+  DAY 2 (Aayush 11-11 ~20:55: "go ahead with day 2"): repo-pavneet experiments/rl.py --arch {mlp,set_mm,set_attn}
+    (BC only; nets.make) and --train-ks 0,2,5,10,29 (one BC net on the pooled k datasets, evaluated at each k);
+    run name part "attn-kall" / "mlp-kall" -> lfq_compare labels bc_attn-kall@prev / bc_mlp-kall@prev. Smoke (x264_lfq
+    --quick, set_attn, ks 0,5): trained + evaluated at k0 and k5 on val/test, eval.pkl + policy.pt written; the
+    process then hung at exit on a /scratch1 read of a package METADATA file (filesystem, node b22-06; unkillable),
+    and rm of the smoke dir rcwork_v1/x264_lfq/results_rl_quick/bc_k0_fixed_attn-kall_s0 hung too (delete it later).
+    Run list runs_v1/arch_bc.txt: set_attn and mlp, train-ks 0,2,5,10,29, seeds 0-2 (6 runs per encoder). Work dir
+    lfqp (same data/base as bc@prev). Expected ~30-45 min per x264 run (old per-k BC ~6-8 min, now 5 evals).
+    GATE 2 (written before the runs): on VAL, bc_attn-kall@prev beats bc@prev (per-k mlp) pooled over k with a CI
+    excluding 0 on both encoders; the mlp-kall control tells how much is pooling vs architecture. Test reported
+    either way; also vs final4.
+    SUBMITTED 11-11 21:09 (Aayush OK; b22-06 added to bad_nodes first): x264 14032845, x265 14032846
+    (RC_WORKNAME=lfqp RC_RUNS=runs_v1/arch_bc.txt; x265 RC_TLIM 6:00:00). Next when done: lfq_compare.py <enc>
+    --ctrl-tag final4 (rows bc_attn-kall@prev, bc_mlp-kall@prev vs bc@prev), gate 2 on val.
+    11-12: ALL 12 OUT OF MEMORY at 48G (peak 49.5G after building the dataset): pooling 5 k = 5x the single-k
+    dataset (single-k BC peaks ~21.5G). Fix (before any result): rclib/offrl.trajectories_best keeps only the best
+    plans per GOP x budget inside each worker (all BC trains on; same targets, checked equal on 12 GOP x k cases);
+    rl.py uses it only for --method bc with --train-ks. Keeps ~7% of plans (100 GOPs, k5), so ~0.36x one k's data.
+    Side note: ties for the best plan are common (up to 110 of 192 plans), so day-1's top-4 shortcut truncated
+    some targets (footnote; day-1 is a relative comparison on the same data). RESUBMITTED 11-12 06:46 (Aayush OK):
+    x264 14044104, x265 14044105.
+    GATE 2 RESULT (11-12 ~08:30; scripts/gates_35_36.py -> results_v1/w5/gates_35_36.md; x265 mlp-kall 2 of 3 seeds,
+    the 3rd still running): FAIL. bc_attn-kall@prev - bc@prev, val, pooled over k: x264 +0.015 [-0.071, +0.089], x265
+    -0.037 [-0.087, +0.016]; test +0.025 n.s. / -0.024 n.s. Pattern on both encoders: one net over pooled k is much
+    better at k0 (+0.53 / +0.20 val) and worse at k>=5 (about -0.1..-0.2), i.e. pooling helps where data per k is
+    least useful and costs where per-k nets were best. Architecture at equal data (attn - mlp-kall), val: -0.054 n.s.
+    (x264), +0.008 n.s. (x265); test x264 -0.024 [-0.042, -0.007] (attn worse). Day 1's ~6% better imitation did not
+    move the encode score (consistent with bc@prev's deficit being the base QP, not the offsets). Both still far below
+    final4 (-0.64 / -0.53 val). LINE STOPPED per the plan (no days 3-5 residual RL with the new net).
+- [x] 37. UNDER-TRAINING TEST, RESIDUAL (Aayush 11-11 ~21:15: line up 2-3 overnight tests and submit). res@hist used
+  60k PPO steps; does 3x (180k) beat it? New rl.py flag --ppo-steps (run-name part st180k; label res_st180k@hist).
+  runs_v1/res_st180k.txt: k 0/5/29 x seeds 0-2, work dir resh, final4 setting, dB reward (same as C2 otherwise).
+  GATE (before results): on VAL, res_st180k@hist - res@hist (same k and seed, paired) > 0 pooled over the 3 k with a
+  CI excluding 0 on at least one encoder -> "under-trained"; also report vs final4 on val/test.
+  SUBMITTED 11-11 ~21:20 (Aayush OK): x264 14032893 (8 h limit), x265 14032905 (12 h).
+  11-12: x265 9/9 done; x264 3/9 done, 6 died at start on node b05-21 (numpy import failed, rc 1; not caught by the
+  auto-retry). Rerun tasks 1,3,4,5,7,8 as 14044101 (Aayush OK 06:46).
+  RESULT (11-12 ~09:00; scripts/gates_37_38.py -> results_v1/w5/gates_37_38.md): NOT under-trained; GATE FAIL.
+    180k - 60k, val, pooled k 0/5/29: x264 -0.085 [-0.173, -0.003] (WORSE; test -0.119 [-0.165, -0.074]), x265 +0.028
+    [-0.050, +0.097] n.s. (test +0.016 n.s.). k0 gains ~+0.1 on both, k5 loses (x264 -0.28). Still below final4:
+    val -0.28 (x264) / -0.12 (x265). Runs took 21-25 min (x264) / ~1 h (x265), far below the 8/12 h limits.
+- [x] 38. UNDER-TRAINING TEST, CQL->PPO ON THE PREV-GOP BASE: same flag, runs_v1/lfqp_st180k.txt (cql_ppo, k 0/5/29
+  x seeds 0-2, 180k PPO steps; work dir lfqp; label cql_ppo_st180k@prev). GATE: on VAL, vs cql_ppo@prev (60k) paired,
+  pooled over k, CI excluding 0 on at least one encoder.
+  SUBMITTED 11-11 ~21:20 (Aayush OK): x264 14032920 (8 h), x265 14032921 (12 h).
+  11-12: x265 7/9 done, tasks 0,3 died on b05-21 -> rerun 14044102 (Aayush OK 06:46). x264: all 9 were requeue-held
+  by the auto-retry since 22:06 (its helper job never ran: all 4 debug nodes drained); released by hand 06:40 with
+  b05-21 excluded. Until debug is back, auto-retry holds do not clear themselves.
+  RESULT (11-12 ~09:00; scripts/gates_37_38.py -> results_v1/w5/gates_37_38.md; x265 k0/k5 seed 0 still queued
+    (14044102), so x265 = 7 of 9 runs): GATE PASS, CQL->PPO WAS UNDER-TRAINED. 180k - 60k, val, pooled k 0/5/29:
+    x264 +0.428 [+0.376, +0.474], x265 +0.318 [+0.257, +0.371]; test +0.391 / +0.293. Largest at k0 (+0.78 / +0.60
+    val), then k5 (+0.39 / +0.26), k29 (+0.11 / +0.17). Mechanism: budget use 0.93 -> 0.99, but MORE episodes over
+    (x264 val 28% -> 37%, k0 44%): it learned to spend the whole budget, overshooting by small amounts.
+    vs final4 (180k), pooled: x264 val -0.24 [-0.38, -0.12], test -0.15 [-0.21, -0.09]; x265 val -0.18 [-0.32,
+    -0.04], test -0.07 [-0.17, +0.04] n.s. Per k test: x264 -0.21 / -0.15 / -0.10 (k0/5/29, all CIs < 0); x265 -0.11
+    / -0.12 n.s. / -0.01 n.s. First learner that is not significantly below final4 somewhere (x265 k5/k29 test), but
+    not above it either. Train-curve scores are still noisy at 150k, so a plateau is not shown.
+  FINAL x265 (11-12 ~11:50, all 9 runs after 14044102): 180k - 60k val +0.328 [+0.266, +0.383], test +0.304 [+0.260,
+    +0.357] (k0 +0.56, k5 +0.25, k29 +0.17 val); use 0.93 -> 0.98, % eps over 24 -> 30; vs final4 val -0.193 [-0.353,
+    -0.050], test -0.090 [-0.188, +0.020] n.s. Verdict unchanged.
+- [x] 39. LAGRANGIAN PENALTY SWEEP ON THE PREV-GOP BASE (EXPERIMENTS P4, reduced): lam 0.17 = cql_ppo's own reward
+  (11-11 finding), so test stricter penalties: lam 0.34 (default, label lagr@prev) and 0.68 (lagr_lam0.68@prev), k
+  0/5/29 x seeds 0-2 (runs_v1/lfqp_lam.txt, 18 runs per encoder). The learners' main deficit is budget handling
+  (cql_ppo@prev over budget on ~28-38% of test episodes). Report score, dPSNR_B, budget use and % over vs lam
+  (0.17 = cql_ppo@prev); pick lam on VAL, report test; vs final4.
+  SUBMITTED 11-11 ~21:20 (Aayush OK): x264 14032955 (4 h), x265 14032956 (6 h).
+  RESULT (11-12; both 18/18 done; scripts/lam_sweep.py -> results_v1/w5/lam_sweep.md, from lfq_compare_<enc>_final4.csv;
+    k 0/5/29 pooled, seeds averaged; x264 also has the older lagr_lam0.17@prev, which differs from cql_ppo@prev there):
+    a higher price cuts overshoot but costs more quality than it saves. x264 val score / use / % eps over:
+    rel(cql_ppo) -0.919 / 0.93 / 28%; 0.17 -0.869 / 0.95 / 31%; 0.34 -1.063 / 0.90 / 21%; 0.68 -1.495 / 0.80 / 9%.
+    x265 val: 0.17(=rel) -0.885 / 0.93 / 24%; 0.34 -1.003 / 0.90 / 20%; 0.68 -1.458 / 0.82 / 12%.
+    vs lam 0.17 (val, paired): 0.34 -0.194 [-0.307, -0.063] (x264) / -0.118 [-0.157, -0.079] (x265); 0.68 -0.63 / -0.57.
+    Pick on val: lam 0.17 (both encoders; on x265 = cql_ppo@prev). Test: x264 -0.689 vs final4 -0.487 [-0.609, -0.385];
+    x265 -0.687, vs final4 -0.394 [-0.521, -0.266]. Every lam is below final4 at every k on both splits.
+    Reading: the learners' overshoot is not a missing incentive. A stricter price makes them underspend across the
+    board (use 0.93 -> 0.80) while 9-12% of episodes still go over: they cannot track the budget precisely, so the
+    price only moves the operating point along a worse trade-off. Budget tracking (feasibility) is the deficit.
+  After 37-39 finish: lfq_compare.py <enc> --ctrl-tag final4 picks up all new rows (labels above).
+- [x] 40. CQL->PPO, 540k PPO STEPS (9x the original; Aayush 11-12 ~09:05: "set up the 540k runs with k2 and k10").
+  Follow-up of item 38 (180k gained +0.3..+0.4 dB over 60k). runs_v1/lfqp_st540k.txt: cql_ppo, k 0/2/5/10/29 x seeds 0-2
+  (15 runs per encoder), --ppo-steps 540000, work dir lfqp (previous-GOP base), label cql_ppo_st540k@prev. Time
+  limits from the 180k run times (x264 33-41 min, x265 1.2-2.1 h, so ~3x): x264 6 h, x265 12 h.
+  GATES (written before results), val, paired same k and seed, CIs = 95% bootstrap over clips:
+    (a) still improving: 540k - 180k pooled over k 0/5/29 > 0 with CI excluding 0 on at least one encoder.
+    (b) vs the baseline: 540k - final4 pooled over k 0/2/5/10/29 > 0 with CI excluding 0 on at least one encoder
+        ("a standalone learner beats the frozen controller"); report per k and test either way.
+  Also reported: budget use and % episodes over vs steps (60k / 180k / 540k), since the 180k gain came from spending
+  the full budget with more small overshoots.
+  SUBMITTED 11-12 09:05 (Aayush OK): x264 14049395 (6 h), x265 14049410 (12 h).
+  11-12 09:12: x265 task 1 failed in 1 s at the x265 version guard on b09-17 although the log shows "version 4.1".
+    Cause (verified with strace): x265 --version writes its 3 lines as 3 separate unbuffered stderr writes; 'x265
+    --version 2>&1 | grep -q ...' under set -o pipefail fails whenever grep -q exits before the 2nd/3rd write (x265
+    gets SIGPIPE). A timing race (0/1000 on the interactive node), so the earlier "x265 version guard failed after
+    1 s" bad-node entries (a02-17, a01-08, a02-11, b10-19, b04-16, a01-02) were probably false alarms. Fixed in
+    repo-pavneet tools/job_env_v1.sh (grep on the captured output); jobs/rd_native.sbatch and p2_step.sbatch keep the
+    old pattern (not in use now).
+    Task 1 RERUN 09:20 as 14050090 (Aayush OK).
+  x264 RESULT (11-12 ~12:00, 15/15; scripts/gates_40.py -> results_v1/w5/gates_40.md; x265 still running):
+    (a) 540k - 180k, val, pooled k 0/5/29: +0.094 [-0.001, +0.183] (CI just touches 0 -> not passed on x264);
+        test +0.103 [+0.068, +0.137]. Per k about +0.08..+0.10. Diminishing: 60k -> 180k was +0.43.
+    (b) 540k - final4, val, pooled k: -0.150 [-0.373, +0.013] (not passed); test -0.069 [-0.132, -0.007]. Per k
+        test: k0 -0.08 *, k2 -0.13 *, k5 -0.05, k10 -0.06, k29 -0.02 (last three n.s.).
+    Budget: use 1.00 (val) / 0.99 (test); % eps over falls back to 30% / 29% (180k: 37%). Verdict waits for x265
+    (both gates need only one encoder).
+  11-12 13:02 (Aayush OK): the 12 queued x265 tasks had waited 4 h on main (1,171 jobs pending); scontrol update
+    Partition=main,oneweek on 14049410 and 14050090 -> 12 tasks started at once on oneweek nodes d18-22..d18-33. Next when done: lfq_compare.py <enc>
+  --ctrl-tag final4, then extend scripts/gates_37_38.py (or a sibling) for gates (a) and (b).
+  FINAL RESULT (11-13 08:45, x265 15/15; results_v1/w5/gates_40.md, lfq_compare_x265_final4.{md,csv}):
+    (a) PASS on x265: 540k - 180k, val, pooled k 0/5/29 +0.149 [+0.088, +0.220] (test +0.116 [+0.082, +0.153]);
+        x264 val +0.094 n.s. -> still improving, with diminishing steps (60k -> 180k was +0.3..+0.4).
+    (b) FAIL: 540k - final4, val, pooled k: x264 -0.150 [-0.373, +0.013], x265 -0.060 [-0.199, +0.073];
+        test x264 -0.069 * (worse), x265 +0.003 [-0.086, +0.107] (TIE; per k all n.s., k29 +0.08).
+    x265 540k test -0.267 vs final4 -0.270: the first standalone learner to tie the frozen controller (x265 only).
+    Why it still loses on x264: quality before the penalty is as good or better (test dPSNR_B +0.008 vs final4
+    -0.018; x265 -0.074 vs -0.120), but it overshoots more: 29% / 26% of episodes over by 5.2% / 4.4% on average
+    when over (final4: 54-56% of episodes, about 1.7% when over). Penalty 0.25 vs 0.16 dB (x264).
+
+- [ ] 41. NEXT EXPERIMENTS (Aayush 11-13: docs/next-experiments-2026-11-13.md + agent brief, amendments in its
+  Part E). Work in exp_next/, results in results_v1/next/.
+  - [x] Exp 0 first-hour checks -> exp_next/exp0/CHECKS.md (train parity 40/40 exact per encoder, run on the
+    interactive node). Open decision for Aayush: R2 cap handling (recommend (a), keep resh behaviour).
+  - [x] Exp 1 decomposition + headroom -> exp_next/exp1/REPORT.md. Both stop rules clear (H +0.37 dB, R^2 0.33 /
+    0.38). Brief A2 slope correction proposed (0.036-0.064 dB per 1%, not 0.085). Level-24 hole fix: proposal only.
+  - Code (repo-pavneet branch next-exp, uncommitted; diff before at exp_next/repo_before.patch): rl.py --eval-splits
+    (default val,test) and --save-at (checkpoint + eval_ckpt.pkl). Regression 5/5 exact (exp_next/regress_eval.py);
+    smoke exp_next/smoke_resh_x264 OK. jobs/p2_step.sbatch version guards fixed (here-string, no SIGPIPE race).
+  - [x] Exp 3 residual lam 0.17 (exp_next/exp3/PREREG.md, runs_v1/next_exp3.txt): x264 14189238, x265 14189239
+    (Aayush OK 11:20), 12/12 COMPLETED (x264 32-44 min, x265 85-103 min). REPORT exp_next/exp3/REPORT.md: PRIMARY
+    lam0.17 - lam0.34 (180k) val pooled +0.137 [+0.109, +0.166] PASS (x264 +0.184, x265 +0.090, k0 +0.093, k5 +0.180,
+    all seeds +). vs final4: x264 -0.071 *, x265 -0.003 n.s., pooled -0.037 n.s.; 60k ckpt -0.018 n.s. (180k - 60k
+    -0.019 n.s.). => R1 = lam 0.17 for Exp 4.
+  - [x] Exp 10 ABR margin (exp_next/exp10/PREREG.md, abr_margin.py): x264 14189250, x265 14189252 (Aayush OK 11:20),
+    COMPLETED in 2-3 min. Report results_v1/next/exp10/abr_margin.md (abr_margin_report.py). Val score, hole excluded,
+    m 1.00 / 0.99 / 0.97 / 0.95: x264 -1.70 / -1.62 / -1.51 / -1.43, x265 -1.51 / -1.43 / -1.31 / -1.22. A stays
+    -0.69 / -0.75 at every m (the margin only fixes overshoot). SELECTED m = 0.95 both encoders (grid edge: a lower m
+    might score more; extending the grid would change the PREREG, not done).
+  - Train-select fold frozen: exp_next/folds.json (exp_next/make_folds.py; 8 single-group train clips, 75 GOPs, 3 with
+    natural cuts).
+  - Exp 2 handoff: exp_next/exp2/handoff.py + PREREG.md; parity m=0 vs learner 8/8, m=30 vs final4 8/8 exact (both
+    encoders).
+    SUBMITTED 11-13 12:38 (Aayush OK): x264 14200366, x265 14200367 -> ALL 8 TASKS FAILED at the final write (10-28
+    min in): the torch env envs/rc has no pyarrow, so to_parquet raised ImportError and the episodes were lost (~22
+    CPU-h of allocation). Fix: write a pickle (.pkl) + --limit smoke option; smoke of the full path incl. the write
+    in the job env OK. RESUBMITTED 11-13 13:28 (Aayush OK): x264 14207330, x265 14207331.
+    [x] DONE (x264 12-15 min, x265 27-28 min per shard). REPORT exp_next/exp2/REPORT.md: GATE FAIL on all three
+    conditions: m=10 hybrid - final4 -0.052 [-0.146, +0.056] (x264 -0.109 *, x265 +0.005), spend error 4.16% vs
+    final4 2.55%. Handoff helps the learner +0.02..+0.04 (m 3-10) but a longer handoff under-spends more (signed -3..-4%
+    at m=20): final4's single-slope rate model, calibrated at the learner's QPs, over-predicts the rest. Line stopped.
+  - [~] Exp 4 R2 (exp_next/exp4/PREREG_R2.md, runs_v1/next_exp4_r2.txt): code on next-exp (controller decide(diag=),
+    env --extra f4 + cap counters, config RC_RES_RANGE, run name gets _r6); regression defaults parity 24/24 and
+    stored-episode 5/5 per encoder; smoke + forced-offset check (exp_next/exp4/check_f4.py) OK.
+    SUBMITTED 11-13 (Aayush OK): x264 14213909 (2 h), x265 14213910 (5 h), RC_RES_RANGE=6, main,oneweek.
+    [x] DONE 12/12 (x265 ~85 min). REPORT exp_next/exp4/REPORT_R2.md (report_r2.py -> results_v1/next/exp4/
+    r2_report.md): GATE FAIL: R2 - R1 pooled +0.040 [+0.023, +0.061] (x264 +0.070 *, x265 +0.010), but k0 -0.004
+    and seed 1 -0.016. Gain all at k5 (+0.083). R2 vs final4 +0.003 n.s. (ties on both encoders). Caps flag: at k5
+    27-28% of non-zero offsets go beyond final4's dmax (> 20%) -> report to Aayush before R3.
+  - [~] Exp 5 shape BC (exp_next/exp5/PREREG.md, build.py): check (a) 91.2% / 91.5% (< 95%), all mismatches from
+    labels clipped at frames 0-1; Aayush 11-13: option (a), accept with clipping reported. Smoke of the full build
+    (6 GOPs) OK; already shows check (b) |mean label| up to 2.5 QP (> 0.5 -> report before training).
+    SUBMITTED 11-13 ~16:00 (Aayush OK): build x264 14218410, x265 14218411 (16 CPU, 64G, 2 h).
+    DONE (x264 7.7 min, x265 3.9 min): 515 GOPs, ~102k plans per encoder, ~3.06M rows per k (data_<enc>_k<k>.npz
+    2.2 GB each, labels_<enc>.md). Clipped labels 0.5-0.9%. CHECK (b) FAILS: mean label I frame +0.6..+0.7, frame 1
+    -1.7..-2.2, frames 2-29 -0.15..-1.9 (avg P -0.9..-1.1 QP), max |mean| 1.87-1.90 > 0.5 -> stopped before training,
+    reported to Aayush.
+    Aayush 11-13: option 3 (shift-only test) first, then centred BC (option 1); raw labels never used. Recorded as a
+    PREREG deviation (exp_next/exp5/PREREG.md) + new exp_next/exp5/PREREG_SHIFT.md (Exp 5a) before any fit/training.
+    build.py labels confirmed to be against final4's CAPPED proposal (env.q_ctrl = decide() after fcap/dmax/pmin).
+    Code: RC_RES_RECAP=1 (rclib/config.py + env.step; default off) re-applies final4's limits after the offset.
+    exp_next/exp5/shift_fit.py (no encodes) -> shifts.json, shift_fit.md; shift_eval.py (--check: offset 0 = final4
+    10/10 x264, 6/6 x265, recap 0 and 1); shift_report.py. First fold submission rejected by Aayush (revised plan below).
+    REVISION 2 (Aayush 11-13, PREREG_SHIFT.md, before any encode): smooth 4-param shift (I, frame 1, ramp f2-f29),
+    real-valued, added before final4's rounding (decide diag q_real; env.res_float) -- the per-frame means are jagged
+    from the search's start-ramp rounding (corr 0.60-0.65). Cap arms split: none / bit (fcap + spent->51) / full
+    (RC_RES_RECAP=0|bit|full). Arms {pooled,perlevel} x {none,bit} + pooled:full reference, beta 0.1. shift_smooth.py
+    -> shifts_smooth.json (I offset by level -0.5 (L24) .. +2.0 (L42)). Parity offset 0 = final4 12/12 per encoder,
+    all cap rules. Go/no-go redone without own history (gng_nohist.py; full-obs 0.52-0.60 at k5 not used).
+    SUBMITTED 11-13 (Aayush OK): fold x264 14230659 (1 h), x265 14230660 (1.5 h), 16 CPU, 16G.
+    x264 fold DONE (6 min, 3000 episodes). Go/no-go without own history (gng_nohist.md): R^2 of the centred label
+    at k5 x264 0.417, x265 0.420 (k0 0.53 / 0.55; drop o[6] only 0.465) -> GO for centred BC without o[5..8]. Caveat:
+    budget state and final4-state features still carry the plan's past spend.
+    x265 fold DONE (19.5 min). Fold report (shift_report.py --split fold -> shift_fold.md, shift_selected.json):
+    best selectable arm perlevel:none on both (x264 +0.036, x265 +0.105 vs final4); perlevel:bit within 0.005
+    (+0.032 / +0.103) -> SELECTED perlevel:bit on both encoders (pre-registered tie-break). Selected by k: x264 k0
+    +0.001 (n.s.), k5 +0.062 *; x265 k0 +0.089 *, k5 +0.116 *. Pooled arms ~0 (x264) / +0.04 (x265); pooled:full ref
+    +0.009 / +0.069. Spend: % over +4.5 / +6.3 pts vs final4, signed err -0.67 / -0.55 pp (under the +10 / +1 flags).
+    Val run of perlevel:bit HELD (Aayush 11-13): the budget level is clip-level hindsight (B = clip mean of
+    constant-QP-L bits), so per-level arms are not deployable. REVISION 3 in PREREG_SHIFT.md (before fit/encode):
+    causal arm per-qbin:bit = vector picked by final4's frame-0 planning QP binned at 27/33/39; per encoder, goes to
+    val only if >= perlevel:bit - 0.01 dB on the fold, else no val run ("gain depends on level hindsight"). Val primary
+    now per encoder; + per k, cut/gradual vs stable, spend split. shift_qbin.py -> shifts_qbin.json, shift_qbin.md
+    (bin = budget level on 54-57% of plans at k0, 70-72% at k5; k5 qbin vectors close to per-level, k0 differ).
+    shift_eval.py arm perqbin + --tag; parity: final4 frame-0 level reproduces the dataset 12/12 when run at the plan's
+    spend S (dataset relabel; eval uses B, 0.03-0.3 QP apart). Smoke OK both encoders; report dry-run on synthetic rows OK.
+    FOUND: env obs slot o[2] = (budget level != 24) is in every learner's observation (Pavneet's pilot flag; R1, R2,
+    lfq runs and the Exp 5 BC data) -- a clip-level-hindsight bit; final4 does not see it. Reported to Aayush.
+    SUBMITTED 11-13 21:27 (Aayush OK): fold perqbin:bit x264 14233506, x265 14233507 (16 CPU, 16G, 1 h).
+    o[2]: Aayush OK to zero it for BC and R3 (not started); R1/R2 results keep a caveat, no retraining.
+    DONE (x264 1.3 min, x265 3.1 min). shift_fold.md REVISION 3: per-qbin:bit x264 +0.008 (25% of perlevel:bit's
+    +0.032; qbin - level -0.024 [-0.052, -0.004]; k0 -0.034, k5 +0.050 *), x265 +0.082 (80% of +0.103; -0.020
+    [-0.040, +0.001]; k0 +0.032, k5 +0.132 *) -> FAILS the 0.01 dB rule on BOTH encoders: shift_selected.json all null,
+    no REV3 val run; final4 stays the RL base. Failure confined to k0 (final4's GOP-start QP a poor proxy for the
+    level); at k5 the causal shift recovers the per-level gain. Not confirmed on val. EXPERIMENTS row added (wording
+    corrected per Aayush 11-13). REVISION 4 (Aayush 11-13, post-hoc): per-qbin:bit k5 only, val once.
+    REV4 written in PREREG_SHIFT.md; shift_eval.py --ks, shift_report.py --rev4 (-> shift_val_rev4.md); dry run on
+    synthetic rows OK.
+    BC plan: exp_next/exp5/PREREG_BC.md (deploy final4 + mean[t] + BC(obs), mean = pooled per-position; drop o[2],
+    o[5..8]; BC-only rung on the fold first; R3 zero-init for o[5..8], log-std = BC residual size, frozen-actor
+    value warm-up). Not implemented yet.
+    o[2] ablation (eval only, exp_next/o2/o2_eval.py, o2_report.py; env drop group "level" = slot 2, opt-in):
+    unmasked re-eval reproduces stored val rows 8/8 for R2, R1, 540k on both encoders.
+    SUBMITTED 11-13 ~22:35 (Aayush OK): REV4 val x264 14234291, x265 14234295; o2 R2/R1/L540 x264 14234292-94,
+    x265 14234296-98.
+    REV4 DONE (x264 1 min, x265 2.5 min; shift_val_rev4.md): x265 +0.153 [+0.044, +0.283] * HOLDS (A +0.136, mostly
+    L42 +0.48); x264 -0.025 [-0.081, +0.034] does NOT. p90 |err| 3.4 -> 4.6% (x265), 3.7 -> 6.3% (x264); % over +8 / +6
+    pts; level check none. -> stronger non-RL baseline at k5 on x265 only (RL k5 gains on x265 reported vs both).
+    Aayush 11-13: o[2] zero arm overstates (tells the policy every GOP is level 24) -> causal stand-in arm added
+    (o[2] = 1 if final4's frame-0 planning QP >= 27; f4_level0.py table, agrees with the true bit 88%; env o2_table
+    hook, opt-in; checks 40/40 + stored-row parity 8/8). Zero-arm jobs left running. Stand-in SUBMITTED (Aayush OK):
+    R2/R1/L540 x264 14234394-96, x265 14234397-99.
+    Zero arm DONE (x264 ~6 min, x265 ~15 min); stand-in x264 DONE, x265 running. Partial o2_report.md: zero arm
+    changes QPs on ~75% of episodes but the score barely moves (pooled R2 +0.005 *, R1 +0.002, 540k +0.006; largest
+    cell 540k x264 k5 -0.045 n.s., L42 -0.20); stand-in within +-0.005 everywhere so far -> 'no change' row of
+    Aayush's table (pending x265 stand-in).
+    o[2] DONE (all 12 jobs; o2_report.md final): stand-in within +-0.005 dB in every cell except 540k x265 k0 -0.020
+    [-0.045, -0.002]; pooled per group -0.005..0.000; zero arm pooled < 0.01. 'No change' row; caveat 'at evaluation'
+    (training effect untested; BC / R3 trained without o[2]). EXPERIMENTS row added. NEXT: BC-only rung (PREREG_BC.md).
+    PREREG_BC.md REVISION 2 (Aayush 11-13): R2 is Discrete(13) -> BC = classifier with R2's actor architecture, R3 keeps
+    R2's head (no continuous mode); mean[t] = pooled smooth shift as res_float; target label2 = clip(plan -
+    round(q_real + mean[t])). build.py --v2 (masked obs + q_real + label2). Checks: offset-0 parity 12/12 both encoders;
+    v2 round trip 7/8 plans exact (8th = frame-0 clip); fold excluded in load(); smoke: obs cols 2,5-8 all zero.
+    build v2 SUBMITTED 11-13 (Aayush OK): x264 14235662, x265 14235663. bc_train.py, bc_eval.py (--check 12/12 both
+    encoders), bc_report.py written + smoked; PREREG_BC REVISION 3 (training details). SUBMITTED (Aayush OK), chained
+    afterok: BC train x264 14235702 -> eval 14235703; x265 14235704 -> 14235705. x265 build DONE 3.5 min: obs cols 2,5-8
+    zero on all 3.06M rows (k0, k5); label2 per-frame means within +-0.63; same plan set as v1 (pid order differs).
+    ALL DONE 11-14 (x264 build 8 min, train 31 min, eval 3 min; x265 train 19, eval 8). x264 v2 checks: cols zero on
+    3.06M rows. bc_fold.md: BC-only - final4 x264 -0.327 * (k0 -0.549, k5 -0.105 *), x265 -0.193 * (k0 -0.426, k5 +0.040
+    n.s.); landing failure (k0 mean |err| 15% / 11%, signed -13% / -9%), A equal or better. On logged states offsets
+    unbiased; in closed loop +0.8..+1.4 QP at k0 -> closed-loop drift. EXPERIMENTS row added. R3 decision -> Aayush.
+    Aayush 11-14: option 2 = R3 at k5 only. PREREG_BC REVISION 4: R3 (R2 recipe + o[2] masked + mean[t] + bit cap + BC
+    init + 20k critic warm-up) and control R2c (same, no BC init), 3 seeds x 2 enc; gate R3 - final4 val k5 >= +0.03,
+    CI > 0. Code (opt-in, names of old runs unchanged): env res_mean; rl.py --res-mean/--init-bc/--warmup + run-name
+    parts. Checks: step-0 reproduces BC-only rows 12/12 per enc (exp_next/exp4/r3_step0.py); actor frozen in warm-up;
+    eval path OK; smoke run deleted. fold_r1r2.py (precondition). runs_v1/next_exp4_r3.txt.
+    SUBMITTED 11-14 (Aayush OK): R3+R2c arrays x264 14239343 (3 h), x265 14239344 (5 h); fold R2/R1 x264 14239345/46,
+    x265 14239347/48.
+    Fold precondition DONE (fold_r1r2.md): R2 - R1 at k5 +0.093 [+0.068, +0.121] * -> R2 setup stands.
+    x264 R3/R2c DONE (33 min each). x265 task 1 (R3 s1) hit SIGBUS on d18-35 (already in bad_nodes 11-03); auto-retry
+    helper ran but did not apply -> manually excluded d18-35 and released 14239344_1 (restarts from scratch).
+    exp_next/exp4/report_r3.py written. PARTIAL x264 (r3_report_x264.md, not the gate): R3 - final4 +0.066 [+0.012,
+    +0.124] *, R3 - R2c +0.118 *, R3 - R2 +0.052 *, R2c - R2 -0.066 *, R3 180k - 60k +0.069 *; all seeds > 0; gain in A
+    (+0.036) and E-P (+0.029); % over 27% vs 56%. Waiting for x265 (gate pooled over both).
+    Aayush 11-14: report_r3.py relabelled (R2c = control: R3 setup, standard init; R3 - R2c = BC-start effect; R2c - R2
+    = cost of setup changes -0.066 *, incl. 20k frozen warm-up); x265 vs final4 + shift printed next to the gate;
+    signed spend error note. F drafted: exp_next/final/PREREG.md (branch A = R3 recipe k5 / B = R2 recipe no o[2]),
+    fresh seeds 3-5, 180k fixed (360k optional secondary in A). 36-hour fallback (Aayush, other session): if R3 is not
+    finished and read on val in time, run F with R2's recipe -- recorded in exp_next/final/PREREG.md. (Aayush 11-14: ignore it for now.)
+    x265: 5/6 done (~1h26 each); R3 s1 (restarted) at 104k at 10:30. Interim (per seed, no bootstrap): R3 s0 / s2 vs
+    final4 +0.213 / +0.164, vs final4 + shift +0.060 / +0.011, % over 13% / 25%; R2c s0-2 vs final4 +0.04..+0.06,
+    vs final4 + shift -0.10..-0.11.
+    Exp 6 gate DONE (exp_next/exp6/PREREG.md + gate.py -> results_v1/next/exp6/gate.md): FAIL +0.027 [-0.000, +0.050]
+    (x264 +0.000, x265 +0.054 *; oracle +0.109) -> stop, no bandit. EXPERIMENTS row added.
+    R3 cut breakdown x264 (exp_next/exp4/r3_cuts.py -> r3_cuts_x264.md; descriptive): stable +0.080 *; cut groups
+    small (early 4 / mid 35 / late 23 / no detected cut 24 episodes, few clips): mid -0.031 n.s., late -0.056 *;
+    R3 raises QP before the cut (+0.3..+1.0 vs stable -0.42) and lowers after (-0.2): saves for the cut, no gain.
+    Rerun with x265 when R3 s1 is done.
+    R3 ALL DONE 11-14 (x265 s1 1h27 after restart). r3_report.md: GATE PASS R3 - final4 pooled +0.128 [+0.050, +0.216]
+    (x264 +0.066 *, x265 +0.190 *); R3 - R2c +0.131 *; R3 - R2 +0.105 *; x265 R3 - (final4 + shift) +0.037 [-0.000,
+    +0.071]; 180k - 60k +0.056 *. Cuts (r3_cuts_x264_x265.md): stable +0.146 *, cut groups small / mixed. EXPERIMENTS
+    row added. -> F = BRANCH A (exp_next/final/PREREG.md). Next: F code (test splits, BC seeds 3-5), sbatch to Aayush.
+    Aayush 11-14: 360k as secondary. rl.py LR / entropy / clip constant -> one 360k run per seed, primary = checkpoint
+    --save-at 180993 (= end of a plain 180k run: 896 steps/update, warm-up ends 20,608, 180k run ends 180,992);
+    verified bit-identical on a scaled pair (test runs deleted). runs_v1/final_r3_s345.txt (seeds 3-5, val only).
+    F stage-1 sbatch (BC seeds 3-5 -> R3 array) awaiting OK.
+- [ ] 42. Exp 7 (Aayush 11-14: run it ourselves this weekend; freeze into exp_next/final/PREREG.md by Monday; F stage 1
+  first; --exclude d18-35 + flaky list on every sbatch). STEP 0 DONE (exp_next/exp7/STEP0.md, PROVENANCE.txt;
+  copies in exp_next/exp7/src_pavneet (eb08445), src_sara (1860557)): Pavneet clean (train / val); Sara's LOFO and
+  margin 0.96 tuned on test (flag); Sara has no checkpoints; ED/ToS are v1 test clips; no v1 clip >= 16 GOPs (val
+  chain: sita only); rule optimum on the qpd grid edge. Reported to Aayush; nothing launched for Exp 7.
+  Aayush 11-14: 16/32 rule retuning on train chains bbb + sintel (c), sita as descriptive val check (a), no spliced
+  tuning; widen qpd until interior, report rule 'as reported' and 'retuned'; Sara's PID-Lag: one retrain, her
+  defaults, enters val selection only if done by Sun 11-15 23:59, sanity check vs her description.
+  F stage 1 SUBMITTED (Aayush OK): BC x264 14245950 -> R3 14245951, BC x265 14245952 -> R3 14245953.
+  STEP 1 DONE: all 24 Pavneet policies + rule (rule_wide, baselines, L0/L2) reproduce exactly on val, both encoders
+  (results_v1/next/exp7/repro_<enc>.md, exp_next/exp7/repro.py). STEP 2 PREREG written (exp_next/exp7/PREREG.md).
+  PID-Lag: work copy /scratch1/aayushso/rcwork_exp7/<enc>_v1; exp_next/exp7/run_pid.py + pid_launch.py (her
+  train_pid.py byte-identical to 1860557, test eval skipped); smoke OK (ppo_pid + bc_ppo_pid). SUBMITTED (Aayush OK):
+  x264 14247200, x265 14247201. Rule retuning running locally (exp_next/exp7/rule_tune.py; 0.4 s per setting).
+  F stage 1: BC s3-5 done (x264 21 min, x265 10 min); x264 R3 360k done (42 min each, full 360k, ckpts 60000 /
+  180993 saved). x264 val R3 - final4 per seed (hole excl.): 180k +0.054 / +0.063 / +0.089 (mean +0.069; R3 was
+  +0.066), 360k +0.103 / +0.104 / +0.040 (secondary). x265 R3 running.
+  Rule retuning run 1 (results_v1/next/exp7/rule_{8,chain}_<enc>.md): retuned rule much stronger on val same-clip 8-GOP:
+  L2 x264 -0.623 -> -0.497, x265 -0.453 -> -0.294 (qpd 4.5-5.5, cw -> small). cw stopped at 0.0625 on the edge ->
+  v2 rerun with cw down to 1e-6 (natural 0+ limit; cw = 0 is 0/0 on GOP 1) running locally (rule_*_v2).
+  Candidates (stored val, same-clip, L2, seeds avg): x264 ppo -0.483, bc_ppo -0.469, bc_ppo_lag -0.490; x265 ppo
+  -0.373, bc_ppo -0.373 -> vs retuned rule (run 1): x264 +0.01..+0.03, x265 about -0.08 (rule tuned in-sample on
+  these val streams). Selection + Part 2 decision wait for v2 + PID-Lag.
+  PID-Lag retrain DONE (x264 17 min, x265 38 min; Sat, before the Sun deadline). Rule v2 8-GOP: x264 L2 (1.0, 5.0,
+  0.0625) -0.4995, x265 L2 (0.99, 4.5, 0.0625) -0.2937, interior. SELECTION (select_policy.py -> select_<enc>.md):
+  x264 bc_ppo, - retuned rule +0.030 [-0.127, +0.401] (ppo +0.017, bc_ppo_pid +0.013, ppo_pid -0.049) -> Part 2
+  ALLOWED (point > 0); x265 ppo (ppo = bc_ppo), - retuned rule -0.079 [-0.172, +0.077] -> Part 2 SKIPPED. vs rule as
+  reported: +0.15 / +0.08. PID sanity OK: > 1 % over 4.5-8.1 % vs rule as reported 7.7-12.9 % (0.6-0.8x).
+  Retuned rule lands closer (p90 |err| 7.4 / 5.4 %) but goes > 1 % over more (22 % / 10.5 %).
+  Part 2 (x264 only; Aayush approved design 11-14, k5 inside, no R3): exp_next/exp7/part2_prep.py (analysis env ->
+  part2_inputs_x264.pkl) + part2.py (rc env; controller_real.run_episode at B_g = controller's own predicted spend,
+  h=3 history from the stream's previous GOP, first GOP qhat = base_qp_est_k5 interpolated in log B). Checks: (a)
+  '+ constant QP' == Part 1 rows 144/144; (b) run_episode == stored final4 rows 3/3. Smoke: per-GOP |bits - B_g| mean
+  1.0 %, 14 s per stream episode. Full run (2016 stream episodes: rule + bc_ppo s0-2 x 504 cases) SUBMITTED (Aayush OK): 14249071.
+  Part 2 DONE (46 min; part2_x264.md, descriptive): score RL+CQP -0.469, RL+final4 +0.259, rule+CQP -0.500, rule+final4
+  +0.543. final4 inside adds +0.73 (RL) / +1.04 (rule) over constant-QP GOPs (wide CIs); RL+final4 - rule+final4
+  -0.284 [-0.534, -0.120]; rule+final4 lands best (signed -0.42 %, p90 1.86 %, 6.3 % over). Per-GOP |bits - B_g|:
+  mean 3.6 / 3.8 % (check NOT met), median 0.5 %, p90 9-10 %, max 133-366 % (tail).
+  F test-pass code (11-14/16): exp_next/final/eval_r3.py (val parity 48/48 both enc), shift_eval --split test,
+  exp_next/exp7/test_eval.py (val check exact), part2 test split (val checks 144/144, 3/3), abr_margin.py --margins/
+  --ks/--tag/--split test (smoke OK). Handoff dropped from the test pass (Aayush). ABR extension 0.90/0.93 on val
+  SUBMITTED 11-16 (Aayush OK): x264 14289185, x265 14289186 (Exp 10 PREREG extension written first).
+  ABR extension DONE (2.5 / 3 min): selected x264 0.90 (grid edge, -1.392 vs 0.93 -1.403), x265 0.93 (interior) ->
+  FROZEN in exp_next/final/PREREG.md; EXPERIMENTS Exp 10 row updated; pre-extension report kept as abr_margin_before_ext.md.
+  exp_next/final/report.py written; val dry run OK (results_v1/final/report_val.md; all stored scores = recomputed):
+  R3 180k - final4 x264 +0.068 [+0.005, +0.139] *, x265 +0.204 [+0.081, +0.346] *; x265 vs final4 + shift +0.051 *.
+  Part 2 test inputs prepared (part2_inputs_x264_test.pkl; inputs only).
+  TEST PASS SUBMITTED 11-16 (Aayush OK): R3 14289635 (x264) / 14289638 (x265); ABR 14289636 / 14289639; Exp 7
+  Part 1 14289637 / 14289640; shift x265 14289641; Part 2 x264 14289642. Then report.py --split test,
+  part2_report.py x264 test, EXPERIMENTS + tracker.
+  TEST RESULTS (results_v1/final/report_test.md): R3 - final4 x264 +0.066 [+0.022, +0.106] *, x265 +0.162 [+0.085,
+  +0.243] * -> PRIMARY PASS both; x265 vs final4 + shift +0.074 *; 360k n.s. Exp 7 primary NOT met (x264 -0.026,
+  x265 +0.050, CIs incl. 0). EXPERIMENTS row added. Part 2 x264 test DONE (54 min; part2_x264_test.md): rule + final4
+  +0.364 best, RL + final4 - rule + final4 -0.388 *, per-GOP check mean 2.6-3.0 % (not met). TEST PASS COMPLETE 11-16.
+  F stage 1 DONE: fresh seeds 3-5 val R3 - final4 at 180k: x264 +0.054/+0.063/+0.089 (mean +0.068), x265 +0.178/
+  +0.207/+0.227 (mean +0.204) -- replicate R3 (+0.066 / +0.190); 360k secondary +0.082 / +0.198; 60k +0.026 / +0.139.
+    PREREG_BC.md REVISION 1: R2's setup (R1 only if R2 clearly loses on the fold), BC obs = R3 obs, Gaussian PPO
+    with mean = BC net + mean[t], step-0 reproduction check vs the BC-only rung, bit cap only. Next in item 41: centred BC (GO) without o[2], o[5..8].
+  - [ ] Exp 4 R3, Exp 6 gate, Exp 7 (with Pavneet): not started;
+    every sbatch shown to Aayush first.
 - [ ] 32. PROPOSED (Aayush 11-11, not approved to run). BLOCK-LEVEL STATISTICS for the per-frame rate slope (gate).
   Idea (Aayush): texture/motion/noise at a finer level than the frame. Our action is ONE QP per frame (AQ off, forced
   QP), so finer features cannot say WHERE in a frame to spend; they can only improve the frame-level rate (and

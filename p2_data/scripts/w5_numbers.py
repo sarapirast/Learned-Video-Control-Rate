@@ -218,6 +218,47 @@ def main():
           "Test clips / GOPs after flat exclusion: " + ", ".join(
               f"{e} {w0[w0.split == 'test']['clip'].nunique()} clips / {w0[w0.split == 'test'].gid.nunique()} GOPs"
               for e, w0 in W.items()), ""]
+    # 5. level 42: the residual vs final4 per k (test and val), and why (QP-51 saturation, rate slope at high QP)
+    L += ["## 5. Level 42: residual RL vs final4, and the controller's high-QP rate model", ""]
+    rows = []
+    for e, w0 in W.items():
+        for split in ("test", "val"):
+            z0 = w0[(w0.split == split) & (w0.budget == 42)]
+            r = {"codec": e, "split": split, "pooled": ci(boot(z0["res@hist"] - z0.final4, z0["clip"]), "+.2f")}
+            for k in KS:
+                z = z0[z0.k == k]
+                r[f"k{k}"] = ci(boot(z["res@hist"] - z.final4, z["clip"]), "+.2f")
+            rows.append(r)
+    L += ["res@hist - final4 at budget level 42, paired:", "", pd.DataFrame(rows).to_markdown(index=False), ""]
+    import glob
+    rows = []
+    for e in W:
+        fs = sorted(glob.glob(f"{ROOT}/results_v1/controller_real/final4_{e}_test_*.parquet"))
+        c = pd.concat([pd.read_parquet(f, columns=["level_q0", "bits", "budget_bits", "qps"]) for f in fs])
+        c["over_pct"] = 100 * np.maximum(c.bits / c.budget_bits - 1, 0)
+        c["hit51"] = [max(q) >= 51 for q in c.qps]
+        for lv, g in c.groupby("level_q0"):
+            rows.append({"codec": e, "level": lv, "episodes hitting QP 51": g.hit51.mean(),
+                         "mean over% if hit": g[g.hit51].over_pct.mean(),
+                         "mean over% if not": g[~g.hit51].over_pct.mean()})
+    L += ["final4 (test) QP-51 saturation and overshoot by level:", "",
+          pd.DataFrame(rows).round(3).to_markdown(index=False), ""]
+    import json
+    rd = pd.read_parquet(f"{ROOT}/data/v1/320x180/rd/rd_native.parquet",
+                         columns=["encoder", "split", "clip_id", "gop", "qp", "slice_bits"])
+    Mj = json.load(open(f"{ROOT}/data/v1/320x180/rd/controller_model.json"))
+    rows = []
+    for e in W:
+        d = rd[(rd.encoder == e) & (rd.split == "train")].pivot_table(index=["clip_id", "gop"], columns="qp",
+                                                                      values="slice_bits")
+        lb = np.log2(d)
+        r = {"codec": e, "controller s_p": round(Mj[e]["s_p"], 2)}
+        for a, b in ((26, 30), (30, 34), (36, 40), (40, 44), (44, 47), (47, 50)):
+            r[f"QP {a}-{b}"] = float(np.median((b - a) / (lb[a] - lb[b])))
+        rows.append(r)
+    L += ["QP steps per halving of GOP bits on the constant-QP curves (train GOPs, median) vs the controller's single "
+          "slope s_p: the real curve flattens at high QP, so near QP 50 raising QP saves fewer bits than the controller "
+          "plans for.", "", pd.DataFrame(rows).round(2).to_markdown(index=False), ""]
     open(f"{OUT}/w5_numbers.md", "w").write("\n".join(L) + "\n")
     print("\n".join(L))
 

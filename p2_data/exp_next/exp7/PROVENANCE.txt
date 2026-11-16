@@ -1,0 +1,3 @@
+pavneet_handoff: commit eb08445394aea4e1097a5a8f2f68c5755d7aa3f4 (added to team repo main; main now 72e0b1d2d123fa82db65a6ef4ee0b7bb8ea81279)
+p4 (Sara): branch sara-p4 commit 1860557246e69ff66b9740f92e586bbec7b783d0
+Copied 2026-11-14 with git archive; originals untouched. Repo: github.com/sarapirast/Learned-Video-Control-Rate

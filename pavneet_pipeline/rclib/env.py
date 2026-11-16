@@ -9,23 +9,40 @@ per-GOP k), see `visible_len`. Feature groups can be switched off (zeroed) for a
 Each step is one real prefix encode of frames 0..t (prefix property verified in tools/codec_check.py); the last step's
 encode is decoded for PSNR. Reward is 0 until the end, then (score - STATIC score) / REWARD_SCALE, or a Lagrangian
 variant (saving - lambda * overshoot).
+
+Residual arm (RC_ARM=res, v1-data branch, P2 2026-11-09): frame t's QP = P2's causal controller QP (rclib/controller.py,
+fed the real bits and QPs of frames < t and the first pass of frames t..t+k) + the action's offset, clipped to
+QP_LO..QP_HI. The controller QP for the current frame is observation slot 15 ((q - 30) / 10; 'prior' must be off).
+The baseline subtracted in the reward is the controller's own result on that GOP x level x k (info["ctrl"]).
+
+lfq learners (RC_ARM=lfq with RC_ACT_RANGE set, config.LFQ_LEARN; P2 2026-11-10): frame t's QP =
+round(base + RAMP[t] + offset) clipped to QP_LO..QP_HI, base = the CAUSAL base-QP estimate for (level, k)
+(info["base"], P2 budgets.csv base_qp_est_k<k>), shown in observation slot 15 ((base - 30) / 10; 'prior' must be off).
+Under METRIC=dpsnr (rclib/metrics.py) the scores and rewards are in dB: 'relative' = score - base score,
+'lagrangian' = dPSNR_B - base dPSNR_B - lam x %over with lam in dB per 1% (rl.py: 0.34 = 2x the metric's 0.17);
+the base is the hindsight search's start plan (info["static"], tools/lfq_infos.py; reward offset only).
 """
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
 from . import codec, config as C, data, metrics
+if C.RES:
+    from . import controller as CTRL
 
 KMAX = C.GOP - 1
 F_FRAME = 11            # per-frame feature width (incl. 'visible' flag)
 F_GLOBAL = 16
 OBS_DIM = F_GLOBAL + F_FRAME * (1 + KMAX)
-REWARD_SCALE = 10.0
+# score points (% of bits) / 10; under METRIC=dpsnr the score is in dB, which is ~10-20x smaller, so no scaling
+REWARD_SCALE = 1.0 if metrics.METRIC == "dpsnr" else 10.0
 # optional extra global features appended after OBS_DIM (D23):
 #   fb   achieved PSNR (last, mean), bit-prediction error (last, mean), frames since the last cut, last-mean PSNR
 #   sum  fb + a summary of the visible window (mean/max/min cost, any cut, where it is, cost after vs before it)
 #        that replaces the raw lookahead slots (slot 0, the current frame, is kept)
-EXTRA = {"": 0, "fb": 6, "sum": 13}
+#   f4   (res arm only; P2 next-exp R2, 11-13) final4's state before frame t: planned QP, level, log2 of the plan's
+#        predicted spend over the remaining budget, log2 of calibrated c_P over its prior, frames left
+EXTRA = {"": 0, "fb": 6, "sum": 13, "f4": 5}
 STATIC_OFF = np.array(C.static_offsets(), float)
 
 # feature groups -> (global indices, per-frame indices). 'budget' state and position are never ablated.
@@ -34,7 +51,32 @@ GROUPS = {
     "fp": ([9, 13], [0]),
     "pixel": ([], [1, 2, 3, 4]),
     "scene": ([10, 11, 12], [5, 6, 7, 10]),
+    # P2 11-13: o[2] = (budget level != lowest level) is clip-level hindsight under v1's clip-mean budgets; eval-only
+    # ablation (exp_next/o2) and zeroed for BC / R3. Never part of a default.
+    "level": ([2], []),
 }
+
+
+def frame_qp(base, t, a):
+    """QP of frame t at offset index a around `base` (orig/dec/lf/res-free arms: base = the budget key, as before)."""
+    if C.LFQ_LEARN:
+        return int(np.clip(round(base + STATIC_OFF[t] + C.ACTIONS[a]), C.QP_LO, C.QP_HI))
+    return int(base + STATIC_OFF[t] + C.ACTIONS[a])
+
+
+def offsets_for(qps, base):
+    """lfq learners: offset indices that reproduce `qps` around `base`, or None if a frame needs an offset outside
+    +-RC_ACT_RANGE (or a clipped QP would differ)."""
+    acts = []
+    for t, q in enumerate(qps):
+        o = int(q) - int(round(base + STATIC_OFF[t]))
+        if o < C.ACTIONS[0] or o > C.ACTIONS[-1]:
+            return None
+        a = C.ACTIONS.index(o)
+        if frame_qp(base, t, a) != int(q):
+            return None
+        acts.append(a)
+    return np.array(acts, np.int64)
 
 
 def frame_table(info, b=None):
@@ -80,8 +122,16 @@ class RateEnv(gym.Env):
     metadata = {}
 
     def __init__(self, infos, gop_ids=None, budgets=C.BUDGET_QPS, k=5, mode="fixed", drop=(), seed=0,
-                 k_sampler=None, reward="relative", lam=0.0, prior=False, extra="", cut_weight=1.0):
+                 k_sampler=None, reward="relative", lam=0.0, prior=False, extra="", cut_weight=1.0, shape=0.0,
+                 o2_table=None, res_mean=None):
         super().__init__()
+        # P2 11-14 (Exp 4 R3): a fixed real-valued per-frame shift added to final4's real QP before its rounding
+        # (as Exp 5a's res_float), set at every reset; None = unchanged
+        self.res_mean = None if res_mean is None else np.asarray(res_mean, float)
+        # P2 11-13 (exp_next/o2, eval only): {(gid, level, k): value} replaces o[2] per episode (causal stand-in from
+        # final4's frame-0 planning QP); None = unchanged
+        self.o2_table, self.o2_value = o2_table, None
+        self.shape = float(shape)       # potential-based shaping weight (v1-data branch, P2 2026-11-09); 0 = off
         self.infos = infos
         self.ids = list(gop_ids or infos.keys())
         self.budgets = list(budgets)
@@ -105,6 +155,11 @@ class RateEnv(gym.Env):
         self.observation_space = spaces.Box(-10, 10, (self.dim,), np.float32)
         self.action_space = spaces.Discrete(len(C.ACTIONS))
         self._tables = {}
+        if C.RES:
+            assert not prior, "res arm: observation slot 15 holds the controller QP"
+            self.ctrl_model = CTRL.load_model(C.CODEC, C.CTRL_MODEL)
+        assert not (prior and C.LFQ_LEARN), "lfq learners: observation slot 15 holds the causal base QP"
+        assert extra != "f4" or C.RES, "extra f4 needs the res arm"
         self.forced = None              # (gop_id, budget) for evaluation
         self.k_seen = []
 
@@ -131,12 +186,72 @@ class RateEnv(gym.Env):
             self._tables[key] = frame_table(self.info, self.b)
         self.T = self._tables[key]
         self.budget = self.info["budget"][self.b]
+        self.base = float(self.info["base"][(self.b, self.k_ep)]) if C.LFQ_LEARN else self.b
+        if C.RES:   # history controllers (tracker 31): the qhat / rate-prior scale the controller used on this GOP
+            r = self.info.get("ctrl_r", {}).get((self.b, self.k_ep), 1.0)
+            self.ctrl_M = self.ctrl_model if r == 1.0 else dict(self.ctrl_model, c_i=self.ctrl_model["c_i"] * r,
+                                                                c_p=self.ctrl_model["c_p"] * r)
+            self.ctrl_qhat = self.info.get("ctrl_qhat", self.info.get("base", {})).get((self.b, self.k_ep))
         self.cut = self.info["an"]["cut"]
         self.path = data.gop_path(self.info["gop"])
         self.t, self.qps, self.acts, self.bits, self.psnr = 0, [], [], [], []
-        self.k_seen = []
+        self.k_seen, self.ctrl_qps = [], []
+        self.o2_value = None if self.o2_table is None else float(self.o2_table[(self.gid, self.b, self.k_ep)])
+        if self.res_mean is not None:
+            self.res_float = self.res_mean
+        self.n_dmax = self.n_fcap = self.n_range = 0
         self.q_override, self.n_shield = None, 0     # set by policies.Shield (eval only, v1-data branch)
+        if self.shape:
+            self.phi0, self.phi_prev, self.shaping_sum = self._phi_raw(), 0.0, 0.0
         return self._obs(), {}
+
+    # -- potential-based reward shaping (v1-data branch, P2 2026-11-09)
+    # Phi(s_t) = -pen x predicted overshoot % / REWARD_SCALE, pen = lam (lagrangian) or the score's 2 per 1% (relative).
+    # Prediction: bits spent so far + the remaining frames at the default plan (offset 0), taken from the real encode
+    # of the default plan (info["static"][b]["bits"], so Phi(s_0) is exact), scaled by a calibration = actual / predicted
+    # bits of the frames already coded, where a frame coded at offset a is predicted as its default-plan bits x
+    # 2^(-a / s) (s = 6.8 I / 5.0 P QP per halving, the train-fitted slopes of the budget shield), shrunk toward 1 with
+    # weight t / (t + 3). Infos without a default-plan encode (lf arm) fall back to the constant-QP per-frame table.
+    # The reward uses this hindsight data, never the observation. Phi is measured relative to the episode's start and
+    # Phi(terminal) = 0, so the shaping terms of an episode sum to exactly 0: the return, and the optimal policy, are
+    # unchanged; only the per-step credit assignment changes (Ng et al. 1999).
+    SLOPE_I, SLOPE_P = 6.8, 5.0
+
+    def _default_bits(self):
+        st = self.info.get("static", {}).get(self.b)
+        if st is not None and "bits" in st:
+            return np.asarray(st["bits"], float)
+        fb = self.info["curve"]["frame_bits"]
+        out = []
+        for j in range(C.GOP):
+            q = int(self.b + STATIC_OFF[j])
+            qc = int(np.clip(q, C.QPS[0], C.QPS[-1]))
+            out.append(float(fb[C.QPS.index(qc), j]) * 2.0 ** (-(q - qc) / 6.0))
+        return np.asarray(out)
+
+    def _phi_raw(self):
+        if getattr(self, "_db_key", None) != (self.gid, self.b):
+            self._db, self._db_key = self._default_bits(), (self.gid, self.b)
+        db = self._db
+        t = len(self.bits)
+        spent = float(sum(self.bits))
+        if t:
+            pred_done = sum(db[j] * 2.0 ** (-C.ACTIONS[self.acts[j]] / (self.SLOPE_I if j == 0 else self.SLOPE_P))
+                            for j in range(t))
+            cal = float(np.exp(t / (t + 3.0) * np.log(max(spent, 8.0) / max(pred_done, 8.0))))
+        else:
+            cal = 1.0
+        over = 100.0 * max(0.0, (spent + cal * float(db[t:].sum())) / self.budget - 1.0)
+        pen = self.lam if self.reward_kind == "lagrangian" else (
+            metrics.OVER_PENALTY_DB if metrics.METRIC == "dpsnr" else metrics.OVER_PENALTY)
+        return -pen * over / REWARD_SCALE
+
+    def _shaping(self, last):
+        phi = 0.0 if last else self._phi_raw() - self.phi0
+        f = self.shape * (phi - self.phi_prev)
+        self.phi_prev = phi
+        self.shaping_sum += f
+        return f
 
     # -- observation
     def _obs(self):
@@ -151,7 +266,7 @@ class RateEnv(gym.Env):
         per_frame = self.budget / C.GOP
         o[0] = t / KMAX
         o[1] = rest / C.GOP
-        o[2] = float(self.b != C.BUDGET_QPS[0])
+        o[2] = float(self.b != C.BUDGET_QPS[0]) if self.o2_value is None else self.o2_value
         o[3] = spent / self.budget
         o[4] = np.log2(max(self.budget - spent, 1.0) / (rest * per_frame)) / 2
         if t > 0:
@@ -170,6 +285,13 @@ class RateEnv(gym.Env):
         o[13] = np.log2(fp[win].mean() / per_frame) / 4
         o[14] = v / KMAX
         o[15] = self._prior(t) if self.prior else 0.0
+        if C.LFQ_LEARN:     # the causal base QP the offsets are relative to
+            o[15] = (self.base - 30) / 10
+        if C.RES:       # the controller's causal QP for frame t (same inputs it gets when run on its own)
+            self.ctrl_diag = {}
+            self.q_ctrl = CTRL.decide(t, self.bits, self.qps, fp, self.budget, self.k_ep, self.ctrl_M,
+                                      *C.CTRL_SETTING, qhat=self.ctrl_qhat, diag=self.ctrl_diag)
+            o[15] = (self.q_ctrl - 30) / 10
         # frames: slot 0 = current frame, slots 1..v = lookahead
         scene_now = self.info["an"]["scene"][t]
         for s in range(v + 1):
@@ -186,6 +308,14 @@ class RateEnv(gym.Env):
 
     def _extra(self, o, t, v, fp):
         e = o[OBS_DIM:]
+        if self.extra == "f4":
+            d = self.ctrl_diag
+            e[0] = (self.q_ctrl - 30) / 10
+            e[1] = (d["level"] - 30) / 10
+            e[2] = np.log2(max(d["plan_ratio"], 1e-3)) / 2
+            e[3] = np.log2(max(d["c_p"], 1e-6) / self.ctrl_M["c_p"]) / 2
+            e[4] = (C.GOP - t) / C.GOP
+            return
         if t > 0:
             ps = np.asarray(self.psnr[:t], float)
             q = np.asarray(self.qps[:t], float)
@@ -219,37 +349,75 @@ class RateEnv(gym.Env):
     def step(self, a):
         a = int(a)
         t = self.t
-        q = int(self.b + STATIC_OFF[t] + C.ACTIONS[a])
+        if C.RES:
+            self.ctrl_qps.append(int(self.q_ctrl))
+            q = int(np.clip(self.q_ctrl + C.ACTIONS[a], C.QP_LO, C.QP_HI))
+            if getattr(self, "res_float", None) is not None:   # Exp 5a: real-valued offset before final4's rounding
+                q = int(np.clip(round(self.ctrl_diag["q_real"] + float(self.res_float[t])) + C.ACTIONS[a],
+                                C.QP_LO, C.QP_HI))
+            if C.RES_RECAP and t > 0:     # decide()'s own limits again, in its order (cut boost b is 0 in the env)
+                d = self.ctrl_diag
+                if d["rem"] <= 0:
+                    q = C.QP_HI
+                else:
+                    q = max(q, int(d["q_fcap_min"]))
+                    if C.RES_RECAP == "full":
+                        if C.CTRL_SETTING[4] < 51:
+                            q = int(np.clip(q, d["ref"] - C.CTRL_SETTING[4], d["ref"] + C.CTRL_SETTING[4]))
+                        q = max(q, self.qps[0] + C.CTRL_SETTING[7])
+                    q = int(np.clip(q, C.QP_LO, C.QP_HI))
+        else:
+            q = frame_qp(self.base, t, a)
         if getattr(self, "q_override", None) is not None:      # budget shield forced a QP outside the action range
             q, self.q_override = int(self.q_override), None
         self.qps.append(q)
         self.acts.append(a)
         last = t == C.GOP - 1
-        r = codec.encode(self.path, self.qps, measure=last or bool(self.extra))
+        if C.RES:   # how often the offset takes the QP past final4's own limits (caps are not re-applied)
+            d = self.ctrl_diag
+            dmax = C.CTRL_SETTING[4]
+            ref = d.get("ref")      # None at frame 0 (no step limit or fcap there)
+            self.n_dmax += int(ref is not None and abs(q - ref) > dmax and abs(q - ref) > abs(self.q_ctrl - ref))
+            self.n_fcap += int(ref is not None and q < d["q_fcap_min"] and q < self.q_ctrl)
+            self.n_range += int(self.q_ctrl + C.ACTIONS[a] != q)
+        r = codec.encode(self.path, self.qps, measure=last or self.extra in ("fb", "sum"))
         self.bits = [int(x) for x in r["bits"]]
-        if self.extra:
+        if self.extra in ("fb", "sum"):
             self.psnr = [float(x) for x in r["psnr"]]
         self.t += 1
+        f = self._shaping(last) if self.shape else 0.0
         if not last:
-            return self._obs(), 0.0, False, False, {}
+            return self._obs(), f, False, False, {}
         res = self.result(r)
-        return np.zeros(self.dim, np.float32), res["reward"], True, False, res
+        if self.shape:
+            res["shaping_sum"] = self.shaping_sum      # must be ~0 (telescoping check)
+        return np.zeros(self.dim, np.float32), res["reward"] + f, True, False, res
 
     def result(self, r):
-        curve, st = self.info["curve"], self.info["static"][self.b]
+        curve = self.info["curve"]
+        st = self.info["ctrl"][(self.b, self.k_ep)] if C.RES else self.info["static"].get(self.b)
+        if st is None:          # lfq smoke builds without a search start for this split (tools/lfq_infos.py)
+            st = {"score": np.nan, "dpsnr": np.nan, "saving": np.nan}
         sav = float(metrics.saving(r["total_bits"], r["mean_psnr"], curve))
         over = float(metrics.overshoot(r["total_bits"], self.budget))
-        score = sav - metrics.OVER_PENALTY * over
+        dq = float(metrics.dpsnr_budget(r["mean_psnr"], curve, self.budget))
+        score = float(metrics.score(r["total_bits"], r["mean_psnr"], curve, self.budget))
+        # Lagrangian: the metric's quality term (saving, or dPSNR_B) minus lam x %over, relative to the base plan
+        qual, qual_b = (dq, st.get("dpsnr")) if metrics.METRIC == "dpsnr" else (sav, st.get("saving"))
         if self.reward_kind == "relative":
             rew = (score - st["score"]) / REWARD_SCALE
         elif self.reward_kind == "lagrangian":
-            rew = (sav - st["saving"] - self.lam * over) / REWARD_SCALE
+            rew = (qual - qual_b - self.lam * over) / REWARD_SCALE
         else:
             raise ValueError(self.reward_kind)
         return {"gid": self.gid, "budget": self.b, "bits": r["total_bits"], "psnr": r["mean_psnr"], "saving": sav,
                 "over_pct": over, "over": r["total_bits"] > self.budget, "score": score, "reward": rew,
+                "dpsnr_b": dq, "score_old": sav - metrics.OVER_PENALTY * over, "use": r["total_bits"] / self.budget,
+                **({"base_q": self.base} if C.LFQ_LEARN else {}),
                 "static_score": st["score"], "qps": list(self.qps), "frame_bits": [int(x) for x in r["bits"]],
-                "frames_seen": float(np.mean(self.k_seen)), "shield_fires": int(getattr(self, "n_shield", 0))}
+                "frames_seen": float(np.mean(self.k_seen)), "shield_fires": int(getattr(self, "n_shield", 0)),
+                **({"ctrl_qps": list(self.ctrl_qps), "k": self.k_ep, "n_beyond_dmax": self.n_dmax,
+                    "n_beyond_fcap": self.n_fcap, "n_clip_range": self.n_range} if C.RES else {})}
 
 
 # ---------------------------------------------------------------- offline trajectories
@@ -262,7 +430,7 @@ def plan_observations(info, budget, acts, bits, k=5, mode="fixed", drop=(), prio
     for t in range(C.GOP - 1):
         env.t = t + 1
         env.acts = list(acts[:t + 1])
-        env.qps = [int(budget + STATIC_OFF[j] + C.ACTIONS[acts[j]]) for j in range(t + 1)]
+        env.qps = [frame_qp(env.base, j, acts[j]) for j in range(t + 1)]
         env.bits = [int(x) for x in bits[:t + 1]]
         if extra:
             env.psnr = [float(x) for x in fpsnr[:t + 1]]

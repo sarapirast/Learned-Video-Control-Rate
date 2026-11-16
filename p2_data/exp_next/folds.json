@@ -1,0 +1,32 @@
+{
+ "train_select_clips": [
+  "Gaming_360P-3eb6",
+  "Sports_360P-1d5c",
+  "controlled_burn",
+  "Gaming_480P-14fc",
+  "HoneyBee",
+  "HowTo_360P-1dba",
+  "Vlog_360P-1e5b",
+  "tractor"
+ ],
+ "groups": [
+  "ugc:Daniel Navarro",
+  "ugc:MADONARPTV",
+  "controlled_burn",
+  "ugc:WOT TSS and more",
+  "uvg_honeybee",
+  "ugc:James alex",
+  "ugc:Life with the Kogers",
+  "tractor"
+ ],
+ "gops": 75,
+ "cut_gops": 5,
+ "rule": [
+  "Rule (written before use): 8 TRAIN clips, each from a single-clip source group (so no source group is split between",
+  "the fold and the rest of train, like the train/val/test split), excluding spliced clips and clips whose GOPs are",
+  "all flat; stratified: 3 clips with at least one natural cut GOP, 5 without. Drawn with numpy default_rng(20261113)",
+  "from the sorted candidate lists. Refuses to overwrite an existing folds.json."
+ ],
+ "created": "2026-11-13",
+ "seed": 20261113
+}

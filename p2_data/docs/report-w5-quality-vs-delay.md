@@ -50,6 +50,13 @@ Findings:
    residual RL, which starts from the controller, ends below it at every k (-0.05 to -0.20 dB, all CIs below 0 on
    x264; x265 k29 -0.03 n.s.) [N H5].
 
+5a. **Against the encoders' own rate control, every single-pass method here wins clearly.** x264/x265 1-pass ABR
+   with VBV sized to the GOP budget and --rc-lookahead k scores -1.52 to -1.65 dB (x264) and -1.16 to -1.25 dB
+   (x265) at every k, over budget on 50-86% (x264) / 49-92% (x265) of GOPs. final4 beats it by +1.29 to +1.48 dB
+   (x264) and +0.82 to +0.99 dB (x265), the residual RL by +0.70 to +1.43 dB, and BC on the prev-GOP base from k2
+   (x264) / k5 (x265) on, all CIs above 0 (rescored from the week-2 encodes, no new encodes)
+   [`results_v1/w5/abr_dpsnr.md`, `scripts/abr_dpsnr.py`]. ABR+VBV does not improve with lookahead.
+
 ## Figure 2: stable vs cut GOPs
 
 `results_v1/figures/w5_quality_vs_delay_by_class.png`
@@ -67,6 +74,28 @@ Findings:
    frames) is below fixed k5 by 0.02 dB (x264) / 0.05 dB (x265), CIs below 0, because stable GOPs also gain from
    k2 to k5 [N section 3]. (Hindsight bound from stored runs; a real gate needs new encodes.)
 
+## Where a learner does beat the baseline: lowest rate on x265
+
+9. **At budget level 42 on x265, residual RL on final4 beats final4**: +0.15 [+0.03, +0.30] dB on test and
+   +0.16 [+0.02, +0.33] on val, largest at k0 (+0.27 test, +0.22 val) [N section 5]. It is the only learner result
+   above the controller with a CI excluding 0 on both splits. x264 shows no such gain (-0.02 test, -0.00 val).
+10. **Likely reason: the controller's rate model is wrong near QP 50.** It assumes one slope (bits halve every 5.04
+    QP on x265, 5.49 on x264); the constant-QP curves flatten at high QP (5.8 / 6.4 QP per halving at QP 47-50), so
+    near the cap raising QP saves fewer bits than planned. At level 42 final4 reaches QP 51 in 38% (x265) / 35%
+    (x264) of episodes and those end 4.9% / 6.9% over budget, vs 0.7% / 0.4% otherwise [N section 5]. A residual
+    trained on real encodes can learn to correct such a systematic error, which a hand-built rule cannot see; this is
+    an explanation consistent with the data, not a tested mechanism, and it does not explain why the x264 residual,
+    facing the same saturation, does not gain.
+
+## Baseline choice
+
+The causal controller with previous-GOP history (final4, setting 1.0:6:1.0:2:3:4:1:1:1:0:3) is the frozen
+classical baseline (decided 2026-11-11). It is not an industry encoder's rate control: x264/x265 ABR+VBV were run in
+week 2 and are far worse under a hard per-GOP budget (tracker W2; `results_v1/baselines_v1_table.md`: -26 to -35 points on the old score, over budget on 47-91% of GOPs). It stands for what a competent
+non-learned design reaches: a train-fitted rate model, online calibration, lookahead and the previous GOP's outcome,
+tuned on val. It is not tuned further (for example, its high-QP slope is left as is), so that the learned methods are
+compared against a fixed, fair reference rather than one improved until they lose.
+
 ## Pre-registered hypotheses (docs/w4-hypotheses.md, written 11-09 before the runs)
 
 | # | Prediction (short) | Outcome |
@@ -78,7 +107,7 @@ Findings:
 | H5 | residual beats its controller at every k | falsified: below at every k |
 | H6 | residual gains from lookahead | supported: +0.29-0.36 dB, more than predicted |
 | H7 | x265 gains more from lookahead than x264 | not supported: equal for the controller |
-| H8 | residual's deficit largest at level 24 | mostly supported; new: x265 level 42 residual > final4 (+0.15 [+0.03, +0.30]) |
+| H8 | residual's deficit largest at level 24 | mostly supported; new: x265 level 42 residual > final4 (findings 9-10) |
 | gate | k2/k5 adaptive gate matches fixed k5 | falsified: -0.02 / -0.05 dB |
 
 ## Caveats
@@ -89,5 +118,5 @@ Findings:
 - Class (stable / cut) is a hindsight label from the cut detector; the gate bounds use it, a deployed gate could not.
 - Lagrangian PPO at lam 0.17 has the same reward as CQL->PPO's default under this metric (differs only by a
   per-episode constant), so it is not a separate method; it is left out of the figures.
-- The x265 level-42 residual win is one of 8 level cells and pooled over k; check it per k before reporting it as a
-  result.
+- The x265 level-42 residual win was found after the fact (one of 8 level cells); it holds per k at k0/k2/k29 on
+  test and is reproduced on val (pooled and k0), which is why it is reported, but it was not a pre-registered test.

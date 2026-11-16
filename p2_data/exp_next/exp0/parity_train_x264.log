@@ -1,0 +1,21 @@
+  10:05:32 parity 2/40  9s elapsed, ~178s left
+  10:05:32 parity 4/40  10s elapsed, ~90s left
+  10:05:33 parity 6/40  11s elapsed, ~61s left
+  10:05:34 parity 8/40  11s elapsed, ~45s left
+  10:05:35 parity 10/40  13s elapsed, ~39s left
+  10:05:36 parity 12/40  14s elapsed, ~33s left
+  10:05:37 parity 14/40  15s elapsed, ~27s left
+  10:05:38 parity 16/40  15s elapsed, ~23s left
+  10:05:41 parity 18/40  19s elapsed, ~23s left
+  10:05:44 parity 20/40  21s elapsed, ~21s left
+  10:05:45 parity 22/40  23s elapsed, ~19s left
+  10:05:46 parity 24/40  24s elapsed, ~16s left
+  10:05:49 parity 26/40  27s elapsed, ~14s left
+  10:05:51 parity 28/40  28s elapsed, ~12s left
+  10:05:52 parity 30/40  30s elapsed, ~10s left
+  10:05:53 parity 32/40  30s elapsed, ~8s left
+  10:05:56 parity 34/40  33s elapsed, ~6s left
+  10:05:58 parity 36/40  35s elapsed, ~4s left
+  10:06:00 parity 38/40  37s elapsed, ~2s left
+  10:06:01 parity 40/40  39s elapsed, ~0s left
+40/40 episodes replay the controller exactly; max |d score| 0.00e+00; reward (should be ~ -lam*over/10 only) mean 0.0000

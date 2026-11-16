@@ -7,7 +7,9 @@ X264_BIN=$(dirname "$(command -v x264)")      # the module's x264, captured befo
 export PATH=$X264_BIN:${RC_X265_BIN:-/scratch1/aayushso/envs/codecs/bin}:/scratch1/aayushso/envs/rc/bin:$PATH
 case ${RC_CODEC:-x265} in
   x264) x264 --version 2>&1 | grep -q '0.165.' || { echo "wrong x264 on $(hostname): $(command -v x264): $(x264 --version 2>&1 | head -2)"; return 1 2>/dev/null || exit 1; } ;;
-  x265) x265 --version 2>&1 | grep -q 'version 4.1' || { echo "wrong x265 on $(hostname): $(command -v x265): $(x265 --version 2>&1 | head -2)"; return 1 2>/dev/null || exit 1; } ;;
+  # read the whole output first: with pipefail, 'x265 --version | grep -q' fails at random when grep exits before
+  # x265's 2nd/3rd stderr write (SIGPIPE) -- the "x265 version guard failed after 1 s" nodes (P2 11-12)
+  x265) grep -q 'version 4.1' <<< "$(x265 --version 2>&1)" || { echo "wrong x265 on $(hostname): $(command -v x265): $(x265 --version 2>&1 | head -2)"; return 1 2>/dev/null || exit 1; } ;;
 esac
 export PYTHONNOUSERSITE=1 PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
 export RC_CODEC=${RC_CODEC:-x265}

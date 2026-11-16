@@ -15,7 +15,7 @@ import numpy as np
 
 from . import config as C
 
-PRESET = os.environ.get("RC_PRESET", "fast")
+PRESET = os.environ.get("RC_PRESET", "medium" if C.LF else "fast")   # lf: P1 frozen settings
 FPS = 30
 TIMEOUT, RETRIES = 120, 3
 
@@ -31,9 +31,16 @@ FORCED_ARGS = {
     "x265": ["--aq-mode", "0", "--no-cutree"],
     "x264": ["--aq-mode", "0", "--no-mbtree"],
 }
+if C.LF:   # P1 frozen settings (docs/Ahhana_update.txt): psy off as well
+    COMMON["x264"] += ["--no-psy"]
+    COMMON["x265"] += ["--psy-rd", "0", "--psy-rdoq", "0"]
+
+
 # rate-control mode that carries the qpfile: x264 ignores qpfile QPs under --qp but obeys them exactly under --crf
 # (with AQ and mb-tree off); x265 obeys them under --qp. Verified by tools/codec_check.py (L3 in docs/LEARNINGS.md).
 def _carrier(codec, q):
+    if C.LF:   # P1's forced-QP method (x264: what P1's env does, so plans replay bit-identically there)
+        return ["--qp", "31", "--ipratio", "10", "--pbratio", "10"] if codec == "x264" else ["--qp", "31"]
     return ["--qp", str(q)] if codec == "x265" else ["--crf", str(q)]
 
 
@@ -97,7 +104,7 @@ def frame_bits(buf, codec):
             if vcl:
                 first = _h264_first_mb_is_zero(b, hdr + 1)
         if params:
-            pending += ln
+            pending += 0 if C.LF else ln     # lf: slice (picture) bits only, as in P2's budgets (agreed with P1)
         elif vcl:
             if first or not out:
                 out.append(pending + ln)

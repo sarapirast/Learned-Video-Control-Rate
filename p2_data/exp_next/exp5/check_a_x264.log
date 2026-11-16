@@ -1,0 +1,21 @@
+spliced_04@240 30 k0 QPs reproduced 30/30 bits identical
+NewsClip_360P-0ff8@150 30 k0 QPs reproduced 2/30 bits differ
+LyricVideo_720P-59ed@0 24 k0 QPs reproduced 30/30 bits identical
+spliced_06@270 36 k5 QPs reproduced 30/30 bits identical
+bbb_s02@180 36 k0 QPs reproduced 30/30 bits identical
+in_to_tree@120 36 k5 QPs reproduced 30/30 bits identical
+bbb_s05@270 30 k0 QPs reproduced 30/30 bits identical
+touchdown_pass@0 42 k5 QPs reproduced 30/30 bits identical
+old_town_cross@120 42 k0 QPs reproduced 30/30 bits identical
+pedestrian_area@240 36 k5 QPs reproduced 30/30 bits identical
+HowTo_360P-6a0e@90 36 k5 QPs reproduced 30/30 bits identical
+sintel_s04@90 36 k5 QPs reproduced 30/30 bits identical
+pedestrian_area@0 30 k5 QPs reproduced 30/30 bits identical
+Animation_360P-4edc@60 24 k5 QPs reproduced 30/30 bits identical
+bbb_s04@30 36 k5 QPs reproduced 30/30 bits identical
+CoverSong_360P-5a24@150 36 k0 QPs reproduced 30/30 bits identical
+speed_bag@0 30 k0 QPs reproduced 30/30 bits identical
+bbb_s02@210 30 k5 QPs reproduced 30/30 bits identical
+sintel_s01@120 42 k0 QPs reproduced 5/30 bits differ
+Bosphorus@0 42 k5 QPs reproduced 30/30 bits identical
+check (a) x264: 547/600 frames reproduced (91.2%; need >= 95%); mismatches from label clipping 2; plans with identical bits 18/20

@@ -16,9 +16,18 @@ LOG_CAP = {"top": 24, "random": 24}      # plans kept per (GOP, budget) from the
 
 def slim(info):
     """The parts of an infos entry the env needs (keeps subprocess pickles small)."""
-    return {"gop": info["gop"], "fp_bits": info["fp_bits"], "an": info["an"], "budget": info["budget"],
-            "curve": {"bits": info["curve"]["bits"], "psnr": info["curve"]["psnr"]},
-            "static": {b: {k: v for k, v in s.items() if k != "psnr"} for b, s in info["static"].items()}}
+    out = {"gop": info["gop"], "fp_bits": info["fp_bits"], "an": info["an"], "budget": info["budget"],
+           "curve": {"bits": info["curve"]["bits"], "psnr": info["curve"]["psnr"]}}
+    if "static" in info:        # lf/res arms have no STATIC plan (v1-data branch)
+        out["static"] = {b: {k: v for k, v in s.items() if k != "psnr"} for b, s in info["static"].items()}
+    if "ctrl" in info:          # res arm: the controller's own result per (level, k), the reward baseline
+        out["ctrl"] = info["ctrl"]
+    if "base" in info:          # lfq learners: causal base QP per (level, k)
+        out["base"] = info["base"]
+    for key in ("ctrl_qhat", "ctrl_r"):   # res arm, history controller (tracker 31 C2; P2 11-11: were dropped here,
+        if key in info:                   # so the C2 runs 14008008/14008023 used the no-history controller)
+            out[key] = info[key]
+    return out
 
 
 def select_plans(entry, rng, cap=LOG_CAP):
@@ -40,6 +49,22 @@ def trajectories(args):
     O, A, R, D, best = [], [], [], [], []
     for b, entry in sr.items():
         plans = select_plans(entry, rng, cap)
+        if C.LFQ_LEARN:
+            # lfq learners (tracker 30d): the search's plans are offsets around the HINDSIGHT base q (entry["base_q"],
+            # its own +-5 action set entry["actions"]); re-express each as offsets around the causal base for (b, k).
+            # Plans that need an offset outside +-RC_ACT_RANGE are dropped (their logged outcome would not be what the
+            # env produces), so every kept transition is exact.
+            base = float(info["base"][(b, k)])
+            sa = np.asarray(entry["actions"])
+            kept = []
+            for p in plans:
+                qps = np.clip(np.round(entry["base_q"] + E.STATIC_OFF + sa[p["acts"]]), C.QP_LO, C.QP_HI)
+                acts = E.offsets_for(qps, base)
+                if acts is not None:
+                    kept.append({**p, "acts": acts})
+            plans = kept
+            if not plans:
+                continue
         smax = max(p["score"] for p in plans)
         for p in plans:
             obs = E.plan_observations(info, b, p["acts"], p["bits"], k=k, mode=mode, drop=drop, prior=prior,
@@ -53,13 +78,27 @@ def trajectories(args):
             R.append(r)
             D.append(d)
             best.append(np.full(C.GOP, p["score"] >= smax - 1e-9))
+    if not O:                   # lfq: every plan of this GOP needed offsets outside the range
+        return None
     return np.stack(O), np.stack(A), np.stack(R), np.stack(D), np.stack(best)
+
+
+def trajectories_best(args):
+    """trajectories() keeping only the best plans per (GOP, budget): all that BC (train_bc best_only) trains on.
+    Same targets as the full version (smax is over the same selected plans; the top plans always include the max).
+    Used for BC pooled over k (rl.py --train-ks; tracker 36 day 2), which ran out of memory at 48G with every plan."""
+    p = trajectories(args)
+    if p is None:
+        return None
+    keep = p[4][:, 0]
+    return tuple(x[keep] for x in p)
 
 
 class Dataset:
     """Transitions flattened over (plan, t); next obs = obs[t+1] within the plan."""
 
     def __init__(self, parts):
+        parts = [p for p in parts if p is not None]
         O = np.concatenate([p[0] for p in parts])        # (P, 30, D)
         A = np.concatenate([p[1] for p in parts])
         R = np.concatenate([p[2] for p in parts])
@@ -95,10 +134,11 @@ def mlp(i, o, h=(256, 256)):
     return nn.Sequential(*layers)
 
 
-def train_bc(ds, steps=20000, lr=3e-4, seed=0, best_only=True):
+def train_bc(ds, steps=20000, lr=3e-4, seed=0, best_only=True, net=None):
+    """net: an untrained network to fit (default: the 2 x 256 MLP; P2 tracker 36 passes rclib.nets.FrameSetNet)."""
     torch.manual_seed(seed)
     gen = torch.Generator().manual_seed(seed)
-    net = mlp(ds.obs.shape[1], NA)
+    net = mlp(ds.obs.shape[1], NA) if net is None else net
     opt = torch.optim.Adam(net.parameters(), lr)
     for i in range(steps):
         o, a, *_ = ds.batch(512, gen, best_only)
