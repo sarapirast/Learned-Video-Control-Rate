@@ -158,7 +158,8 @@ def main():
     if a.res_mean:
         assert C.RES and a.method == "res" and a.mode == "fixed"
         import json
-        sm = json.load(open("/scratch1/aayushso/ee599/results_v1/next/exp5/shifts_smooth.json"))
+        sm = json.load(open(os.environ.get("RC_SHIFTS",       # P1: RC_SHIFTS = a copy with more k (default unchanged)
+                                           "/scratch1/aayushso/ee599/results_v1/next/exp5/shifts_smooth.json")))
         envkw["res_mean"] = sm[f"{C.CODEC}|{k_train}|{a.res_mean}"]
         log(f"res_mean ({a.res_mean}): {np.round(envkw['res_mean'], 2).tolist()}")
     rl_dir = os.path.dirname(out)
