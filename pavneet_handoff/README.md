@@ -5,7 +5,8 @@
 > (full detail: data, environment, baselines, how the RL works, results D38–D42). D43 (privileged critic, throughput
 > predictor, real-encoder check of il_ppo) is in `repo/docs/JOURNAL.md` and `repo/docs/DECISIONS.md`. Code:
 > `repo/rclib/bufenv.py`, `repo/experiments/buffer_rl*.py`, `buffer_oracle.py`, `buffer_real.py`; reports:
-> `repo/results/v1_buffer/<codec>/`. Uses dataset v1. Trained models and the LTE traces are not included.
+> `repo/results/v1_buffer/<codec>/`. Uses dataset v1. **To replicate:** `live_stream_artifacts/README.md` (v1 per-frame
+> curves and budgets, the LTE throughput traces, all trained models and per-case results, and step-by-step commands).
 
 This folder is for a new Claude session (or a person) picking up the project. Read this file first, then
 `RESULTS_AND_INTERPRETATION.md`, then `NEXT_STEPS.md`.
