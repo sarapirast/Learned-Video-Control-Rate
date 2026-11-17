@@ -1,0 +1,3 @@
+--k 5 --method res --seed 3 --ppo-steps 180000 --lam 0.17 --extra f4 --drop level --res-mean pooled --warmup 20000 --save-at 20000,60000,120000 --eval-splits val --init-bc /scratch1/aayushso/ee599/results_v1/next/exp5/bc/bc_{enc}_k{k}_s{seed}.pt
+--k 0 --method res --seed 3 --ppo-steps 180000 --lam 0.17 --extra f4 --drop level --res-mean pooled --warmup 20000 --save-at 20000,60000,120000 --eval-splits val --init-bc /scratch1/ahhanagu/ee599/results/r3_kcurve/exp5/bc/bc_{enc}_k{k}_s{seed}.pt
+--k 29 --method res --seed 3 --ppo-steps 180000 --lam 0.17 --extra f4 --drop level --res-mean pooled --warmup 20000 --save-at 20000,60000,120000 --eval-splits val --init-bc /scratch1/ahhanagu/ee599/results/r3_kcurve/exp5/bc/bc_{enc}_k{k}_s{seed}.pt
