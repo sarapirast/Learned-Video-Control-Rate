@@ -32,14 +32,30 @@ KS = (0, 2, 5, 10, 29)
 
 
 class Scorer:
-    def __init__(self, enc):
+    def __init__(self, enc, cap=False):
         self.inf = pickle.load(open(f"{RC}/{enc}_resh/results_infos/infos.pkl", "rb"))
+        self.fix = pickle.load(open(f"{OUT}/cap_fix_{enc}.pkl", "rb")) if cap else {"curves": {}, "final4": {}}
+        self.n_fixed = 0
+
+    def curve(self, gid):
+        cv = self.inf[gid]["curve"]
+        if gid in self.fix["curves"]:
+            assert len(cv["psnr"]) == len(self.fix["curves"][gid])
+            return {**cv, "psnr": self.fix["curves"][gid]}
+        return cv
+
+    def f4_psnr(self, gid, level, k, psnr):
+        f = self.fix["final4"].get((gid, level, k))
+        if f is None:
+            return psnr
+        self.n_fixed += 1
+        return f["psnr"]
 
     def row(self, method, gid, level, k, bits, psnr, seed=-1, stored=None):
         x = self.inf[gid]
-        cv, B = x["curve"], x["budget"][level]
+        cv, B = self.curve(gid), x["budget"][level]
         s = float(metrics.score(bits, psnr, cv, B))
-        if stored is not None:
+        if stored is not None and gid not in self.fix["curves"]:
             assert abs(s - stored) < 1e-6, (method, gid, level, s, stored)
         return {"method": method, "gid": gid, "clip": x["gop"]["clip"], "level": level, "k": k, "seed": seed,
                 "score": s, "A": float(psnr - metrics.psnr_at_bits(cv, bits)), "rho": bits / B,
@@ -62,9 +78,11 @@ def load_r3(enc, split, S):
             rows.append(S.row(f"R3 {lab}", r["gid"], r["budget"], 5, r["bits"], r["psnr"], s, r["score"]))
             if s == 3 and lab == "180k":
                 ctrl = S.inf[r["gid"]]["ctrl"][(r["budget"], 5)]
-                rows.append({**S.row("final4", r["gid"], r["budget"], 5, ctrl["bits"],
-                                     ctrl["dpsnr"] + metrics.psnr_at_bits(S.inf[r["gid"]]["curve"], S.inf[r["gid"]]["budget"][r["budget"]])),
-                             "score": ctrl["score"]})
+                p4 = ctrl["dpsnr"] + metrics.psnr_at_bits(S.inf[r["gid"]]["curve"], S.inf[r["gid"]]["budget"][r["budget"]])
+                row = S.row("final4", r["gid"], r["budget"], 5, ctrl["bits"], S.f4_psnr(r["gid"], r["budget"], 5, p4))
+                if not S.fix["curves"]:
+                    assert abs(row["score"] - ctrl["score"]) < 1e-6
+                rows.append(row)
     return rows
 
 
@@ -72,7 +90,8 @@ def load_final4_k(enc, split, S):
     d = pd.concat(pd.read_parquet(f) for f in glob.glob(f"{ROOT}/results_v1/controller_real/final4_{enc}_{split}_*.parquet"))
     d["gid"] = d.clip_id + "@" + (30 * d.gop).astype(str)
     d = d[d.gid.isin(S.inf)]
-    return [S.row("final4", r.gid, int(r.level_q0), int(r.k), float(r.bits), float(r.psnr_yuv)) for r in d.itertuples()]
+    return [S.row("final4", r.gid, int(r.level_q0), int(r.k), float(r.bits),
+                  S.f4_psnr(r.gid, int(r.level_q0), int(r.k), float(r.psnr_yuv))) for r in d.itertuples()]
 
 
 def load_abr(enc, split, S):
@@ -140,13 +159,18 @@ def exp7_section(split):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--split", choices=("val", "test"), required=True)
+    ap.add_argument("--psnr-cap", action="store_true", help="100 dB per-plane cap everywhere (cap_fix_<enc>.pkl)")
     a = ap.parse_args()
     L = [f"# Final results, {a.split} (exp_next/final/report.py)", "",
          "Pre-registration exp_next/final/PREREG.md (branch A). All methods rescored with one metric function on the same "
          "curves and budgets; hole excluded in the primary; 95 % clip bootstrap ('*' excludes 0). final4's and the 540k "
          "reference's test rows existed before this pass (final4 run 11-11; 540k eval default val,test).", ""]
+    if a.psnr_cap:
+        L += ["**PSNR-cap correction (11-16):** every plane's per-frame PSNR capped at 100 dB everywhere (curves recomputed "
+              "from rd_frames, final4 re-measured by re-encoding its stored QPs: bits identical; learners' rclib rows were "
+              "already capped). ABR rows are not re-measured (uncapped; at most 1 GOP x 4 levels per k).", ""]
     for enc in ("x264", "x265"):
-        S = Scorer(enc)
+        S = Scorer(enc, a.psnr_cap)
         d = pd.DataFrame(load_r3(enc, a.split, S) + load_shift(enc, a.split, S) + load_abr(enc, a.split, S)
                          + load_540k(enc, a.split, S))
         y = d[(~d.hole) & (d.k == 5)]
@@ -174,7 +198,7 @@ def main():
               kc.pivot_table(index="method", columns="k", values="score", aggfunc="mean").round(3).to_markdown(), ""]
     L += exp7_section(a.split)
     os.makedirs(OUT, exist_ok=True)
-    open(f"{OUT}/report_{a.split}.md", "w").write("\n".join(L) + "\n")
+    open(f"{OUT}/report_{a.split}{'_cap' if a.psnr_cap else ''}.md", "w").write("\n".join(L) + "\n")
     print("\n".join(L))
 
 
