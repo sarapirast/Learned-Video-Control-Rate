@@ -20,20 +20,41 @@ actor still frozen: it always picks offset 0, so it equals final4 + mean shift +
 bash submit_r2c.sh        # one array of 7 runs via ../03_r3_lookahead/train_r3.sbatch, ~4-6 min each, ~8 core-hours
 /scratch1/aayushso/envs/rc/bin/python -I check_r2c_k5_repro.py     # reproduction check (task 6)
 ```
+Diagnosing the failed reproduction check (below), in order:
+```bash
+P1=/scratch1/ahhanagu/ee599/Learned-Video-Control-Rate/experiments/p1
+# 1. retrain Aayush's R3 k5 seed 0 from his 11-14 morning job, with his exact arguments (one ~4 min job)
+sbatch --array=0 --job-name=r3k_repro $P1/03_r3_lookahead/train_r3.sbatch $P1/04_r2c_control/runs_r3_k5_s0_repro.txt
+/scratch1/aayushso/envs/rc/bin/python -I check_r2c_k5_repro.py res_k5_fixed_no-level_f4_lam0.17_st180k_r6_capbit_meanpooled_bcinit_wu20k_s0
+# 2. evaluate his STORED models with today's code, no training (~1 min each, compute node)
+source ../03_r3_lookahead/env.sh; RC_WORKERS=2 $PY -I reeval_stored_model.py res_k5_fixed_no-level_f4_lam0.17_st180k_r6_capbit_meanpooled_bcinit_wu20k_s0
+RC_WORKERS=2 $PY -I reeval_stored_model.py res_k5_fixed_no-level_f4_lam0.17_st360k_r6_capbit_meanpooled_bcinit_wu20k_s3
+```
 Outputs: `/scratch1/ahhanagu/ee599/results/r3_kcurve/work/results_rl/res_k*_..._meanpooled_wu20k_s*/` (no `bcinit` in
-the name), `r2c_k5_repro_check.txt`.
+the name), `*_repro_check.txt`, `*_reeval_check.txt`.
 
 ## Checks
 - All 7 tasks completed (job 14308917, exit 0), each with `eval.pkl` and `eval_ckpt.pkl`.
-- **Reproduction check FAILED** (task 6): my R2c k5 seed 0 differs from Aayush's stored run (weights max |difference|
-  0.17; identical QPs on 47/560 val episodes). The recorded arguments and config are identical apart from the
-  checkpoint steps (`--save-at`), which did not matter for R3. Aayush's run trained on 11-14 at ~08:30; his R3 seed 3
-  (reproduced bit-for-bit in 03) at 16:53. His pipeline changes of 11-12 to 11-16 were committed together on 11-16
-  (`repo-pavneet` ca1bd00), so the exact code of the morning run is unknown. **Likely cause: a code change on 11-14
-  between the two runs (not yet proven).** Test: rerun his R3 k5 seed 0 from the same morning job; if it also differs,
-  the cause is the code version, not R2c.
-- My R2c and R3 runs used the same code and recipe, so **R3 − R2c within these runs is a fair comparison**; only a
-  direct comparison with Aayush's stored R2c k5 numbers is affected.
+- **Reproduction check failed** (task 6): my R2c k5 seed 0 differs from Aayush's stored run (weights max |difference|
+  0.17; identical QPs on 47/560 val episodes). Recorded arguments and config are identical apart from the checkpoint
+  steps (`--save-at`), which did not matter for R3.
+- **Cause found (2026-11-18): Aayush's training code changed during 11-14; the environment and evaluation did not.**
+
+  | Test | Result |
+  |---|---|
+  | Retrain his R3 k5 seed 0 (his 11-14 morning job, 08:32–08:52), his exact arguments (job 14347705) | **different**: weights max \|diff\| 0.067; identical QPs 0/560 |
+  | Retrain his R3 k5 seeds 3, 4, 5 (his 11-14 afternoon runs, ~16:00–17:00; done in 03) | **bit-identical** |
+  | Evaluate his *stored* morning R3 seed-0 model with today's code (no training) | **identical** QPs and scores 560/560 |
+  | Same for his stored afternoon R3 seed-3 model (control) | identical 560/560 |
+
+  In simple words: today's code plays any given model exactly as his 11-14 code did (environment, final4, scoring
+  unchanged), but training from the same start no longer reaches the morning models. Both morning runs (R3 and R2c
+  seed 0) fail to reproduce, all afternoon runs do; so something in the training path changed between the two jobs.
+  His changes of 11-12 to 11-16 were committed together on 11-16 (`repo-pavneet` ca1bd00), so the exact difference is
+  not recorded. A different model picks different QPs on every episode, hence 0/560.
+- Consequences: my R2c and R3 runs used the same (current) code and recipe, so **R3 − R2c within these runs is a fair
+  comparison**. Aayush's stored seed 0–2 runs (R3 and R2c, k5) came from the earlier training code; the team's final
+  results use seeds 3–5, which reproduce exactly.
 
 ## Results
 Not scored yet: scoring waits for Aayush's PSNR-capped constant-QP curves. Planned: per k, R2c − final4, R3 − R2c

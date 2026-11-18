@@ -22,8 +22,9 @@ R3 beats final4 by +0.07 to +0.10 dB at every k; the BC start goes from far belo
 so PPO matters most for live encoding. k5 retrains are bit-identical to Aayush's models. Provisional scores.
 
 **[04 · R2c control](04_r2c_control/).** R3 without the BC start at k0 and k29 (seeds 3–5), for the BC-start effect.
-Runs complete, not scored yet; the k5 reproduction check against Aayush's stored R2c failed (likely a code-version
-difference on 11-14, see the folder README).
+Runs complete, not scored yet. The k5 check against Aayush's stored R2c failed; tested cause: his *training* code
+changed during 11-14 (his morning runs don't retrain identically, his afternoon runs do; his stored models evaluate
+identically with today's code, so the environment and scoring did not change). R3 − R2c within my runs is unaffected.
 
 ## Lessons learned
 - **Train BC networks one after the other, not in parallel.** `bc_train.py` uses as many torch threads as the job has

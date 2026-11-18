@@ -1,20 +1,24 @@
 """check_r2c_k5_repro.py: does my R2c k5 seed-0 run (shim backend, P1 job scripts) reproduce Aayush's stored R2c run
-(CLI backend, his jobs)? Compares the final policy weights and, per val episode, the QPs and the score rl.py stored.
+(CLI backend, his jobs)? With a run name as argument, the same check for any other k5 run of his, e.g. R3 seed 0 from
+the same 11-14 morning job. Compares the final policy weights and, per val episode, the QPs and the score rl.py stored.
 A check of the pipeline only: no comparison with final4, no re-scoring.
-Inputs: my run folder and Aayush's (read-only), both res_k5_fixed_no-level_f4_lam0.17_st180k_r6_capbit_meanpooled_wu20k_s0.
-Output: prints the result and writes it to /scratch1/ahhanagu/ee599/results/r3_kcurve/r2c_k5_repro_check.txt
-Run (needs torch: Aayush's rc env): python -I check_r2c_k5_repro.py
+Inputs: my run folder and Aayush's (read-only) with the same run name (default
+res_k5_fixed_no-level_f4_lam0.17_st180k_r6_capbit_meanpooled_wu20k_s0).
+Output: prints the result and writes it to /scratch1/ahhanagu/ee599/results/r3_kcurve/<run name>_repro_check.txt
+Run (needs torch: Aayush's rc env): python -I check_r2c_k5_repro.py [<run name>]   (default: the R2c k5 s0 run)
 """
 import io
 import pickle
+import sys
 import zipfile
 
 import torch
 
-NAME = "res_k5_fixed_no-level_f4_lam0.17_st180k_r6_capbit_meanpooled_wu20k_s0"
+NAME = sys.argv[1] if len(sys.argv) > 1 else "res_k5_fixed_no-level_f4_lam0.17_st180k_r6_capbit_meanpooled_wu20k_s0"
 MINE = f"/scratch1/ahhanagu/ee599/results/r3_kcurve/work/results_rl/{NAME}"
 STORED = f"/scratch1/aayushso/rcwork_v1/x264_resh/results_rl/{NAME}"
-OUT = "/scratch1/ahhanagu/ee599/results/r3_kcurve/r2c_k5_repro_check.txt"
+OUT = (f"/scratch1/ahhanagu/ee599/results/r3_kcurve/{NAME}_repro_check.txt" if len(sys.argv) > 1
+       else "/scratch1/ahhanagu/ee599/results/r3_kcurve/r2c_k5_repro_check.txt")      # default name as first run
 
 
 def weights(p):
@@ -32,9 +36,9 @@ def main():
     ra, rb = rows(MINE), rows(STORED)
     q = sum(list(ra[x]["qps"]) == list(rb[x]["qps"]) for x in rb)
     s = sum(abs(ra[x]["score"] - rb[x]["score"]) < 1e-9 for x in rb)
-    lines = [f"R2c k5 s0 policy weights vs Aayush's: max |diff| = {m:.3e} ({'bit-identical' if m == 0 else 'different'})"
+    lines = [f"{NAME} policy weights vs Aayush's: max |diff| = {m:.3e} ({'bit-identical' if m == 0 else 'different'})"
              f" over {len(a)} tensors",
-             f"R2c k5 s0 val episodes: identical QPs {q}/{len(rb)}, identical stored score {s}/{len(rb)}"]
+             f"{NAME} val episodes: identical QPs {q}/{len(rb)}, identical stored score {s}/{len(rb)}"]
     open(OUT, "w").write("\n".join(lines) + "\n")
     print("\n".join(lines))
 
