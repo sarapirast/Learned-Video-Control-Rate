@@ -23,7 +23,7 @@ frozen during the warm-up), 60k, 120k; all evaluated on val (560 episodes).
 | `bc_data_build.py` | P1 copy of P2's `build.py`: BC dataset at any k (no encodes); changes marked "P1 copy" |
 | `bc_shift_fit.py` | smooth pooled mean shift at a new k (P2's `shift_smooth.py` fit), merged into a shifts file |
 | `bc_data_compare.py` | checks a rebuilt dataset equals Aayush's as a set of rows |
-| `job1_prep_k29.sbatch` | batch 1: data + shift for k29 (with k5 checks), then BC k29/k0 (see the known issue) |
+| `job1_prep_k29.sbatch` | batch 1: data + shift for k29 (with k5 checks); ~10 min |
 | `job2_bc_k29_k0_seed3.sbatch` | batch 1: BC k29 then k0, seed 3, one after the other |
 | `job4_bc_k0_k29_seeds45.sbatch` | batch 2: BC k29 and k0, seeds 4, 5 |
 | `job5_prep_bc_k2_k10.sbatch` | batch 2: data + shifts for k2, k10 (with k5 checks), BC seed 3 |
@@ -34,10 +34,9 @@ frozen during the warm-up), 60k, 120k; all evaluated on val (560 episodes).
 | `score_lookahead_batch1.py`, `score_lookahead_all.py` | scoring vs final4 at the same k |
 
 ## How to rerun, in order
-1. **Batch 1.** `bash submit_batch1_prep_then_r3.sh`. Known issue: job 1's step 4 trains two BC networks *at once*,
-   each with 16 threads on 16 cores, runs ~20× slower and hits the time limit (job 14304096). Steps 1–3 finish and
-   pass; the R3 array then never starts (`scancel` it). Continue with `bash submit_batch1_bc_then_r3.sh` (job 2: the
-   same BC networks one after the other, ~6 min each, then the R3 array for k5/k0/k29 seed 3).
+1. **Batch 1.** `bash submit_batch1.sh`: job 1 (k29 data + shift, k5 checks) → job 2 (BC k29 and k0 seed 3, one after
+   the other, ~6 min each) → R3 array (k5, k0, k29 seed 3). As first run, job 1 also trained both BC networks at once
+   and timed out (job 14304096); that step now lives only in job 2. If job 1 already ran: `submit_batch1_bc_then_r3.sh`.
 2. **Batch 2.** `bash submit_batch2.sh`: chain A = job 4 → R3 array (k0, k29, k5 × seeds 4, 5); chain B = job 5 → R3
    array (k2, k10 seed 3, with the shifts file that has k2/k10). The chains run side by side.
 3. **Checks and scoring** (compute node or login node, seconds):
