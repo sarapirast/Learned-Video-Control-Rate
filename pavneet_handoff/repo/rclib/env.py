@@ -89,7 +89,7 @@ def causal_prior():
 
 def causal_scale(gid, b):
     """Evaluation budget scale of a (GOP, budget QP) case: deterministic, one of CAUSAL_S_EVAL."""
-    if C.V1:
+    if C.RESID:
         return 1.0
     return C.CAUSAL_S_EVAL[zlib.crc32(f"{gid}|{b}".encode()) % len(C.CAUSAL_S_EVAL)]
 
@@ -215,9 +215,9 @@ class RateEnv(gym.Env):
             if self.forced:
                 self.scale = causal_scale(self.gid, self.b) if fs is None else fs
             else:
-                self.scale = 1.0 if C.V1 else float(self.rng.uniform(*C.CAUSAL_S_TRAIN))
+                self.scale = 1.0 if C.RESID else float(self.rng.uniform(*C.CAUSAL_S_TRAIN))
             self.budget = self.scale * self.info["budget"][self.b]
-            self.qhat = 34.0 if C.V1 else gop_qhat(self.info, self.budget)
+            self.qhat = 34.0 if C.RESID else gop_qhat(self.info, self.budget)
             self.qbase = int(round(self.qhat))
             self.T = self.T.copy()
             self.T[:, 0] = np.log2(np.maximum(np.asarray(self.info["fp_bits"], float), 8) / (self.budget / C.GOP)) / 4
@@ -244,7 +244,7 @@ class RateEnv(gym.Env):
         win = slice(t, t + v + 1)
         fp = np.maximum(np.asarray(self.info["fp_bits"], float), 8)
         per_frame = self.budget / C.GOP
-        if C.V1:   # the controller's QP for this frame: the base of the residual action, and an input
+        if C.RESID:   # the controller's QP for this frame: the base of the residual action, and an input
             self.qc = controller.decide(t, self.bits, self.qps, fp, self.budget, v)
             self.qhat = float(self.qc)
         o[0] = t / KMAX
@@ -320,10 +320,10 @@ class RateEnv(gym.Env):
         a = int(a)
         t = self.t
         q = int(self.qbase + STATIC_OFF[t] + C.ACTIONS[a])
-        if C.V1:
+        if C.RESID:
             q = int(np.clip(self.qc + C.ACTIONS[a], controller.QLO, controller.QHI))
         if t == 0:
-            self.qbase0 = q if C.V1 else int(self.qbase)
+            self.qbase0 = q if C.RESID else int(self.qbase)
         self.qps.append(q)
         self.acts.append(a)
         last = t == C.GOP - 1
@@ -344,9 +344,9 @@ class RateEnv(gym.Env):
         uc = float(metrics.under_cost(r["total_bits"], self.budget))
         score = sav - metrics.OVER_PENALTY * over - uc
         if self.reward_kind == "relative":
-            rew = (score - (0.0 if C.V1 else st["score"])) / REWARD_SCALE
+            rew = (score - (0.0 if C.RESID else st["score"])) / REWARD_SCALE
         elif self.reward_kind == "lagrangian":     # unused budget is part of the objective; overshoot is the constraint
-            rew = (sav - uc - (0.0 if C.V1 else st["saving"]) - self.lam * over) / REWARD_SCALE
+            rew = (sav - uc - (0.0 if C.RESID else st["saving"]) - self.lam * over) / REWARD_SCALE
         else:
             raise ValueError(self.reward_kind)
         return {"gid": self.gid, "budget": self.b, "bits": r["total_bits"], "psnr": r["mean_psnr"], "saving": sav,
@@ -382,13 +382,13 @@ def plan_observations(info, budget, acts, bits, k=5, mode="fixed", drop=(), prio
 def _plan_observations_causal(info, budget, acts, bits, k, mode, drop, prior, extra, fpsnr):
     env = RateEnv({info["gop"]["id"]: info}, k=k, mode=mode, drop=drop, prior=prior, extra=extra)
     env.force(info["gop"]["id"], budget, s=1.0)
-    if C.V1:
+    if C.RESID:
         qps = [int(q + C.ACTIONS[a]) for q, a in zip(info["static"][budget]["plan"], acts)]
     else:
         qps = [int(budget + STATIC_OFF[j] + C.ACTIONS[acts[j]]) for j in range(C.GOP)]
     obs, new = [env.reset()[0]], []
     for t in range(C.GOP):
-        new.append(int(qps[t] - env.qc if C.V1 else qps[t] - STATIC_OFF[t] - env.qbase) - C.ACTIONS[0])
+        new.append(int(qps[t] - env.qc if C.RESID else qps[t] - STATIC_OFF[t] - env.qbase) - C.ACTIONS[0])
         if t == C.GOP - 1:
             break
         env.t = t + 1

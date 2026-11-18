@@ -201,3 +201,9 @@ Debug tests: 13726162/63 (own_rc_stream quick, passed), 13726780 (re-analysis + 
 - 2026-11-15: D43 debug run interactively in allocation 14266067 (a01-16), x265, all lines rc 0 after the sklearn fix.
 - 2026-11-15: D43 full (tools/submit_buffer_rl3.sh): x265 rl 14267390 (20, %6, 3 h) / report 14267391 / real il_ppo_rr 14267392 (24, %6, 2 h) / real report 14267393; x264 rl 14267394 / report 14267395 / real 14267396 / real report 14267397. Est. ~1.5 h training + ~1.5–2 h real, ~3–3.5 h per encoder.
 - 2026-11-15: D43 x265 14267390–93, x264 14267394–97: all COMPLETED (96 tasks).
+
+| 14321358 / 14321366 | x265 / x264 widened vbv2+mpc retune (Aayush checks 1-2), runs/buffer_wide.txt | 2 CPU 8G, 8 tasks %4 | ~25-40 min per task |
+| 14322584-88 / 14322589-93 | x265 / x264 D45 leak-fixed live stream (base, wide, ppo_v2 x6, il x6, report) | 2 CPU 8G | base <=3 h, then RL 2-3 h |
+
+## 2026-11-18 — D45 il rerun (fixed buffer_rl2 DIRS)
+- x265: il 14346012 (array 0-5), report 14346013 (afterany); x264: il 14346014, report 14346015. Writes only to rcwork_v1/<codec>/results_buffer{,_trace}_ladder. Previous il tasks took ~15 min each. After: python tools/buffer_wide_report.py.

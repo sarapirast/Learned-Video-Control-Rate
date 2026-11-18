@@ -143,7 +143,7 @@ def main():
         pi, _ = offrl.train_iql(ds, cfg["iql_steps"], seed=a.seed)
         spec = _save_torch(pi, out)
     elif a.method == "ctrl":             # dataset v1: the online controller alone, every residual action zero (D31)
-        assert C.V1
+        assert C.RESID
         spec = {"kind": "static"}
     elif a.method == "ensemble":         # the three seeds of one CQL->PPO setting, no training
         spec = {"kind": "ensemble", "paths": [prereq(a.k, s) for s in (0, 1, 2)]}

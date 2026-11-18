@@ -33,6 +33,22 @@ CHANNEL = os.environ.get("RC_BUF_CHANNEL", "ar1")        # ar1 | trace (Belgium 
 TRACES = os.environ.get("RC_BUF_TRACES", "/scratch1/pbanga/data/traces/belgium4g/throughput.pkl")
 M_FLOOR = 0.05
 N_BUF = 7
+# Leak fix (TA feedback, 2026-11-17): RC_BUF_LADDER=1 -> the stream budget, and with it the channel's mean rate, no
+# longer comes from the stream's own content. B = s x n x LADDER[q0], LADDER[q] = median over dataset-v1 TRAIN GOPs of
+# the constant-QP bits per GOP at QP q: the same for every stream, like a fixed bitrate ladder. Before, B = s x the
+# sum of the stream's own clip-level budgets, so the mean channel rate B / n told every controller the stream's cost.
+LADDER = os.environ.get("RC_BUF_LADDER", "0") == "1"
+_LAD = None
+
+
+def ladder_bits(infos):
+    """Per-GOP budget at every QP (index = QP): median over the TRAIN GOPs of `infos` (dataset v1 only)."""
+    global _LAD
+    if _LAD is None:
+        tr = [g for g, x in infos.items() if x["gop"]["split"] == "train"]
+        assert tr, "the ladder needs the dataset-v1 train GOPs"
+        _LAD = np.nanmedian(np.array([CE.gop_table(infos[g])["bits"] for g in tr]), 0)
+    return _LAD
 
 
 def tag():
@@ -46,6 +62,8 @@ def tag():
         t.append(f"lam{LAM_STALL:g}")
     if CHANNEL != "ar1":
         t.append(CHANNEL)
+    if LADDER:
+        t.append("ladder")
     return "_".join(t)
 
 
@@ -104,6 +122,8 @@ class BufEnv(MS.MetaStreamEnv):
         super().reset(seed=seed, options=options)
         rng = np.random.default_rng(case_seed(self.stream, self.q0, self.s)) if self.forced else self.rng
         self.m = channel(self.n, rng) if CHANNEL == "ar1" else trace_channel(self.n, rng, self.split)
+        if LADDER:
+            self.B = self.s * self.n * float(ladder_bits(self.infos)[int(self.q0)])
         self.mean_r = self.B / self.n
         self.cap = D_CAP * self.mean_r
         return self._obs(), {}

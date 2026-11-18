@@ -36,7 +36,12 @@ BUDGET_REF = 30               # budget QP that per-frame cost features are norma
 CAUSAL = os.environ.get("RC_CAUSAL", "0") == "1"
 # dataset v1 (D31): RC_V1=1 -> clip-level budgets, P1's frozen encoder settings, action = residual on the online controller
 V1 = os.environ.get("RC_V1", "0") == "1"
-CAUSAL = CAUSAL or V1
+# D44 (TA feedback on the milestone): RC_LADDER=1 -> original dataset, budgets from a fixed bitrate ladder (the train
+# median of constant-QP bits at each budget QP, the same for every GOP, so a budget says nothing about the GOP's cost),
+# action = residual on the causal online controller (rclib/controller.py), which uses only the visible frames
+LADDER = os.environ.get("RC_LADDER", "0") == "1"
+RESID = V1 or LADDER          # residual on the online controller; its plan is the 'static' entry; evaluation scale 1
+CAUSAL = CAUSAL or V1 or LADDER
 V1_BUDGETS = os.environ.get("RC_V1_BUDGETS", "/scratch1/aayushso/ee599/data/v1/320x180/budgets.csv")
 CAUSAL_S_TRAIN = (0.8, 1.25)          # training: s uniform in this range
 CAUSAL_S_EVAL = (0.85, 1.0, 1.18)     # evaluation: s per (GOP, budget QP) case, fixed by a hash (env.causal_scale)

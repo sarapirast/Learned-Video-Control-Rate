@@ -40,7 +40,10 @@ RAND = {"rho": (0.5, 0.95), "sigma": (0.1, 0.6)}
 IL = {"iters": 4, "eps": 1000, "epochs": 10, "bc_lr": 1e-3, "batch": 512, "v_eps": 1000, "v_epochs": 20,
       "ft_steps": 1_000_000, "ft_lr": 1e-4, "ft_ent": 0.003}
 QUICK = {"iters": 2, "eps": 20, "epochs": 2, "v_eps": 10, "v_epochs": 2, "ft_steps": 4096}
-DIRS = {"ar1": "buffer", "trace": "buffer_trace"}
+# result folders per channel; the leak-fixed setting (RC_BUF_LADDER=1, D45) has its own (fixed 2026-11-17: the ladder
+# tag was missing here, so D45's first il runs read the leaky-setting baselines and wrote over D42's il / il_ppo files;
+# D42's files were restored from the 11-15 handoff copy)
+DIRS = {"ar1": "buffer" + ("_ladder" if BE.LADDER else ""), "trace": "buffer_trace" + ("_ladder" if BE.LADDER else "")}
 log = S.log
 
 

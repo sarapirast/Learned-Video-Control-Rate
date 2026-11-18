@@ -47,7 +47,7 @@ def trajectories(args):
                                       extra=extra, fpsnr=p.get("fpsnr"))
             if C.CAUSAL:   # D30: the plan's QPs as offsets on the causal base QP; plans that leave -3..3 are dropped
                 obs, acts = obs
-                if C.V1:      # D31: residual targets outside the action range are clipped to it
+                if C.RESID:      # D31: residual targets outside the action range are clipped to it
                     acts = np.clip(acts, 0, NA - 1)
                 elif acts.min() < 0 or acts.max() >= NA:
                     continue
@@ -58,7 +58,7 @@ def trajectories(args):
         smax = max(p["score"] for p, _ in replay)
         for p, obs in replay:
             r = np.zeros(C.GOP, np.float32)
-            r[-1] = (p["score"] - (0.0 if C.V1 else entry["static_score"])) / E.REWARD_SCALE
+            r[-1] = (p["score"] - (0.0 if C.RESID else entry["static_score"])) / E.REWARD_SCALE
             d = np.zeros(C.GOP, np.float32)
             d[-1] = 1
             O.append(obs.astype(np.float32))

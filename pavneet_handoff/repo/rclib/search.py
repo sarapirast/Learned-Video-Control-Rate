@@ -55,7 +55,7 @@ def hill_climb(info, budget, n_eval=300, seed=0, start=None):
         key = x.tobytes()
         if key in seen and seen[key] is not None:
             continue
-        qps = ([q + C.ACTIONS[a] for q, a in zip(st["plan"], x)] if C.V1 else qps_of(budget, x))   # v1: around the controller's plan
+        qps = ([q + C.ACTIONS[a] for q, a in zip(st["plan"], x)] if C.RESID else qps_of(budget, x))   # v1: around the controller's plan
         r = codec.encode(path, qps, src=src)
         s = float(metrics.score(r["total_bits"], r["mean_psnr"], curve, B))
         seen[key] = s

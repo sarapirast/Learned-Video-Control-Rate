@@ -8,6 +8,23 @@
 > `repo/results/v1_buffer/<codec>/`. Uses dataset v1. **To replicate:** `live_stream_artifacts/README.md` (v1 per-frame
 > curves and budgets, the LTE throughput traces, all trained models and per-case results, and step-by-step commands).
 
+> **Update 2026-11-18: TA milestone feedback, leak-fixed live stream (D44–D46).** Details in `repo/docs/JOURNAL.md` and
+> `repo/docs/DECISIONS.md`.
+> - Quality and budget violations reported separately, with the scene detector's own lookahead counted:
+>   `repo/experiments/quality_violations.py` -> `repo/results/{x265,x264}{,_causal}/quality_violations.md`.
+> - D44 (ladder-budget rerun on the original dataset): built and debug-tested, **not run**; the per-GOP section builds
+>   on Aayush's v1 R3 instead.
+> - Widened vbv2 / MPC retune (Aayush's checks 1-2): `repo/results/v1_buffer/baselines_wide_report.md`; RL still wins.
+> - **D45 leak fix for the live stream:** the budget and mean channel rate now come from a fixed bitrate ladder (median
+>   train constant-QP bits per GOP at each level), not from the stream's own clip budgets (`RC_BUF_LADDER=1`). Results:
+>   settings `ladder` / `trace_ladder` in `baselines_wide_report.md`; data in
+>   `live_stream_artifacts/<codec>/results_buffer{,_trace}_ladder/`. il_ppo - vbv2 (wide), test: +0.66 / +0.45 dB
+>   (AR(1), x265 / x264), +0.34 / +0.25 (LTE), same-clip streams +0.12 to +0.24 (3 of 4 significant).
+> - A folder bug in `buffer_rl2.py` (fixed 11-17) briefly overwrote the D42 il / il_ppo eval files; they were restored
+>   byte-identical from this package, so the D42 files here are unchanged.
+> - D46: on-demand sections keep the clip-level budget (the two-pass assumption); only the live stream uses the ladder.
+>   Draft methods text: `repo/docs/FINAL_REPORT_BUDGET_FRAMING.md`.
+
 > **Milestone report (2026-11-17):** `milestone_report.docx` is the team's EE599 milestone report as submitted on
 > 2026-11-05 (original dataset only; graded 13/15).
 
