@@ -969,6 +969,18 @@ and how does that change with lookahead k? Results are split into cut, gradual a
   +0.243] * -> PRIMARY PASS both; x265 vs final4 + shift +0.074 *; 360k n.s. Exp 7 primary NOT met (x264 -0.026,
   x265 +0.050, CIs incl. 0). EXPERIMENTS row added. Part 2 x264 test DONE (54 min; part2_x264_test.md): rule + final4
   +0.364 best, RL + final4 - rule + final4 -0.388 *, per-GOP check mean 2.6-3.0 % (not met). TEST PASS COMPLETE 11-16.
+  COMMITTED 11-16 (Aayush): repo-pavneet next-exp ca1bd00 (local only; Pavneet's private remote, never pushed); team repo
+  p2-data-v1 fast-forwarded to origin/main 72e0b1d, then 9e4839f (p2_data sync + p2_data/exp_next + pavneet_pipeline
+  refreshed from ca1bd00). origin/main moved to 926ec76 (Pavneet live-stream handoff, Sara P4 models; no overlap) ->
+  merged into p2-data-v1 as 046d1f9 (2 ahead of origin/main, 0 behind). Aayush pushes: git push origin p2-data-v1 &&
+  git push origin p2-data-v1:main. PUSHED 11-16 (verified: origin/main = origin/p2-data-v1 = 046d1f9).
+  11-16 wrap-up (Aayush): team message docs/team-update-2026-11-16.txt; final write-up docs/final-writeup-2026-11-16.md;
+  TA briefing section 6 correction (spend-error spread + local slope, Exp 1) and R3 'superseded' note added;
+  deleted empty rcwork_v1/x264_lfq/results_rl_quick/bc_k0_fixed_attn-kall_s0; scripts/sync_to_repo.sh now also syncs
+  exp_next/ (code/docs/logs only); scripts/sync_project2.sh all DONE 10:54 (about 19 GB copied, exit 0; log
+  logs/sync_project2_2026-11-16.log).
+  Not yet in the team repo: these three docs + the sync script change (next sync / commit).
+  Ahhana 11-16 update: reply drafted docs/reply-ahhana-2026-11-16.txt. PSNR-cap correction (11-16, from Ahhana): one convention everywhere, each plane's per-frame PSNR capped at 100 dB (curves recomputed from rd_frames; final4 re-measured by re-encoding its stored QPs, bits identical; exp_next/final/cap_fix.py, report.py --psnr-cap -> results_v1/final/report_{val,test}_cap.md). Affected scored GOPs: MusicVideo_360P-5f07 @30/@180 (val), MusicVideo_360P-5699 @0 (test). Test R3 - final4: x264 +0.066 -> +0.067 [+0.023, +0.107], x265 +0.162 -> +0.163 [+0.086, +0.243]; x265 vs final4 + shift unchanged +0.074; cut/gradual +0.056 -> +0.060 / +0.098 -> +0.102. Val: x264 +0.068 -> +0.077, cut/gradual +0.016 -> +0.069 (= Ahhana's), x265 +0.204 -> +0.209. Exp 7 unchanged.
   F stage 1 DONE: fresh seeds 3-5 val R3 - final4 at 180k: x264 +0.054/+0.063/+0.089 (mean +0.068), x265 +0.178/
   +0.207/+0.227 (mean +0.204) -- replicate R3 (+0.066 / +0.190); 360k secondary +0.082 / +0.198; 60k +0.026 / +0.139.
     PREREG_BC.md REVISION 1: R2's setup (R1 only if R2 clearly loses on the fold), BC obs = R3 obs, Gaussian PPO

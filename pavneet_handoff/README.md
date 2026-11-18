@@ -8,6 +8,9 @@
 > `repo/results/v1_buffer/<codec>/`. Uses dataset v1. **To replicate:** `live_stream_artifacts/README.md` (v1 per-frame
 > curves and budgets, the LTE throughput traces, all trained models and per-case results, and step-by-step commands).
 
+> **Milestone report (2026-11-17):** `milestone_report.docx` is the team's EE599 milestone report as submitted on
+> 2026-11-05 (original dataset only; graded 13/15).
+
 This folder is for a new Claude session (or a person) picking up the project. Read this file first, then
 `RESULTS_AND_INTERPRETATION.md`, then `NEXT_STEPS.md`.
 

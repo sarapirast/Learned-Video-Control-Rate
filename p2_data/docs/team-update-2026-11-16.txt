@@ -1,0 +1,99 @@
+EE599 learned rate control -- P2 update, 2026-11-16 (Aayush)
+
+Everything below is on data v1, scored with the dB metric (dPSNR_B - 0.17 dB per 1 % over budget). "*" = 95 %
+clip-bootstrap CI excludes 0. Code, pre-registrations and reports are pushed to the team repo (main = 046d1f9):
+p2_data/exp_next/ (all experiments), p2_data/docs/EXPERIMENTS.md (one row per experiment), pavneet_pipeline/.
+
+
+1. HEADLINE: a learned per-GOP controller now beats final4 on test
+
+R3 = residual PPO on top of final4 (QP offsets -6..+6 per frame), actor initialised by imitating the hindsight
+search (centred BC), lookahead k5, 180k PPO steps. Fresh seeds 3-5, single sealed test pass (approved 11-16):
+
+  R3 - final4, k5, test:   x264 +0.066 [+0.022, +0.106] *    x265 +0.162 [+0.085, +0.243] *
+  every seed positive (x264 +0.03..+0.11, x265 +0.16..+0.17)
+  x265 vs final4 + per-frame shift (the second x265 baseline): +0.074 [+0.041, +0.105] *
+  vs CQL->PPO 540k: +0.13 / +0.20 *;  vs encoder ABR+VBV at a tuned margin: +1.05 / +0.71 *
+  360k steps adds nothing over 180k
+
+Where it comes from: better quality for the bits, and far fewer overshoots (over budget on 24 % / 21 % of
+episodes vs final4's 55 %). The gain is on stable GOPs (+0.07 / +0.18 *); cut/gradual GOPs are positive but not
+significant. The imitation start is what makes it work: the same setup started from scratch (control R2c) is
+0.13 dB worse. Imitation alone (no RL) fails: it drifts once it runs. R3 was tested only at k5.
+
+
+2. THE PROTOCOL THIS ROUND (why these numbers should hold up)
+
+- Every experiment had its pass/fail rule written before results (exp_next/*/PREREG*.md); post-hoc changes are
+  labelled. Selection on a held-out fold of 8 train clips, confirmation on val, test touched once at the end.
+- Paired comparisons on identical GOPs and budgets, CIs by resampling whole clips.
+- Hindsight checks: e.g. the budget "level" is clip-level hindsight under v1's clip-mean budgets, so it is not
+  used anywhere; a level flag (o[2]) that was in every learner's input since the pilot was checked: removing it or
+  replacing it with a causal stand-in changes evaluation scores by at most 0.02 dB.
+
+
+3. OTHER RESULTS (val unless stated)
+
+- Exp 2 handoff (learner first, final4 for the last frames): failed, closed.
+- Exp 3 residual at the metric's price: passed (+0.137 * over the old residual). Exp 4 R2: tied final4.
+- Exp 5a fixed per-frame shift on final4: helps x265 at k5 (+0.153 * val), not x264.
+- Exp 6 per-context final4 setting: failed narrowly (+0.027 [-0.000, +0.050] vs a +0.03 bar), stopped.
+- Exp 10 encoder ABR with a tuned margin: still about 1 dB below final4 (margin x264 0.90, x265 0.93).
+
+
+4. STREAM LEVEL (Exp 7) -- reproduction and extension of Pavneet's D34/D35 and Sara's P4
+
+Thanks both: everything reproduced. All 24 of Pavneet's stored stream policies and his rule reproduce his
+stored val numbers exactly (commit eb08445); Sara's PID-Lag was retrained by us from her code (1860557,
+unchanged) and behaves as she described (about 0.6-0.8x the rule's overspends).
+
+What changed the conclusion: the remaining-budget rule's best setting sat on the edge of its grid (qpd 4.5, the
+largest value tried). Widened and retuned on val (qpd 4.5-5.5, small prior weight cw) it gains +0.13 / +0.16 dB.
+Against the retuned rule, on the single test pass:
+
+  RL policy - retuned rule, same-clip 8-GOP streams (pre-registered primary):
+      x264 -0.026 [-0.089, +0.036]    x265 +0.050 [-0.008, +0.141]   -> not met: "lookahead helps", not "RL helps"
+  vs the rule as reported: +0.06 (n.s.) / +0.15 *
+  mixed (spliced) streams vs retuned rule: +0.51 * / +0.47 * (the retuned rule's low prior weight hurts when the
+      content jumps between clips; spliced streams are a stress test, not real video)
+  Elephants Dream / Tears of Steel, 16 and 32 GOPs: x265 +0.10 * at both lengths, x264 ties
+
+Part 2 (x264, descriptive): final4 inside each GOP, at the stream controller's per-GOP budget. final4 inside adds
++0.35 to +0.71 dB over a constant QP per GOP. Best system: retuned rule + final4 (+0.36, lands almost exactly on
+budget); RL + final4 is 0.39 dB below it *.
+
+Corrections for the record:
+- Elephants Dream and Tears of Steel are v1 TEST clips (ed_s*, tos_s*), so the "fresh films" are not outside v1.
+  Nothing was trained on them, but they have been evaluated several times.
+- Sara: the per-length rule retuning (leave-one-film-out on ED / ToS) and the "equal-reliability" rule margin 0.96
+  (matched to RL's over-rate on test streams) were tuned on test clips, so we did not use them; we retuned on
+  train chains (bbb, sintel) and val instead.
+- Pavneet's D34/D35 stream numbers were already measured on test, so our Exp 7 test numbers confirm earlier
+  results rather than being a first look.
+
+
+5. PAVNEET'S LIVE-STREAM WORK (D38-D42, email 11-15) -- strongest RL-wins story in the project
+
+Very nice result (ppo_v2 vs the buffer rule vbv2: +0.44 / +0.35, robust across every sweep; il_ppo best). It also
+lines up with our R3: start from a good controller, imitate the hindsight solution, refine with RL. Before it goes
+in the report, a few checks that would make it much harder to challenge:
+1. Grid edges in vbv2: several tuned values look like grid limits (rmargin 0.9 in all four settings, psi 1.0
+   x265-sim, beta 1.0 x264-4G, alpha 1.0 in two settings). Exp 7 shows an edge optimum can hide most of RL's edge.
+   Could you send the grid ranges and widen any edge?
+2. MPC with the true network model does no better than vbv2 (closes -1 % to -8 % of the oracle gap); its 2-knob
+   grid (gamma, H) is probably too small, so "RL beats MPC" is weak as it stands.
+3. Test was reported in every round D38-D42 while the design changed (D39 baseline rebuild, D42 variants). Tuning
+   was on val, but the write-up should say test was seen repeatedly (or reserve a fresh sealed check).
+4. Same-clip vs mixed: the n = 8 test set includes 100 spliced streams, where most of D34's gain was. Could you
+   split ppo_v2 - vbv2 by same-clip / mixed?
+5. Metric: luma PSNR plus a stall term, so these numbers stay separate from the YUV 6:1:1 per-GOP numbers.
+
+
+6. NEXT
+
+Final report sections from results_v1/final/report_test.md and docs/EXPERIMENTS.md (caveats: final4's and the 540k
+learner's test rows predate the pass; x264's ABR margin is on its grid edge; R3 tested only at k5).
+
+7. ADDENDUM (later 11-16): PSNR cap correction (thanks Ahhana). Curves and final4 rows did not cap each plane at
+100 dB, the learners' rows did. With one cap everywhere: test R3 - final4 x264 +0.067, x265 +0.163 (was +0.066 /
++0.162); val x264 +0.077, cut/gradual +0.069 (was +0.068 / +0.016). Conclusions unchanged.
