@@ -5,7 +5,12 @@ curves and budgets, level-24-hole episodes excluded in the primary, R3 seeds ave
 final4 at the same k on (gid, level). CIs: rclib metrics.paired_ci (normal, episodes independent) and the team's
 95 % clip bootstrap (exp5/shift_report.boot: 2000 resamples of clips; here re-seeded per comparison, so CI ends can
 differ from the team's reports in the last digits; point estimates must match exactly).
-Run with Aayush's ee599 env (pyarrow):  python -I score_baselines_val.py   -> summary.md, rows_scored.parquet
+--psnr-cap: one PSNR convention everywhere, as report.py --psnr-cap: Aayush's cap_fix_<enc>.pkl gives 100 dB-capped
+constant-QP curves (all methods) and re-measured capped PSNR for the stored final4 rows; the x264 re-run and all
+learner rows are already capped (rclib); ABR rows stay uncapped, as in the team's capped report. Checked against
+results_v1/final/report_val_cap.md instead of report_val.md.
+Run with Aayush's ee599 env (pyarrow):  python -I score_baselines_val.py [--psnr-cap]
+  -> summary.md, rows_scored.parquet   (--psnr-cap: summary_cap.md, rows_scored_cap.parquet)
 """
 import glob
 import os
@@ -35,6 +40,19 @@ REP = {  # results_v1/final/report_val.md
     ("x264", "ABR m0.90"): {0: -1.525, 5: -1.260}, ("x265", "ABR m0.93"): {0: -1.401, 5: -1.017},
     ("x264", "R3 180k"): {5: -0.045}, ("x265", "R3 180k"): {5: -0.052},
 }
+REP_CAP = {  # results_v1/final/report_val_cap.md (same quantities, one PSNR cap everywhere)
+    ("x264", "final4"): dict(zip(KS, (-0.358, -0.148, -0.115, -0.119, -0.142))),
+    ("x265", "final4"): dict(zip(KS, (-0.470, -0.262, -0.254, -0.243, -0.237))),
+    ("x264", "ABR m0.90"): {0: -1.518, 5: -1.253}, ("x265", "ABR m0.93"): {0: -1.395, 5: -1.010},
+    ("x264", "R3 180k"): {5: -0.038}, ("x265", "R3 180k"): {5: -0.045},
+}
+REP_DIFF_CAP = {
+    "x264": {"all": 0.077, "s3": 0.062, "s4": 0.071, "s5": 0.098, "stable": 0.078, "cut/gradual": 0.069},
+    "x265": {"all": 0.209, "s3": 0.183, "s4": 0.212, "s5": 0.232, "stable": 0.224, "cut/gradual": 0.126},
+}
+CAP = "--psnr-cap" in sys.argv
+if CAP:
+    REP = REP_CAP
 REP_DIFF = {  # R3 180k - final4 at k5: all, per seed, by class
     "x264": {"all": 0.068, "s3": 0.054, "s4": 0.063, "s5": 0.089, "stable": 0.078, "cut/gradual": 0.016},
     "x265": {"all": 0.204, "s3": 0.178, "s4": 0.207, "s5": 0.227, "stable": 0.224, "cut/gradual": 0.094},
@@ -57,10 +75,24 @@ def fmt(t):
 class Scorer:
     def __init__(self, enc):
         self.inf = pickle.load(open(f"{RC}/{enc}_resh/results_infos/infos.pkl", "rb"))
+        # --psnr-cap: Aayush's fix (exp_next/final/cap_fix.py): capped curves per GOP, capped final4 PSNR per episode
+        self.fix = (pickle.load(open(f"{ROOT}/results_v1/final/cap_fix_{enc}.pkl", "rb")) if CAP
+                    else {"curves": {}, "final4": {}})
+
+    def curve(self, gid):            # = report.py Scorer.curve
+        cv = self.inf[gid]["curve"]
+        if gid in self.fix["curves"]:
+            assert len(cv["psnr"]) == len(self.fix["curves"][gid])
+            return {**cv, "psnr": self.fix["curves"][gid]}
+        return cv
+
+    def f4_psnr(self, gid, level, k, psnr):   # = report.py Scorer.f4_psnr (stored final4 rows only)
+        f = self.fix["final4"].get((gid, int(level), int(k)))
+        return psnr if f is None else f["psnr"]
 
     def row(self, enc, method, source, gid, level, k, bits, psnr, seed=-1):
         x = self.inf[gid]
-        cv, B = x["curve"], x["budget"][level]
+        cv, B = self.curve(gid), x["budget"][level]
         return {"enc": enc, "method": method, "source": source, "gid": gid, "clip": x["gop"]["clip"],
                 "level": int(level), "k": int(k), "seed": seed, "bits": float(bits), "psnr": float(psnr),
                 "score": float(metrics.score(bits, psnr, cv, B)), "hole": bool(B > max(cv["bits"])),
@@ -71,7 +103,8 @@ def stored_final4(enc, S):
     d = pd.concat(pd.read_parquet(f) for f in glob.glob(f"{ROOT}/results_v1/controller_real/final4_{enc}_val_*.parquet"))
     d["gid"] = d.clip_id + "@" + (30 * d.gop).astype(str)
     d = d[d.gid.isin(S.inf)]
-    return [S.row(enc, "final4", "stored", r.gid, r.level_q0, r.k, r.bits, r.psnr_yuv) for r in d.itertuples()]
+    return [S.row(enc, "final4", "stored", r.gid, r.level_q0, r.k, r.bits, S.f4_psnr(r.gid, r.level_q0, r.k, r.psnr_yuv))
+            for r in d.itertuples()]
 
 
 def stored_r3(enc, S):
@@ -113,6 +146,7 @@ def rerun_x264(S):
             c = S.inf[r["gid"]]["ctrl"][(r["budget"], k)]
             same_b += int(r["bits"] == c["bits"])
             same_s += int(abs(row["score"] - c["score"]) < 1e-9 and abs(row["score"] - r["score"]) < 1e-9)
+            # (with --psnr-cap the stored ctrl scores use the uncapped curves, so 'score' only matches off the fixed GOPs)
             rows.append(row)
         checks.append(("final4", f"k{k}", len(rr), f"total bits {same_b}/{len(rr)}, score {same_s}/{len(rr)}",
                        "info['ctrl'] (final4's own CLI run)"))
@@ -125,7 +159,7 @@ def rerun_x264(S):
             o = st[(r["gid"], r["budget"], s)]
             sq += int(list(r["qps"]) == o["qps"])
             sb += int(r["bits"] == o["bits"])
-            ss += int(abs(row["score"] - o["score"]) < 1e-9)
+            ss += int(abs(row["score"] - o["score"]) < 1e-9 or r["gid"] in S.fix["curves"])   # stored = old curves
             rows.append(row)
         checks.append(("R3 180k", f"seed {s}", len(rr), f"QPs {sq}/{len(rr)}, total bits {sb}/{len(rr)}, "
                        f"score {ss}/{len(rr)}", "eval_ckpt.pkl (180993, val)"))
@@ -171,7 +205,7 @@ def r3_diff_checks(d, enc):
             [(c, r3[r3.cls == c]) for c in ("stable", "cut/gradual")]:
         ep = sub.groupby(["gid", "level"]).score.mean()
         v = (ep - f4.loc[ep.index]).mean()
-        rep = REP_DIFF[enc][lab]
+        rep = (REP_DIFF_CAP if CAP else REP_DIFF)[enc][lab]
         out.append((enc, f"R3 - final4 k5, {lab}", f"{v:+.3f}", f"{rep:+.3f}",
                     "match" if round(v, 3) == round(rep, 3) else "MISMATCH"))
     return out
@@ -196,12 +230,16 @@ def main():
                            f"score {int(np.isclose(j.score, j.score_st, atol=1e-9, rtol=0).sum())}/{len(j)}",
                            "controller_real/final4_x264_val_*.parquet"))
     d = pd.DataFrame(rows)
-    d.to_parquet(f"{HERE}/rows_scored.parquet")
+    tag = "_cap" if CAP else ""
+    d.to_parquet(f"{HERE}/rows_scored{tag}.parquet")
     for enc in ("x264", "x265"):
         table += compare(d, enc)
         dchecks += r3_diff_checks(d, enc)
     t = pd.DataFrame(table)
-    L = ["# Frame-level baselines, val (x264 re-run on the shim; x265 and x264 CQP / ABR stored)", "",
+    L = ["# Frame-level baselines, val (x264 re-run on the shim; x265 and x264 CQP / ABR stored)"
+         + (", one PSNR cap everywhere" if CAP else ""), "",
+         *(["100 dB per-plane PSNR cap everywhere (cap_fix_<enc>.pkl: curves + stored final4); ABR rows uncapped, as in "
+            "the team's report_val_cap.md (at most 1 GOP x 4 levels per k).", ""] if CAP else []),
          "score = dPSNR_B - 0.17 dB x %over (rclib metrics.score), mean over episodes, level-24 hole excluded. "
          "Δ = method - final4 at the same k, paired on (GOP, level); R3 = seeds 3-5 averaged per episode. "
          "paired_ci = rclib metrics.paired_ci (mean ± 95 % half-width, episodes independent); boot = 95 % clip "
@@ -209,9 +247,9 @@ def main():
          t.to_markdown(index=False, floatfmt="+.3f"), "",
          "## Episode-level checks (x264 re-run vs stored)", "",
          pd.DataFrame(checks, columns=["method", "which", "episodes", "identical", "stored source"]).to_markdown(index=False), "",
-         "## Reported differences (results_v1/final/report_val.md)", "",
+         "## Reported differences (results_v1/final/report_val" + ("_cap" if CAP else "") + ".md)", "",
          pd.DataFrame(dchecks, columns=["enc", "quantity", "this table", "reported", "check"]).to_markdown(index=False)]
-    open(f"{HERE}/summary.md", "w").write("\n".join(L) + "\n")
+    open(f"{HERE}/summary{tag}.md", "w").write("\n".join(L) + "\n")
     print("\n".join(L))
 
 
