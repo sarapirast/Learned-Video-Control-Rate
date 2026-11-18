@@ -1,39 +1,39 @@
 # P1 experiments (x264, val only)
 
-Scripts behind P1's results since the shim backend (`RC_BACKEND=shim`, see `P1_README.md`). Code only: results,
-logs, datasets and models live outside git under `/scratch1/ahhanagu/ee599/` (paths below). The scripts were run
-from those folders and use absolute paths (my scratch, Aayush's read-only inputs in `/scratch1/aayushso/`), so they
-are a record of what ran, not a portable package. Python: Aayush's `rc` env (`stable_baselines3`, torch) for
-encodes / training, his `ee599` env (pyarrow) for scoring. Test was never used.
+Experiments by P1 (Ahhana) on top of the shim backend (`RC_BACKEND=shim`, see `P1_README.md` at the repo root): the
+team's rclib environment with P1's x264 shim instead of the x264 command line, identical results and ~13× faster.
+Test was never used. Each folder has its own README (question, runs, how to rerun, checks, results).
 
-## `shimcheck/` (2026-11-16): shim vs x264 CLI inside rclib
-`run.py` plays final4 and R3 (k5, seed 3) on 10 val GOPs (5 stable, 5 cut) x 4 levels with either backend; `go.sh`
-sets the environment. Result: per-frame QPs, bits, PSNR and score identical on 40/40 episodes for both methods;
-12-13x faster (`P1_README.md`). Note: `run.py` imports rclib from the pre-branch sandbox copy
-(`/scratch1/ahhanagu/tmp/mainpp`), identical to this branch's `pavneet_pipeline/rclib/codec.py`.
+**Paths:** the scripts use absolute paths: my scratch (`/scratch1/ahhanagu/ee599/`, all outputs, outside git), this
+repo clone, and Aayush's read-only inputs and Python envs (`/scratch1/aayushso/`: data, infos, search plans, stored
+runs, `envs/rc` for encodes/training, `envs/ee599` for scoring). They are a record of what ran; to rerun elsewhere,
+change the paths at the top of each script (for 03/04: `env.sh`). Data, logs, models and result files are not in git.
 
-## `baselines_val/`: frame-level baselines re-run on the shim
-`run_val.py` + `go.sh`: final4 at k 0/2/5/10/29 and R3 k5 seeds 3-5 (180k) on all 140 val GOPs x 4 levels.
-`score.py`: scores them with `rclib.metrics.score` against final4 at the same k (stable vs cut+gradual), adds the
-stored constant-QP / ABR rows and all x265 rows, and checks every number against the stored results.
-Outputs: `/scratch1/ahhanagu/ee599/results/baselines_val/` (`summary.md`, `rows_scored.parquet`).
-Finding: final4's stored rows (P2 `rd_native.psnr`) do not cap PSNR at 100 dB, rclib does (R3's rows); on two cut
-GOPs this inflates final4, so the team's x264 R3 - final4 (+0.068) is +0.077 with one convention.
+## Experiments
+**[01 · Shim vs CLI check](01_shim_vs_cli_check/).** final4 and R3 on 10 val GOPs × 4 budget levels with both
+backends: per-frame QPs, bits, PSNR and score identical on 40/40 episodes; 12–13× faster (R3 training ~33 → ~4 min).
 
-## `r3_kcurve/`: R3 across lookahead (k 0/2/5/10/29) and the R2c control
-Recipe = the stored R3 run (`rl.py --method res`, lambda 0.17, f4, drop level, res-mean pooled, 20k critic-only
-warm-up, BC actor, 180k steps), 14 envs on 16 cores, shim backend. `env.sh` = modules + rclib variables (all writes to
-`/scratch1/ahhanagu/ee599/results/r3_kcurve/`; `work/` links Aayush's `x264_resh` inputs read-only).
+**[02 · Baseline reproduction](02_baseline_reproduction/).** final4 at k 0/2/5/10/29 and R3 k5 (seeds 3–5) re-run
+on all of val; R3 reproduced exactly, final4's bits exactly. Found that final4's stored PSNR was not capped at 100 dB
+per plane while the learners' was; Aayush adopted one cap (val x264 R3 − final4 +0.077, cut/gradual +0.069).
 
-| Step | Scripts |
-|---|---|
-| BC data + shift at a new k (no encodes) | `exp5_build.py` (P1 copy of P2's `build.py`: k from `EXP5_KS`, shift file from `RC_SHIFTS`, ordered rows; changes marked "P1 copy"), `exp5_shift.py` (P2's `shift_smooth.py` fit), `exp5_compare.py` |
-| Check before use | every chain rebuilds k5 too: its shift must equal Aayush's and its v2 data must equal his row for row, else the job stops |
-| BC networks | P2's `bc_train.py` unchanged; one process at a time (two at once oversubscribe the cores ~20x) |
-| Jobs | `prep.sbatch` + `bc.sbatch` (k29, k0 seed 3), `bc2.sbatch` (k0/k29 seeds 4-5), `prep2.sbatch` (k2, k10), `rl.sbatch` (array; args = run list, shift file), `submit*.sh` |
-| Run lists | `runs.txt` (k5/k0/k29 s3), `runs_b2a.txt` (k0/k29/k5 s4-5), `runs_b2b.txt` (k2/k10 s3), `runs_r2c.txt` (R2c: k0/k29 s3-5, k5 s0 repro) |
-| Scoring | `score_kcurve.py` (batch 1), `score_all.py` (all runs: BC = 20k checkpoint, R3 = final, vs final4 at the same k), `weights_check.py` |
+**[03 · R3 across lookahead](03_r3_lookahead/).** R3 and its BC start at k 0, 2, 5, 10, 29 (3 seeds at k0/k5/k29).
+R3 beats final4 by +0.07 to +0.10 dB at every k; the BC start goes from far below final4 (k0) to above it (k ≥ 10),
+so PPO matters most for live encoding. k5 retrains are bit-identical to Aayush's models. Provisional scores.
 
-Checks passed: k5 retrains (seeds 3, 4, 5) are bit-identical to Aayush's models; BC networks use his fold protocol
-(fitting clips only, same 5 hold-out clips, 0 fold clips). Outputs: `results/r3_kcurve/summary_all.md`,
-`rows_all.parquet`. R2c = R3 without `--init-bc` (Aayush's definition, `p2_data/exp_next/exp4/report_r3.py`).
+**[04 · R2c control](04_r2c_control/).** R3 without the BC start at k0 and k29 (seeds 3–5), for the BC-start effect.
+Runs complete, not scored yet; the k5 reproduction check against Aayush's stored R2c failed (likely a code-version
+difference on 11-14, see the folder README).
+
+## Lessons learned
+- **Train BC networks one after the other, not in parallel.** `bc_train.py` uses as many torch threads as the job has
+  cores; two at once oversubscribe them and run ~20× slower (job 14304096 timed out).
+- **`env.sh` strict-mode fix.** Job scripts use `set -euo pipefail`, but `/etc/profile` (`lang.sh`: `LC_ALL` unbound)
+  and Lmod are not safe under `set -u`: switch it off while they load (the first prep job died after 2 s, empty log).
+- **Set `RC_METRIC=dpsnr`.** Without it rclib's `res` arm scores with the old % saving metric (bits/actions unchanged).
+- **Git: fetch from the login node if a compute node is slow.** The first fetch on a compute node timed out (the remote
+  holds large result pickles); later fetches took seconds.
+- **Merge `main` into a shared branch; don't rebase it.** Rebasing would flatten the p1 merge and need a force-push.
+- **Fit on held-out data does not predict closed-loop quality for BC** (k0 fits best and drifts worst; k29 the reverse).
+- **One scoring convention everywhere:** rescore every method with the same function, curves and PSNR cap before
+  comparing; a mixed convention moved the team's x264 cut/gradual number from +0.016 to +0.069.

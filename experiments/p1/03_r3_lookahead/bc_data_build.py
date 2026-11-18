@@ -1,4 +1,7 @@
-"""P1 COPY of p2_data/exp_next/exp5/build.py (origin/main 046d1f9), patched only where marked "P1 copy".
+"""bc_data_build.py = P1 COPY of p2_data/exp_next/exp5/build.py (origin/main 046d1f9), patched only where marked
+"P1 copy": k list from EXP5_KS, shift file from RC_SHIFTS, rclib from this branch, ordered rows. Builds the BC dataset
+(no encodes) by replaying kept search plans through the env. Usage: see the original docstring below and the job
+scripts (EXP5_KS=29 python bc_data_build.py --workers N --out DIR [--v2]).
 """
 """Experiment 5, step 1: replay final4 (R2 residual env) along kept search plans at budget S and build the BC dataset.
 See exp_next/exp5/PREREG.md. Run in the res job env with RC_RES_RANGE=6 (R2's action range):

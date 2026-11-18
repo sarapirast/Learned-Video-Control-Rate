@@ -6,7 +6,7 @@ Per k: BC - final4, R3 - final4, R3 - BC, all paired on (GOP, level), level-24 h
 cut+gradual; 95 % clip bootstrap (re-seeded per comparison) and rclib metrics.paired_ci. final4 = the shim re-run
 (results/baselines_val/rows_scored.parquet), same PSNR convention (rclib, 100 dB cap) as every R3 row here.
 Also per seed (R3 - final4, BC - final4), and the k5 seed 4/5 reruns vs Aayush's stored runs (episodes).
-  python -I score_all.py     (Aayush's ee599 env)   -> ../summary_all.md, ../rows_all.parquet
+  python -I score_lookahead_all.py     (Aayush's ee599 env)   -> ../summary_all.md, ../rows_all.parquet
 """
 import glob
 import os

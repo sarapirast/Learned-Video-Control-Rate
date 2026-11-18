@@ -6,15 +6,20 @@
 #SBATCH --array=0-2
 #SBATCH --job-name=r3k_rl
 #SBATCH --output=/scratch1/ahhanagu/ee599/results/r3_kcurve/logs/%x-%A_%a.out
-# Stage 1: R3 (x264, seed 3, 180k PPO steps) at k = 5 / 0 / 29 = line SLURM_ARRAY_TASK_ID+1 of runs.txt.
+# train_r3.sbatch: one rl.py run per array task (task i = line i+1 of the run list). Used for R3 (03) and R2c (04).
+# Run: sbatch [--array=0-<n-1>] train_r3.sbatch [<run list>] [<shifts json>]; normally via a submit_*.sh.
+#   run list default: runs_batch1_k5_k0_k29_seed3.txt (3 lines -> the header's --array=0-2)
+#   shifts json default: env.sh's RC_SHIFTS ($B/exp5/shifts_smooth.json: k0, k5, k29)
+# Inputs: BC networks named in the run list (--init-bc), Aayush's x264_resh infos/GOPs via $B/work.
+# Outputs: $B/work/results_rl/<run name>/ (model.zip, model_<step>.zip, eval.pkl, eval_ckpt.pkl, train_curve.npy).
 # Recipe = the stored R3 run (rl.py --method res, lam 0.17, f4, drop level, res-mean pooled, BC actor, 20k critic-only
 # warm-up), 14 envs on 16 cores as the team's RL jobs, rclib on the shim backend. Checkpoints at 20k (= the BC start:
 # the actor is frozen during the warm-up), 60k, 120k; final model at 180k. All are evaluated on val (560 episodes).
 # rl.py cannot resume: a failed task is rerun from the start (a finished one is skipped: eval.pkl exists).
 set -uo pipefail
-source /scratch1/ahhanagu/ee599/results/r3_kcurve/scripts/env.sh
-# optional: $1 = run list (default runs.txt), $2 = shifts json for --res-mean (default env.sh's RC_SHIFTS)
-RUNS=${1:-$B/scripts/runs.txt}
+source /scratch1/ahhanagu/ee599/Learned-Video-Control-Rate/experiments/p1/03_r3_lookahead/env.sh
+# optional: $1 = run list (default runs_batch1_k5_k0_k29_seed3.txt), $2 = shifts json for --res-mean (default env.sh's RC_SHIFTS)
+RUNS=${1:-$S/runs_batch1_k5_k0_k29_seed3.txt}
 [[ -n ${2:-} ]] && export RC_SHIFTS=$2
 ARGS=$(sed -n "$((SLURM_ARRAY_TASK_ID + 1))p" "$RUNS")
 [[ -n $ARGS ]] || { echo "no line $((SLURM_ARRAY_TASK_ID + 1)) in $RUNS"; exit 2; }

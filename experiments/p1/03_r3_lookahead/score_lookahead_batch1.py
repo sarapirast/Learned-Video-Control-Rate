@@ -5,7 +5,7 @@ resh infos.pkl). R3 rows = rl.py's eval.pkl (final model, 180k) and eval_ckpt.pk
 frozen during the 20k critic warm-up, 60k, 120k), re-scored the same way. Level-24 hole excluded; paired on (GOP,
 level); CIs: rclib metrics.paired_ci and the team's 95 % clip bootstrap (re-seeded per comparison).
 Also: the k5 retrain vs the stored R3 seed-3 run (episodes and model weights).
-  python -I score_kcurve.py     (Aayush's ee599 env)   -> ../summary.md, ../rows_scored.parquet
+  python -I score_lookahead_batch1.py     (Aayush's ee599 env)   -> ../summary.md, ../rows_scored.parquet
 """
 
 import os
@@ -95,7 +95,7 @@ def main():
     same_q = sum(list(mine[x]["qps"]) == list(st[x]["qps"]) for x in st)
     same_s = sum(abs(mine[x]["score"] - st[x]["score"]) < 1e-9 for x in st)
 
-    # weights compared in the rc env (this env has no torch): weights_check.txt, written by the one-liner in the README
+    # weights compared in the rc env (this env has no torch): weights_check.txt, written by check_k5_r3_weights.py
     check = [f"episodes with identical QPs: {same_q}/{len(st)}; identical score: {same_s}/{len(st)}",
              open(f"{B}/weights_check.txt").read().strip()]
 

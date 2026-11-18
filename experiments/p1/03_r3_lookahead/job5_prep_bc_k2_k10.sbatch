@@ -5,28 +5,30 @@
 #SBATCH --time=1:15:00
 #SBATCH --job-name=r3k_prep2
 #SBATCH --output=/scratch1/ahhanagu/ee599/results/r3_kcurve/logs/%x-%j.out
-# Batch 2, k2 and k10 (seed 3): same chain as k29 (prep.sbatch steps 1-3 + bc.sbatch), into exp5_k2k10/.
-#   1. exp5_build.py v1 at k5,2,10 -> k5 smooth shift must equal Aayush's (else stop)
+# Job 5 of 03_r3_lookahead (batch 2, chain B): BC data, shifts and BC networks for k2 and k10 (seed 3); same chain as
+# k29 (job1 steps 1-3 + job2). Run: submit_batch2.sh (queues R3 array B after it).
+# Outputs: $B/exp5_k2k10/ (data, plans, shifts_smooth.json with k0/k5/k29/k2/k10), $B/exp5/bc/bc_x264_k{2,10}_s3.pt.
+#   1. bc_data_build.py v1 at k5,2,10 -> k5 smooth shift must equal Aayush's (else stop)
 #   2. k2, k10 smooth shifts -> exp5_k2k10/shifts_smooth.json = exp5/shifts_smooth.json (Aayush's k0/k5 + my k29) + k2, k10
-#   3. exp5_build.py --v2 at k5,2,10 -> k5 v2 data must equal Aayush's as a set of rows (else stop)
+#   3. bc_data_build.py --v2 at k5,2,10 -> k5 v2 data must equal Aayush's as a set of rows (else stop)
 #   4. bc_train.py seed 3 at k2 then k10, one process (16 threads), networks into exp5/bc
-# No encodes. 64G: three k in memory at once (prep.sbatch held two in 48G).
+# No encodes. 64G: three k in memory at once (job 1 held two in 48G).
 set -euo pipefail
-source /scratch1/ahhanagu/ee599/results/r3_kcurve/scripts/env.sh
-E=$B/exp5_k2k10; S=$B/scripts; W=$(( SLURM_CPUS_PER_TASK - 1 ))
+source /scratch1/ahhanagu/ee599/Learned-Video-Control-Rate/experiments/p1/03_r3_lookahead/env.sh
+E=$B/exp5_k2k10; W=$(( SLURM_CPUS_PER_TASK - 1 ))   # S comes from env.sh
 BC=$REPO/p2_data/exp_next/exp5/bc_train.py
 mkdir -p "$E"; cd "$S"
 if [[ ! -f $E/shifts_smooth.json ]]; then
   echo "$(date +%T) step 1: v1 data k5,2,10"
-  EXP5_KS=5,2,10 $PY -W ignore exp5_build.py --workers $W --out "$E" | tail -2
-  EXP5_KS=5 $PY -I exp5_shift.py "$E" --check
+  EXP5_KS=5,2,10 $PY -W ignore bc_data_build.py --workers $W --out "$E" | tail -2
+  EXP5_KS=5 $PY -I bc_shift_fit.py "$E" --check
   echo "$(date +%T) step 2: k2, k10 shifts"
-  EXP5_KS=2,10 $PY -I exp5_shift.py "$E" --base "$B/exp5/shifts_smooth.json"
+  EXP5_KS=2,10 $PY -I bc_shift_fit.py "$E" --base "$B/exp5/shifts_smooth.json"
 fi
 if [[ ! -f $E/data_v2_x264_k10.npz ]]; then
   echo "$(date +%T) step 3: v2 data k5,2,10"
-  RC_SHIFTS=$E/shifts_smooth.json EXP5_KS=5,2,10 $PY -W ignore exp5_build.py --v2 --workers $W --out "$E" | tail -2
-  $PY -I exp5_compare.py "$E" v2 5
+  RC_SHIFTS=$E/shifts_smooth.json EXP5_KS=5,2,10 $PY -W ignore bc_data_build.py --v2 --workers $W --out "$E" | tail -2
+  $PY -I bc_data_compare.py "$E" v2 5
 fi
 if [[ -f $B/exp5/bc/bc_x264_k2_s3.pt && -f $B/exp5/bc/bc_x264_k10_s3.pt ]]; then
   echo "BC k2, k10: exist, skipped"

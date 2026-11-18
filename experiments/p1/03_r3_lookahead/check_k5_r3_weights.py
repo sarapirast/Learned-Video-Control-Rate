@@ -1,7 +1,7 @@
 """Compare the policy weights of my k5 R3 reruns with Aayush's stored models (bit-identical = training through the shim
 reproduces R3 exactly). Needs torch: run with Aayush's rc env.
-  python -I weights_check.py <out.txt> <seed> [<seed> ...]     e.g. weights_check.txt 3 ; weights_check_b2.txt 4 5
-Read by score_kcurve.py (weights_check.txt) and score_all.py (weights_check_b2.txt).
+  python -I check_k5_r3_weights.py <out.txt> <seed> [<seed> ...]     e.g. weights_check.txt 3 ; weights_check_b2.txt 4 5
+Read by score_lookahead_batch1.py (weights_check.txt) and score_lookahead_all.py (weights_check_b2.txt).
 """
 import io
 import sys

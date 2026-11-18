@@ -1,6 +1,6 @@
 """Check that a rebuilt BC dataset equals Aayush's as a set of rows (row order differs: his build used imap_unordered).
 Row key = (gid, level, S, t) of the plan + a 64-bit fingerprint of the observation + every label column.
-  python -I exp5_compare.py <mine dir> <tag: v1|v2> <k>
+  python -I bc_data_compare.py <mine dir> <tag: v1|v2> <k>
 """
 import sys
 

@@ -1,8 +1,8 @@
 """Smooth pooled mean shift for x264 at the k in EXP5_KS, with the fit of p2_data/exp_next/exp5/shift_smooth.py (fit()
 copied verbatim; weights = shift_fit.weights: exp(delta / beta) clipped at the 99th percentile), from the v1 data that
-exp5_build.py wrote to <dir>. Writes <dir>/shifts_smooth.json = Aayush's file + the new "x264|<k>|pooled" entries.
+bc_data_build.py wrote to <dir>. Writes <dir>/shifts_smooth.json = Aayush's file + the new "x264|<k>|pooled" entries.
 --check: compare the fitted vectors with Aayush's entries for the same k (for k5 / k0 validation) instead of writing.
-  python -I exp5_shift.py <dir> [--check] [--base <shifts json to extend; default Aayush's>]
+  python -I bc_shift_fit.py <dir> [--check] [--base <shifts json to extend; default Aayush's>]
 """
 import json
 import os

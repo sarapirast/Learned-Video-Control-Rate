@@ -5,7 +5,7 @@ curves and budgets, level-24-hole episodes excluded in the primary, R3 seeds ave
 final4 at the same k on (gid, level). CIs: rclib metrics.paired_ci (normal, episodes independent) and the team's
 95 % clip bootstrap (exp5/shift_report.boot: 2000 resamples of clips; here re-seeded per comparison, so CI ends can
 differ from the team's reports in the last digits; point estimates must match exactly).
-Run with Aayush's ee599 env (pyarrow):  python -I score.py   -> summary.md, rows_scored.parquet
+Run with Aayush's ee599 env (pyarrow):  python -I score_baselines_val.py   -> summary.md, rows_scored.parquet
 """
 import glob
 import os

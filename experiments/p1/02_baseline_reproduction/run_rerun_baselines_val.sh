@@ -1,5 +1,7 @@
 #!/bin/bash
-# go.sh <final4|r3> [run_val.py args]   x264, shim backend, Aayush's rc env; outputs only under my scratch
+# run_rerun_baselines_val.sh: run rerun_baselines_val.py (x264, shim backend, Aayush's rc env).
+# Run (on a compute node, ~10 min each): bash run_rerun_baselines_val.sh final4   and   ... r3
+# Outputs: /scratch1/ahhanagu/ee599/results/baselines_val/rows_final4_k<k>.pkl, rows_r3_s<seed>.pkl
 set -e
 source /etc/profile >/dev/null 2>&1
 module purge >/dev/null 2>&1
@@ -10,4 +12,4 @@ export RC_WORK=/scratch1/aayushso/rcwork_v1/x264_resh RC_WORKERS=1 RC_BACKEND=sh
 export RC_REPORTS=/scratch1/ahhanagu/tmp/rc_reports RC_TMP=/dev/shm/rc_ahhanagu_${SLURM_JOB_ID:-none}
 export TMPDIR=/scratch1/ahhanagu/tmp
 if [ "$1" = r3 ]; then export RC_RES_RECAP=bit; else export RC_RES_RECAP=0; fi
-/scratch1/aayushso/envs/rc/bin/python -I "$(dirname "$0")/run_val.py" --method "$@"
+/scratch1/aayushso/envs/rc/bin/python -I "$(dirname "$0")/rerun_baselines_val.py" --method "$@"

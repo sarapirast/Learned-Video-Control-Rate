@@ -1,7 +1,7 @@
 """CLI vs shim backend for rclib's env: final4 or R3 (x264 k5, seed 3, 180k) on a few val GOPs.
 
 Episode loop = rclib/policies.py _episode (same env construction), but keeps per-frame bits / PSNR. Single process.
-  RC_BACKEND=cli|shim ... python -I run.py --method final4|r3 --out rows.pkl [--pixels]
+  RC_BACKEND=cli|shim ... python -I shim_vs_cli_check.py   (normally via run_shim_vs_cli_check.sh) --method final4|r3 --out rows.pkl [--pixels]
 """
 import argparse
 import json
@@ -10,7 +10,8 @@ import pickle
 import sys
 import time
 
-sys.path.insert(0, "/scratch1/ahhanagu/tmp/mainpp/pavneet_pipeline")      # main's rclib + the RC_BACKEND hook
+sys.path.insert(0, "/scratch1/ahhanagu/ee599/Learned-Video-Control-Rate/pavneet_pipeline")   # rclib + RC_BACKEND hook
+# (as run: a sandbox copy of main's pavneet_pipeline with the same hook; identical to this branch's codec.py)
 sys.path.insert(0, "/scratch1/ahhanagu/ee599/Learned-Video-Control-Rate")  # p1: x264env
 import numpy as np  # noqa: E402
 from rclib import codec, config as C, data, env as E, policies as P  # noqa: E402

@@ -5,10 +5,12 @@
 #SBATCH --time=1:00:00
 #SBATCH --job-name=r3k_bc2
 #SBATCH --output=/scratch1/ahhanagu/ee599/results/r3_kcurve/logs/%x-%j.out
-# Batch 2, BC for seeds 4 and 5 at k29 (my k29 data) and k0 (Aayush's k0 data). One bc_train.py at a time
+# Job 4 of 03_r3_lookahead (batch 2, chain A): BC networks for seeds 4 and 5 at k29 (my k29 data) and k0 (Aayush's
+# k0 data). Run: submit_batch2.sh (queues R3 array A after it). Outputs: $B/exp5/bc/bc_x264_k{29,0}_s{4,5}.pt.
+# One bc_train.py at a time
 # (16 threads; two at once oversubscribe the cores ~20x, job 14304096). A network that exists is skipped.
 set -euo pipefail
-source /scratch1/ahhanagu/ee599/results/r3_kcurve/scripts/env.sh
+source /scratch1/ahhanagu/ee599/Learned-Video-Control-Rate/experiments/p1/03_r3_lookahead/env.sh
 E=$B/exp5
 BC=$REPO/p2_data/exp_next/exp5/bc_train.py
 train() {   # train <k> <data dir>: seeds 4,5 in one process (data loaded once)
