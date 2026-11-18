@@ -12,6 +12,7 @@ Out: results_v1/next/exp5/shifts_smooth.json ({"enc|k|pooled" or "enc|k|L<lv>": 
      shift_smooth.md
 """
 import json
+import os
 import sys
 
 import numpy as np
@@ -41,7 +42,8 @@ def main():
                   "| enc | k | variant | I | frame 1 | ramp f2 | ramp f29 | sd of per-frame means about the line (f2-29) "
                   "| corr(residual, ramp rounding error) |", "|---|---|---|---|---|---|---|---|---|"]
     for enc in ("x264", "x265"):
-        plans = pd.read_pickle(f"{OUT}/plans_{enc}.pkl").set_index("pid")
+        psuf = "_k" + os.environ["EXP5_KS"].replace(",", "_") if "EXP5_KS" in os.environ else ""
+        plans = pd.read_pickle(f"{OUT}/plans_{enc}{psuf}.pkl").set_index("pid")   # the plans file built with these npz
         for k in KS:
             z = np.load(f"{OUT}/data_{enc}_k{k}.npz")
             lab, t, pid = z["label"].astype(float), z["t"].astype(int), z["pid"]
@@ -57,8 +59,20 @@ def main():
     L += ["", "Per-level vs pooled (max |difference| of the smooth vectors): " + "; ".join(
         f"{e} k{k} {max(np.abs(np.array(out[f'{e}|{k}|L{lv}']) - np.array(out[f'{e}|{k}|pooled'])).max() for lv in LEVELS):.2f}"
         for e in ("x264", "x265") for k in KS), ""]
-    json.dump(out, open(f"{OUT}/shifts_smooth.json", "w"), indent=0)
-    open(f"{OUT}/shift_smooth.md", "w").write("\n".join(L) + "\n")
+    if "EXP5_KS" in os.environ:     # final week 11-17: add the new k only; existing entries must not change
+        prev = json.load(open(f"{OUT}/shifts_smooth.json"))
+        clash = [key for key in out if key in prev and prev[key] != out[key]]
+        assert not clash, f"would change existing entries: {clash[:4]}"
+        new = [key for key in out if key not in prev]
+        prev.update(out)
+        tmp = f"{OUT}/shifts_smooth.json.part"
+        json.dump(prev, open(tmp, "w"), indent=0)
+        os.replace(tmp, f"{OUT}/shifts_smooth.json")
+        open(f"{OUT}/shift_smooth_k{os.environ['EXP5_KS'].replace(',', '_')}.md", "w").write("\n".join(L) + "\n")
+        print(f"added {len(new)} entries: {new}")
+    else:
+        json.dump(out, open(f"{OUT}/shifts_smooth.json", "w"), indent=0)
+        open(f"{OUT}/shift_smooth.md", "w").write("\n".join(L) + "\n")
     print("\n".join(L))
 
 

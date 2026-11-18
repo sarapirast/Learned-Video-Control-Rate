@@ -15,6 +15,8 @@ import argparse
 import json
 import zipfile
 
+import os
+
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
@@ -22,6 +24,7 @@ from sklearn.model_selection import GroupKFold
 
 OUT = "/scratch1/aayushso/ee599/results_v1/next/exp5"
 BETAS, KS, LEVELS, GOP = (0.05, 0.1, 0.2), (0, 5), (24, 30, 36, 42), 30
+KS = tuple(int(x) for x in os.environ.get("EXP5_KS", "0,5").split(","))   # final week 11-17: k2 added via EXP5_KS=2
 OBS_QCTRL = 346          # f4 extra slot 0 = (final4's proposed QP - 30) / 10 (rclib/env.py _extra)
 DMAX, PMIN, DI = 3, 1, 6  # final4 setting 1.0:6:1.0:2:3:4:1:1:1:0:3 -> dI 6, dmax 3, pmin 1
 

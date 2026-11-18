@@ -759,7 +759,7 @@ and how does that change with lookahead k? Results are split into cut, gradual a
     -0.018; x265 -0.074 vs -0.120), but it overshoots more: 29% / 26% of episodes over by 5.2% / 4.4% on average
     when over (final4: 54-56% of episodes, about 1.7% when over). Penalty 0.25 vs 0.16 dB (x264).
 
-- [ ] 41. NEXT EXPERIMENTS (Aayush 11-13: docs/next-experiments-2026-11-13.md + agent brief, amendments in its
+- [x] 41. NEXT EXPERIMENTS (Aayush 11-13: docs/next-experiments-2026-11-13.md + agent brief, amendments in its
   Part E). Work in exp_next/, results in results_v1/next/.
   - [x] Exp 0 first-hour checks -> exp_next/exp0/CHECKS.md (train parity 40/40 exact per encoder, run on the
     interactive node). Open decision for Aayush: R2 cap handling (recommend (a), keep resh behaviour).
@@ -915,7 +915,7 @@ and how does that change with lookahead k? Results are split into cut, gradual a
     --save-at 180993 (= end of a plain 180k run: 896 steps/update, warm-up ends 20,608, 180k run ends 180,992);
     verified bit-identical on a scaled pair (test runs deleted). runs_v1/final_r3_s345.txt (seeds 3-5, val only).
     F stage-1 sbatch (BC seeds 3-5 -> R3 array) awaiting OK.
-- [ ] 42. Exp 7 (Aayush 11-14: run it ourselves this weekend; freeze into exp_next/final/PREREG.md by Monday; F stage 1
+- [x] 42. Exp 7 (Aayush 11-14: run it ourselves this weekend; freeze into exp_next/final/PREREG.md by Monday; F stage 1
   first; --exclude d18-35 + flaky list on every sbatch). STEP 0 DONE (exp_next/exp7/STEP0.md, PROVENANCE.txt;
   copies in exp_next/exp7/src_pavneet (eb08445), src_sara (1860557)): Pavneet clean (train / val); Sara's LOFO and
   margin 0.96 tuned on test (flag); Sara has no checkpoints; ED/ToS are v1 test clips; no v1 clip >= 16 GOPs (val
@@ -979,13 +979,14 @@ and how does that change with lookahead k? Results are split into cut, gradual a
   deleted empty rcwork_v1/x264_lfq/results_rl_quick/bc_k0_fixed_attn-kall_s0; scripts/sync_to_repo.sh now also syncs
   exp_next/ (code/docs/logs only); scripts/sync_project2.sh all DONE 10:54 (about 19 GB copied, exit 0; log
   logs/sync_project2_2026-11-16.log).
-  Not yet in the team repo: these three docs + the sync script change (next sync / commit).
+  11-17: team repo commit 849c0c0 (final write-up, team update, cap_fix.py, report --psnr-cap, EXPERIMENTS/tracker,
+  sync script) on p2-data-v1; PUSHED 11-17 (origin/main = 849c0c0, verified). TA briefing and the reply to Ahhana stay local.
   Ahhana 11-16 update: reply drafted docs/reply-ahhana-2026-11-16.txt. PSNR-cap correction (11-16, from Ahhana): one convention everywhere, each plane's per-frame PSNR capped at 100 dB (curves recomputed from rd_frames; final4 re-measured by re-encoding its stored QPs, bits identical; exp_next/final/cap_fix.py, report.py --psnr-cap -> results_v1/final/report_{val,test}_cap.md). Affected scored GOPs: MusicVideo_360P-5f07 @30/@180 (val), MusicVideo_360P-5699 @0 (test). Test R3 - final4: x264 +0.066 -> +0.067 [+0.023, +0.107], x265 +0.162 -> +0.163 [+0.086, +0.243]; x265 vs final4 + shift unchanged +0.074; cut/gradual +0.056 -> +0.060 / +0.098 -> +0.102. Val: x264 +0.068 -> +0.077, cut/gradual +0.016 -> +0.069 (= Ahhana's), x265 +0.204 -> +0.209. Exp 7 unchanged.
   F stage 1 DONE: fresh seeds 3-5 val R3 - final4 at 180k: x264 +0.054/+0.063/+0.089 (mean +0.068), x265 +0.178/
   +0.207/+0.227 (mean +0.204) -- replicate R3 (+0.066 / +0.190); 360k secondary +0.082 / +0.198; 60k +0.026 / +0.139.
     PREREG_BC.md REVISION 1: R2's setup (R1 only if R2 clearly loses on the fold), BC obs = R3 obs, Gaussian PPO
     with mean = BC net + mean[t], step-0 reproduction check vs the BC-only rung, bit cap only. Next in item 41: centred BC (GO) without o[2], o[5..8].
-  - [ ] Exp 4 R3, Exp 6 gate, Exp 7 (with Pavneet): not started;
+  - [x] Exp 4 R3, Exp 6 gate, Exp 7: all done 11-16 (stale line kept for history);
     every sbatch shown to Aayush first.
 - [ ] 32. PROPOSED (Aayush 11-11, not approved to run). BLOCK-LEVEL STATISTICS for the per-frame rate slope (gate).
   Idea (Aayush): texture/motion/noise at a finer level than the frame. Our action is ONE QP per frame (AQ off, forced
@@ -1333,3 +1334,54 @@ order was agreed with Aayush.
     x265: Lagr orig k=0 4.12, best k=29 4.75 (+0.63 +- 0.26); dec k=0 3.45 (leak drop 0.67 vs 1.31 on x264);
     CQL->PPO x265 3.49 at k=0 (x264 -0.17); BC gains most from lookahead but overshoots 20-30%.
     Correction: x264 ABR+VBV over budget = 85% pooled over both budgets (62-76% was QP38 only).
+- [~] 43. FINAL WEEK (Aayush 11-17: docs/final-week-experiments-2026-11-17.md, "go ahead"; rules exp_next/fw/PLAN.md;
+  freeze: no launches after Thu 11-19 12:00). Val only, exploratory.
+  - [x] V1-V5 answered (PLAN.md): R3 replays final4's GOP n-1 history (item 2 needed); ckpts 60k/181k(/360k); warm-up
+    inside the 180k; Ahhana's k0/k29 details unknown (ask); hill_climb(start=) exists, 600 = whole-GOP encodes.
+  - [x] Item 5 metric sensitivity (exp_next/fw/metric_sens.py -> results_v1/next/fw/metric_sens_val.md): R3 - final4
+    x264 -0.026 n.s. at lambda 0 (sign flip ~0.05), +0.077 * at 0.17, +0.384 * at 0.68; x265 +0.108 * at 0 ...
+    +0.511 * at 0.68. TEST (post-hoc re-analysis of the sealed rows, Aayush OK 11-17; metric_sens_test.md; the 0.17 row
+    reproduces the capped test pass +0.067 / +0.163 / shift +0.074): R3 - final4 x264 +0.010 n.s. at 0, +0.038 * at
+    0.085, +0.240 * at 0.68 (no sign change in [0, 1]); x265 +0.088 * at 0 ... +0.388 * at 0.68.
+  - Item 2 x264 DONE (14315512, 3 min): own - stored history -0.013 [-0.023, -0.002] * val (<= 0.02 -> one sentence);
+    89 % of episodes used own GOP n-1; L42 -0.025, cut/gradual -0.018.
+  - Item 2 code exp_next/fw/seq_history.py: formula check 496/496 both enc, stored-mode parity 20/20 (x264, 1 clip).
+  - Exp 5 scripts: EXP5_KS env (k2 own plans/labels files), shift_smooth add-only, bc_eval --tag; originals in
+    exp_next/fw/orig_*.py, shifts_smooth.json backup exp_next/fw/shifts_smooth_before_k2.json.
+  - SUBMITTED 11-17 (Aayush OK, exp_next/fw/submit.sh go):
+    x264: seqhist 14315512, BC-alone k0 14315513, no-warm-up RL 14315514, curve RL 14315515, build k2 14315516,
+          build v2 k2 14315527, BC k2 14315528, BC-alone k2/k5 14315529, R3 k2 RL 14315530
+    x265: seqhist 14315517, BC-alone k0 14315518, no-warm-up RL 14315519, curve RL 14315520, build k2 14315521,
+          build v2 k2 14315531, BC k2 14315532, BC-alone k2/k5 14315533, R3 k2 RL 14315534
+    shift k2 (both enc) 14315522.
+  - x264 ALL DONE (RL arrays ~23 min each). Report exp_next/fw/report_fw.py -> results_v1/next/fw/report_fw_val.md
+    (+ fig_kcurve.png, fig_curve.png). x264 val: item 1 R3 - final4 k2 +0.035 n.s., k5 +0.077 *; BC alone - final4
+    k0 -0.531 *, k2 -0.241 *, k5 -0.155 *; R3 - BC alone k2 +0.276 *, k5 +0.231 *. Item 3: determinism exact (re-run
+    = F seed 3 at 60k and 180k, 548/548); end of warm-up = BC alone exactly (560/560 QPs); s3 curve -0.231 (BC) ->
+    +0.041 (40k) -> -0.002 (60k) -> +0.094 (90k) -> +0.114 (120k) -> +0.062 (180k); A and spend error both improve.
+    Item 4 x264: R3 - no warm-up +0.007 [-0.025, +0.039] (s3 -0.044, s4 +0.099, s5 -0.032).
+  - Item 2 x265 DONE (10 min): own - stored -0.041 [-0.079, -0.010] * (L42 -0.130, stable -0.050 *, cut +0.006);
+    pooled -0.027 [-0.049, -0.009] * -> EXCEEDS the 0.02 rule -> ESCALATED to Aayush 11-17. R3 (own history) - final4
+    val: x264 +0.064 [+0.006, +0.133] *, x265 +0.168 [+0.065, +0.291] * (was +0.077 / +0.209 with final4's history).
+  - Aayush 11-17: option 1 = deployment-faithful re-measurement on TEST (post-hoc, frozen models, same episodes, own
+    history; primary unchanged). seq_history.py --split test (formula check test 900/900 both enc; no-own-history
+    episodes must equal the stored rows: val 192/192 both enc). SUBMITTED (Aayush OK): x264 14316551, x265 14316552.
+  - [x] Item 2 TEST DONE (14316551/2, 34 min; results_v1/next/fw/seqhist_test.md): own - stored x264 +0.004
+    [-0.004, +0.012], x265 -0.012 [-0.021, -0.004] *, pooled -0.004 [-0.010, +0.002]. R3 (own history) - final4 TEST:
+    x264 +0.071 [+0.024, +0.114] *, x265 +0.151 [+0.078, +0.233] * (pre-registered +0.067 / +0.163 stand).
+  - [x] x265 DONE (all RL arrays COMPLETED). Item 1 x265 val: R3 - final4 k2 +0.152 *, k5 +0.209 *; BC alone - final4
+    k0 -0.558 *, k2 -0.155 *, k5 -0.003 n.s.; R3 - BC alone k2 +0.307 *, k5 +0.212 *. Item 3 x265: determinism exact
+    (550/550 at 60k and 180k); s3 curve +0.023 (20608) -> +0.132 (40k) -> +0.122 (60k) -> +0.115 (90k) -> +0.065
+    (120k) -> +0.183 (180k). Item 4 x265: +0.016 [-0.001, +0.034] (cut/gradual +0.080 *); POOLED +0.012 [-0.007,
+    +0.029] -> "no detectable effect" (rule).
+  - [x] EXPERIMENTS row added (11-17).
+  - Next: ask Ahhana (k2? seeds? own mean[t]/BC at k29?); item 7 optional.
+- [ ] 44. TEST2: fresh held-out evaluation set for the frozen models (Aayush 11-17: Tier 1 + Tier 2, evaluation only).
+  Plan exp_next/test2/PLAN.md (UGC only, 12 categories x 8 clips, data/t2/320x180, split label test2, parity gate on
+  3 v1 test clips, PREREG before eval jobs, drop if parity not exact by Thu 11-19 10:00).
+  - [x] plan written 11-17
+  - [x] selection script exp_next/test2/select_t2.py -> data/t2/clip_candidates.csv, selection.md (93 clips, 930 GOPs,
+    52 GB incl. parity); [ ] Aayush approves list
+  - [ ] download (Aayush, hpc-transfer1), decode, cut labels, curves, budgets, final4, rc work dirs
+  - [ ] audit items (PLAN.md section 4) + parity gate
+  - [ ] PREREG.md frozen; eval jobs (Aayush OK); report

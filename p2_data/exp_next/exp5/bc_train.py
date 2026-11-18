@@ -104,7 +104,8 @@ def main():
         nz = np.count_nonzero(Xr[:, ZERO_COLS], axis=0)
         assert not nz.any(), f"o[2] / o[5..8] not zero in the saved obs: {dict(zip(ZERO_COLS, nz))}"
         import pandas as pd                                           # plans: gid -> clip for the hold-out split
-        plans = pd.read_pickle(f"{a.data}/plans_v2_{ENC}.pkl").set_index("pid")
+        pf = f"{a.data}/plans_v2_{ENC}_k{k}.pkl"                    # final week: k2 built separately (own pid order)
+        plans = pd.read_pickle(pf if os.path.exists(pf) else f"{a.data}/plans_v2_{ENC}.pkl").set_index("pid")
         gid = plans.gid.reindex(z["pid"][:n:GOP]).to_numpy()
         clip = np.array([g.split("@")[0] for g in gid])
         if len(np.unique(clip)) < 10:                                 # smoke data only: split by GOP

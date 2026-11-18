@@ -86,6 +86,7 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="smoke: first N items")
     ap.add_argument("--bcdir", default=f"{EXP5}/bc")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--tag", default="", help="final week: output name suffix (e.g. k2_s345)")
     a = ap.parse_args()
     out = a.out or EXP5
     _G["bcdir"] = a.bcdir
@@ -123,7 +124,7 @@ def main():
     with Pool(a.workers, initializer=_init) as p:
         rows = list(p.imap_unordered(episode, items, chunksize=2))
     os.makedirs(out, exist_ok=True)
-    dest = f"{out}/bc_rows_{ENC}_{a.split}{'_limit' if a.limit else ''}.pkl"
+    dest = f"{out}/bc_rows_{ENC}_{a.split}{'_' + a.tag if a.tag else ''}{'_limit' if a.limit else ''}.pkl"
     assert not os.path.exists(dest), f"{dest} exists; never overwrite"
     with open(dest + ".part", "wb") as f:
         pickle.dump(rows, f, protocol=pickle.HIGHEST_PROTOCOL)

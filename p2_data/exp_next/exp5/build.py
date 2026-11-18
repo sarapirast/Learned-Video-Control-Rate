@@ -31,6 +31,8 @@ OUT = f"{ROOT}/results_v1/next/exp5"
 RAMP = np.array([-6.0] + list(np.linspace(-3, 3, 29)))        # lfq search start pattern (rclib/config.py RAMP)
 SACT = np.arange(-5, 6)                                       # search actions (lfq search keeps +-5)
 KS, KEEP, TOL = (0, 5), 50, 0.15
+KS = tuple(int(x) for x in os.environ.get("EXP5_KS", "0,5").split(","))   # final week 11-17: k2 via EXP5_KS=2
+PSUF = "_k" + os.environ["EXP5_KS"].replace(",", "_") if "EXP5_KS" in os.environ else ""
 V2_DROP = ("level", "history")          # o[2] and o[5..8]
 V2_ZERO = [2, 5, 6, 7, 8]
 _G = {"v2": False}
@@ -178,7 +180,10 @@ def main():
     if a.v2:
         sm = json.load(open(f"{ROOT}/results_v1/next/exp5/shifts_smooth.json"))
         _G["v2"], _G["mean"] = True, {k: np.asarray(sm[f"{ENC}|{k}|pooled"], float) for k in KS}
-        for f in (f"{OUT}/plans_v2_{ENC}.pkl", *[f"{OUT}/data_v2_{ENC}_k{k}.npz" for k in KS]):
+        for f in [f"{OUT}/data_v2_{ENC}_k{k}.npz" for k in KS]:
+            assert not os.path.exists(f), f"{f} exists; never overwrite"
+    if not a.v2:
+        for f in [f"{OUT}/data_{ENC}_k{k}.npz" for k in KS]:
             assert not os.path.exists(f), f"{f} exists; never overwrite"
     os.makedirs(OUT, exist_ok=True)
     if a.check:
@@ -199,7 +204,9 @@ def main():
             if i % 50 == 0:
                 print(f"{i}/{len(gids)} GOPs, {time.time() - t0:.0f}s", flush=True)
     plans = pd.DataFrame([m for ms in metas for m in ms])
-    plans.to_pickle(f"{OUT}/plans{tag}_{ENC}.pkl")                  # the job env (envs/rc) has no parquet engine
+    pf = f"{OUT}/plans{tag}_{ENC}{PSUF}.pkl"   # final week: own plans file per k set (pid order differs between builds)
+    assert not os.path.exists(pf), f"{pf} exists; never overwrite"
+    plans.to_pickle(pf)                  # the job env (envs/rc) has no parquet engine
     L = [f"# Exp 5 dataset{' v2 (Exp 5b)' if a.v2 else ''}, {ENC} (exp_next/exp5/build.py{' --v2' if a.v2 else ''})", "",
          f"GOPs {len(gids)}; kept plans {len(plans)} (max {KEEP} per (GOP, level), |S/B - 1| <= {TOL}); "
          f"plans per (GOP, level): median {plans.groupby(['gid', 'level']).size().median():.0f}.", ""]
@@ -234,7 +241,7 @@ def main():
               f"label = 0: {100 * np.mean(lab == 0):.1f}%", "",
               "Check (b): label (raw, before clipping) by frame index:", "", by.round(3).T.to_markdown(), "",
               f"max |mean| over frame indices: {by['mean'].abs().max():.3f} QP (report before training if > 0.5)", ""]
-    open(f"{OUT}/labels{tag}_{ENC}.md", "w").write("\n".join(L) + "\n")
+    open(f"{OUT}/labels{tag}_{ENC}{PSUF}.md", "w").write("\n".join(L) + "\n")
     print("\n".join(L))
     print(f"done in {time.time() - t0:.0f}s")
 
