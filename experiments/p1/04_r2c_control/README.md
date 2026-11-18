@@ -10,7 +10,7 @@ warm-up, λ 0.17, 180k steps) but the actor starts from `rl.py`'s standard resid
 |---|---|---|---|
 | 0–2 | 0 | 3, 4, 5 | control for live (pairs with 03's R3 k0 seeds 3–5) |
 | 3–5 | 29 | 3, 4, 5 | control for on-demand (pairs with 03's R3 k29 seeds 3–5) |
-| 6 | 5 | 0 | reproduction check against Aayush's stored R2c k5 seed 0 |
+| 6 | 5 | 0 | reproduction check against Aayush's stored R2c k5 seed 0; also R2c's k5 row in the results (1 seed) |
 
 `runs_r2c.txt` = R3's run-list arguments minus `--init-bc`. The 20k checkpoint of an R2c run is the standard-init
 actor still frozen: it always picks offset 0, so it equals final4 + mean shift + bit cap (the "shift-only" baseline).
@@ -56,6 +56,50 @@ the name), `*_repro_check.txt`, `*_reeval_check.txt`.
   comparison**. Aayush's stored seed 0–2 runs (R3 and R2c, k5) came from the earlier training code; the team's final
   results use seeds 3–5, which reproduce exactly.
 
-## Results
-Not scored yet: scoring waits for Aayush's PSNR-capped constant-QP curves. Planned: per k, R2c − final4, R3 − R2c
-(the BC-start effect) and R2c's 20k checkpoint (shift-only) − final4, split stable vs cut+gradual.
+## Results (final, scored together with 03 by `../03_r3_lookahead/score_final_capped.py`)
+| k | seeds R3 / R2c | final4 | BC − final4 | **R3 − final4** | R3 − BC | R2c − final4 | **R3 − R2c** |
+|---|---|---|---|---|---|---|---|
+| 0 | 3–5 / 3–5 | −0.358 | −0.533 [−0.734, −0.348] \* | **+0.069 [+0.005, +0.138] \*** | +0.602 [+0.440, +0.775] \* | −0.064 [−0.114, −0.015] \* | **+0.133 [+0.086, +0.187] \*** |
+| 2 | 3 / – | −0.148 | −0.234 [−0.308, −0.165] \* | **+0.072 [+0.020, +0.128] \*** | +0.306 [+0.225, +0.408] \* | – | – |
+| 5 | 3–5 / 0 | −0.115 | −0.155 [−0.314, −0.050] \* | **+0.077 [+0.020, +0.143] \*** | +0.231 [+0.131, +0.374] \* | −0.018 [−0.087, +0.050] | **+0.095 [+0.043, +0.147] \*** |
+| 10 | 3 / – | −0.119 | +0.058 [+0.015, +0.099] \* | **+0.102 [+0.040, +0.168] \*** | +0.044 [+0.007, +0.085] \* | – | – |
+| 29 | 3–5 / 3–5 | −0.142 | +0.057 [+0.009, +0.103] \* | **+0.097 [+0.039, +0.154] \*** | +0.041 [−0.001, +0.084] | −0.044 [−0.064, −0.021] \* | **+0.141 [+0.090, +0.187] \*** |
+
+| k | R3 − final4 stable | R3 − final4 cut+gradual | R3 − R2c stable | R3 − R2c cut+gradual |
+|---|---|---|---|---|
+| 0 | +0.048 | +0.182 | +0.139 \* | +0.104 \* |
+| 2 | +0.100 \* | −0.080 | – | – |
+| 5 | +0.078 \* | +0.069 | +0.105 \* | +0.043 |
+| 10 | +0.113 \* | +0.044 | – | – |
+| 29 | +0.088 \* | +0.150 | +0.112 \* | +0.300 \* |
+
+dB, x264, val. Score = dPSNR_B − 0.17 dB per 1 % over, with **one PSNR convention everywhere**: each plane capped at
+100 dB, including the constant-QP curves (Aayush's `cap_fix_x264.pkl`). Level-24 hole excluded (n = 548 per k); seeds
+averaged per episode, then paired with final4 (02's shim re-run) on (GOP, level); [95 % clip bootstrap], \* = excludes 0.
+BC = R3's 20k checkpoint (the imitation start), R2c = the same PPO training from the standard start (04). R2c at k5 is
+one seed (seed 0, current code); k2 and k10 have one R3 seed and no R2c. Full table, setup-only terms and every class
+split: `results/r3_kcurve/summary_final.md` (from `score_final_capped.py`).
+
+Setup-only terms (R2c's own checkpoints):
+
+| k | shift-only − final4 (R2c at 20k) | R2c − shift-only (what PPO adds from the standard start) | R2c − final4 cut+gradual |
+|---|---|---|---|
+| 0 | −0.031 [−0.075, +0.019] | −0.033 [−0.059, −0.009] \* | +0.078 |
+| 5 | −0.021 [−0.051, +0.010] | +0.003 [−0.048, +0.050] | +0.026 |
+| 29 | −0.023 [−0.049, +0.005] | −0.021 [−0.039, −0.004] \* | −0.150 \* |
+
+**Does "RL adds most at small k" still hold once R2c separates the BC start from the setup changes? Only in a narrow
+sense.**
+- *R3 − BC* (what PPO adds on top of its imitation start) is indeed largest at small k: +0.60 at k0, +0.04 at k29.
+  But at small k most of that is PPO **repairing the BC start**, which drifts badly when it runs on its own
+  (BC − final4 = −0.53 at k0).
+- *R2c* is the same PPO training without the imitation start. It never beats final4: −0.064 \* at k0, −0.018 at k5,
+  −0.044 \* at k29. The setup changes alone (mean shift + bit cap, R2c's 20k checkpoint) cost about −0.02 to −0.03
+  (not significant), and PPO from the standard start adds nothing on top (R2c − shift-only: −0.033 \*, +0.003,
+  −0.021 \*). So **RL on its own does not help at any k**.
+- *R3 − R2c* (the effect of the imitation start, same setup, same PPO) is about the same at every k: +0.133 (k0),
+  +0.095 (k5), +0.141 (k29), all significant. On cut+gradual GOPs it is largest with full lookahead (+0.300 \* at k29).
+- In simple words: R3's gain over final4 comes from **PPO and the imitation start together**, at every lookahead. At
+  small k the imitation start is poor and PPO has to fix it; at large k the start is already good and PPO only polishes
+  it. Neither part works alone: PPO without the start loses to final4, and the start without PPO loses badly at small k.
+- Absolute quality still levels off around k5–k10 (R3: −0.289 at k0, −0.038 at k5, −0.017 at k10, −0.044 at k29).

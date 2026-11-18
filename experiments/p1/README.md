@@ -19,10 +19,12 @@ per plane while the learners' was; Aayush adopted one cap (val x264 R3 − final
 
 **[03 · R3 across lookahead](03_r3_lookahead/).** R3 and its BC start at k 0, 2, 5, 10, 29 (3 seeds at k0/k5/k29).
 R3 beats final4 by +0.07 to +0.10 dB at every k; the BC start goes from far below final4 (k0) to above it (k ≥ 10),
-so PPO matters most for live encoding. k5 retrains are bit-identical to Aayush's models. Provisional scores.
+and R2c (04) shows the imitation start + PPO together make the gain at every k (PPO alone never beats final4).
+k5 retrains are bit-identical to Aayush's models. Final scores, one PSNR cap everywhere.
 
 **[04 · R2c control](04_r2c_control/).** R3 without the BC start at k0 and k29 (seeds 3–5), for the BC-start effect.
-Runs complete, not scored yet. The k5 check against Aayush's stored R2c failed; tested cause: his *training* code
+Scored (final, with 03): R2c − final4 −0.06 / −0.02 / −0.04 at k0 / k5 / k29, R3 − R2c +0.13 / +0.10 / +0.14 \*.
+The k5 check against Aayush's stored R2c failed; tested cause: his *training* code
 changed during 11-14 (his morning runs don't retrain identically, his afternoon runs do; his stored models evaluate
 identically with today's code, so the environment and scoring did not change). R3 − R2c within my runs is unaffected.
 
