@@ -12,7 +12,7 @@ import json
 import os
 import sys
 
-V1 = "/scratch1/aayushso/ee599/data/v1/320x180"
+V1 = os.environ.get("P2_DATA") or "/scratch1/aayushso/ee599/data/v1/320x180"  # test2 (exp_next/test2/PLAN.md): P2_DATA = per-clip data root; default v1, unchanged
 
 
 def family(m):

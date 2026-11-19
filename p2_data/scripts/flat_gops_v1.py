@@ -13,9 +13,11 @@ goes to -100s (down to -1e34 on train where the curve is extrapolated).
 Out: data/v1/320x180/rd/flat_gops.csv (clip_id, gop, start_frame, gid, split, label, psnr50_x264, psnr50_x265,
      chroma_mse0_x264, chroma_mse0_x265, flat)
 """
+import os
+
 import pandas as pd
 
-ROOT = "/scratch1/aayushso/ee599/data/v1/320x180"
+ROOT = os.environ.get("P2_DATA") or "/scratch1/aayushso/ee599/data/v1/320x180"  # test2 (exp_next/test2/PLAN.md): P2_DATA = per-clip data root; default v1, unchanged
 THR = 45.0
 
 

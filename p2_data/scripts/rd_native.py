@@ -37,7 +37,7 @@ import numpy as np
 import pandas as pd
 
 ROOT = "/scratch1/aayushso/ee599"
-DATA = os.path.join(ROOT, "data", "v1", "320x180")
+DATA = os.environ.get("P2_DATA") or os.path.join(ROOT, "data", "v1", "320x180")  # test2 (exp_next/test2/PLAN.md): P2_DATA = per-clip data root; default v1, unchanged
 OUT = os.path.join(DATA, "rd")
 GOP = 30
 CQP_QPS = list(range(18, 51))

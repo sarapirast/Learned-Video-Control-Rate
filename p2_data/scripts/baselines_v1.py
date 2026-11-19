@@ -41,7 +41,7 @@ import numpy as np
 import pandas as pd
 
 ROOT = "/scratch1/aayushso/ee599"
-D = f"{ROOT}/data/v1/320x180"
+D = os.environ.get("P2_DATA") or f"{ROOT}/data/v1/320x180"   # test2 (exp_next/test2/PLAN.md); default v1, unchanged
 OUT = f"{ROOT}/results_v1/baselines_v1"
 KS = (0, 2, 5, 10, 29)
 GOP = 30

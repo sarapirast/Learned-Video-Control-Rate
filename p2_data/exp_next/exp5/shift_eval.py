@@ -30,7 +30,7 @@ from rclib import config as C, env as E, offrl, policies as P  # noqa: E402
 
 assert C.RES and max(C.ACTIONS) == 6, "run with RC_ARM=res RC_RES_RANGE=6"
 ROOT = "/scratch1/aayushso/ee599"
-RC = "/scratch1/aayushso/rcwork_v1"
+RC = os.environ.get("P2_RCWORK") or "/scratch1/aayushso/rcwork_v1"   # test2 (exp_next/test2/PLAN.md): rcwork_t2; default unchanged
 ENC = C.CODEC
 OUT = f"{ROOT}/results_v1/next/exp5"
 KS = (0, 5)
@@ -84,7 +84,7 @@ def vectors(shifts, k, lv, variants):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--split", default="fold", choices=("fold", "val", "test"))   # test: approved final pass only
+    ap.add_argument("--split", default="fold", choices=("fold", "val", "test", "test2", "parity"))   # test: approved final pass only; test2/parity: --out results_v1/test2
     ap.add_argument("--variants", default="pooled:none,pooled:bit,perlevel:none,perlevel:bit,pooled:full")
     ap.add_argument("--shard", type=int, default=int(os.environ.get("SLURM_ARRAY_TASK_ID", 0)))
     ap.add_argument("--nshards", type=int, default=1)
@@ -99,7 +99,7 @@ def main():
     out = a.out or OUT
     full = pickle.load(open(f"{RC}/{ENC}_resh/results_infos/infos.pkl", "rb"))
     fold = set(json.load(open(f"{ROOT}/exp_next/folds.json"))["train_select_clips"])
-    if a.split in ("val", "test"):
+    if a.split in ("val", "test", "test2", "parity"):
         gids = sorted(g for g, x in full.items() if x["gop"]["split"] == a.split)
     else:
         gids = sorted(g for g, x in full.items() if x["gop"]["split"] == "train" and x["gop"]["clip"] in fold)

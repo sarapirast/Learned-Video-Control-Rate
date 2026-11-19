@@ -48,21 +48,24 @@ import numpy as np
 import pandas as pd
 
 ROOT = "/scratch1/aayushso/ee599"
-D = f"{ROOT}/data/v1/320x180"
+V1 = f"{ROOT}/data/v1/320x180"
+# test2 (exp_next/test2/PLAN.md): P2_DATA = per-clip data root (default v1, unchanged). Fitted inputs (rate model,
+# cut-flag threshold, previous-GOP model) always come from v1 TRAIN, whatever P2_DATA is.
+D = os.environ.get("P2_DATA") or V1
 OUT = f"{ROOT}/results_v1/controller_real"
 GOP, FPQ, QLO, QHI = 30, 32, 11, 51
 spec = importlib.util.spec_from_file_location("rd_native", f"{ROOT}/scripts/rd_native.py")
 RN = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(RN)
-MODEL_FILE = f"{D}/rd/controller_model.json"
+MODEL_FILE = f"{V1}/rd/controller_model.json"
 
 
 def fit_model():
     """Slopes and calibration priors per encoder, from the TRAIN GOPs' constant-QP encodes (I frame at q-3)."""
-    fr = pd.read_parquet(f"{D}/rd/rd_frames.parquet", filters=[("kind", "==", "cqp")])
-    fp = pd.read_parquet(f"{D}/features/fp_bits.parquet")
+    fr = pd.read_parquet(f"{V1}/rd/rd_frames.parquet", filters=[("kind", "==", "cqp")])
+    fp = pd.read_parquet(f"{V1}/features/fp_bits.parquet")
     fp = fp[fp.fp_qp == FPQ]
-    tr = pd.read_csv(f"{D}/gops.csv").query("split == 'train'")[["clip_id", "gop"]]
+    tr = pd.read_csv(f"{V1}/gops.csv").query("split == 'train'")[["clip_id", "gop"]]
     fr = fr.merge(tr, on=["clip_id", "gop"]).merge(fp, on=["encoder", "clip_id", "gop", "frame"])
     out = {}
     for enc, d in fr.groupby("encoder"):
@@ -244,16 +247,20 @@ def chain(args):
 def cut_flags(enc):
     """Causal scene-cut flags from the first pass: a P frame whose share of intra blocks exceeds a threshold. The
     threshold maximises F1 against the reviewed cut labels on TRAIN GOPs only (controller v2's cut boost)."""
-    st = pd.read_parquet(f"{D}/features/fp_stats.parquet").query("encoder == @enc and fp_qp == @FPQ")
-    gops = pd.read_csv(f"{D}/gops.csv")
+    def load(root, e=enc):
+        st = pd.read_parquet(f"{root}/features/fp_stats.parquet").query("encoder == @e and fp_qp == @FPQ")
+        gops = pd.read_csv(f"{root}/gops.csv")
+        st = st.merge(gops[["clip_id", "gop", "split"]], on=["clip_id", "gop"])
+        st["fi"] = st.intra_blocks / 240.0
+        return st, gops
+    st1, gops = load(V1)           # threshold: fitted on v1 TRAIN only
     cuts = {(r.clip_id, r.gop, int(c)) for r in gops.itertuples() if isinstance(r.cut_frames, str)
             for c in r.cut_frames.split()}
-    st = st.merge(gops[["clip_id", "gop", "split"]], on=["clip_id", "gop"])
-    st["fi"] = st.intra_blocks / 240.0
-    st["lab"] = [(c, g, f) in cuts for c, g, f in zip(st.clip_id, st.gop, st.frame)]
-    tr = st[(st.split == "train") & (st.frame > 0)]
+    st1["lab"] = [(c, g, f) in cuts for c, g, f in zip(st1.clip_id, st1.gop, st1.frame)]
+    tr = st1[(st1.split == "train") & (st1.frame > 0)]
     best = max(np.arange(0.3, 0.96, 0.05), key=lambda th: 2 * ((tr.fi > th) & tr.lab).sum()
                / max((tr.fi > th).sum() + tr.lab.sum(), 1))
+    st = st1 if D == V1 else load(D)[0]    # flags: applied to the data being run
     st["cut"] = (st.fi > best) & (st.frame > 0)
     return {k: v.sort_values("frame").cut.to_numpy() for k, v in st.groupby(["clip_id", "gop"])}, float(best)
 
@@ -297,7 +304,7 @@ def run(a):
                     items.append((a.encoder, gd, float(bb.budget_bits[lv]), lv, k, s, M, curves[(g.clip_id, g.gop)],
                                   tmp, float(bb[f"base_qp_est_k{k}"][lv])))
     if seq:
-        pmod = json.load(open(f"{D}/base_prev_model.json"))[a.encoder]["k"]
+        pmod = json.load(open(f"{V1}/base_prev_model.json"))[a.encoder]["k"]
         bykey = {}
         for it in items:     # (enc, gd, B, lv, k, s, M, curve, tmp, qhat), GOPs already in clip order
             bykey.setdefault((it[1]["clip_id"], it[3], it[4], it[5]), []).append(it)

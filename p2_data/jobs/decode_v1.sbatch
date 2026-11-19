@@ -24,4 +24,5 @@ cd "$SLURM_SUBMIT_DIR"
 [ -f scripts/decode_clips.py ] || { echo "submit from the project root (holds scripts/ and data/)"; exit 1; }
 TASKS=${TASKS:-data/v1/$RES/tasks.txt}
 echo "$(date '+%F %T') host=$(hostname) task=$SLURM_ARRAY_TASK_ID res=$RES tasks=$TASKS"
-python3 -I scripts/decode_clips.py --res "$RES" --tasks "$TASKS" --task-index "$SLURM_ARRAY_TASK_ID"
+# DECODE_ARGS (test2): extra flags, e.g. "--candidates data/t2/clip_candidates.csv --raw data/t2/raw --index data/t2/raw/index.csv --out data/t2/320x180"
+python3 -I scripts/decode_clips.py --res "$RES" --tasks "$TASKS" --task-index "$SLURM_ARRAY_TASK_ID" ${DECODE_ARGS:-}

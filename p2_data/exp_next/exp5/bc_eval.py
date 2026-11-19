@@ -27,7 +27,7 @@ from rclib import config as C, env as E, offrl, policies as P  # noqa: E402
 
 assert C.RES and max(C.ACTIONS) == 6, "run with RC_ARM=res RC_RES_RANGE=6"
 ROOT = "/scratch1/aayushso/ee599"
-RC = "/scratch1/aayushso/rcwork_v1"
+RC = os.environ.get("P2_RCWORK") or "/scratch1/aayushso/rcwork_v1"   # test2 (exp_next/test2/PLAN.md): rcwork_t2; default unchanged
 ENC = C.CODEC
 EXP5 = f"{ROOT}/results_v1/next/exp5"
 DROP = ("level", "history")
@@ -77,7 +77,7 @@ def episode(item):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--split", default="fold", choices=("fold", "val"))
+    ap.add_argument("--split", default="fold", choices=("fold", "val", "test2", "parity"))   # test2/parity: --out results_v1/test2
     ap.add_argument("--ks", default="0,5")
     ap.add_argument("--seeds", default="0,1,2")
     ap.add_argument("--workers", type=int, default=max(1, int(os.environ.get("SLURM_CPUS_PER_TASK", 2)) - 1))
@@ -92,8 +92,8 @@ def main():
     _G["bcdir"] = a.bcdir
     full = pickle.load(open(f"{RC}/{ENC}_resh/results_infos/infos.pkl", "rb"))
     fold = set(json.load(open(f"{ROOT}/exp_next/folds.json"))["train_select_clips"])
-    if a.split == "val":
-        gids = sorted(g for g, x in full.items() if x["gop"]["split"] == "val")
+    if a.split in ("val", "test2", "parity"):
+        gids = sorted(g for g, x in full.items() if x["gop"]["split"] == a.split)
     else:
         gids = sorted(g for g, x in full.items() if x["gop"]["split"] == "train" and x["gop"]["clip"] in fold)
     infos = {g: offrl.slim(full[g]) for g in gids}

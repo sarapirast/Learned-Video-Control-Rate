@@ -60,7 +60,8 @@ def one_gop(args):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--encoder", choices=("x264", "x265"), required=True)
-    ap.add_argument("--split", default="val", choices=("val", "test"))   # test: only in the approved final pass
+    ap.add_argument("--split", default="val", choices=("val", "test", "test2", "parity"))   # test: approved final pass only
+    # test2 / parity (exp_next/test2/PLAN.md): run with P2_DATA=data/t2/320x180; rows go to results_v1/test2/abr
     ap.add_argument("--margins", default=",".join(map(str, MARGINS)))
     ap.add_argument("--ks", default=",".join(map(str, KS)))
     ap.add_argument("--tag", default="", help="output name suffix (e.g. ext for the 0.90 / 0.93 extension)")
@@ -88,9 +89,12 @@ def main():
     t0 = time.time()
     with Pool(a.workers) as p:
         rows = [r for part in p.imap_unordered(one_gop, items) for r in part]
-    os.makedirs(OUT, exist_ok=True)
+    out = f"{ROOT}/results_v1/test2/abr" if a.split in ("test2", "parity") else OUT
+    if a.split in ("test2", "parity"):
+        assert "data/t2" in BL.D, "test2 / parity rows need P2_DATA=data/t2/320x180"
+    os.makedirs(out, exist_ok=True)
     tag = (f"_{a.tag}" if a.tag else "") + ("_limit" if a.limit else "")
-    dest = f"{OUT}/rows_{a.encoder}_{a.split}_{a.shard}of{a.nshards}{tag}.parquet"
+    dest = f"{out}/rows_{a.encoder}_{a.split}_{a.shard}of{a.nshards}{tag}.parquet"
     assert not os.path.exists(dest), f"{dest} exists; never overwrite"
     pd.DataFrame(rows).to_parquet(dest, index=False)
     print(f"{a.encoder} {a.split} shard {a.shard}/{a.nshards}: {len(glist)} GOPs, {len(rows)} rows, "

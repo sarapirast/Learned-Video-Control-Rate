@@ -1,0 +1,33 @@
+id,date_2026,split,question,comparison,result_dB,verdict,source_report
+audit,11-03,pilot code,Is the pilot pipeline leak-free?,review of Pavneet's code and paper,C1 budget leaks the GOP's cost; U1 base QP is hindsight; C2 cut flags look ahead 2-4 frames,issues found,p2_data/docs/review-paper-draft-2026-11-03.md
+v1-rerun,11-03/04,v1 test,Pilot learners on data v1,"BC, CQL->PPO, Lagrangian PPO, k 0-29, 3 seeds, both encoders (old metric)",Lagrangian best on the old metric (4.67 / 4.12 points at k0),superseded by metric fix,results_v1/v1_headline.md
+budget-leak,11-04,v1 test,Does the leaked budget inflate causal scores?,orig vs decoupled budget arm,"Lagrangian k0 4.67 -> 3.37 (x264), 4.12 -> 3.45 (x265)",leak inflates results,results_v1/x264_arm_compare.md; x265_arm_compare.md
+shield,11-04,v1 val,Budget shield at inference,raise QP when predicted spend exceeds B,"lowers every method (BC 2.67 -> 2.22, CQL->PPO 2.89 -> 2.25, Lagrangian 3.45 -> 2.71 points)",negative,results_v1/x264_orig_shield_val.md
+rescore,11-09,v1 test,Does the old score reward unused budget?,rescore all stored results at the budget,most 'saving' was unused budget; residual RL gamed it (-1.23 dB quality at the budget),metric changed to dPSNR_B,results_v1/rescore_budget/; results_v1/res_compare_x264.md
+shaping,11-09,v1 test,Potential-based reward shaping,"shaped vs unshaped, x264 old metric",CQL->PPO k0 +4.3 points; Lagrangian worse,mixed,results_v1/shaping_compare_x264.md
+controller-final4,11-11,v1 test,Controller with previous-GOP history,final4 vs final3,"x264 -0.22 -> -0.18, x265 -0.32 -> -0.27 dB; significant at small k on x264",frozen baseline,results_v1/controller_dpsnr/final4_*_test.md
+learners-vs-final4,11-11,v1 test,Do standalone learners beat final4 on the new metric?,"BC / CQL->PPO / Lagrangian (@prev) and residual vs final4, k 0-29",all below final4 at k<=5 (0.1-2.5 dB); break-even at best at k29,negative,results_v1/lfq_compare_x264_final4.md; lfq_compare_x265_final4.md; w5/w5_numbers.md
+abr-db,11-11,v1 test,Encoder ABR+VBV on the dB metric,ABR+VBV vs final4,"final4 better by +1.3..+1.5 (x264), +0.8..+1.0 dB (x265)",final4 >> ABR,results_v1/w5/abr_dpsnr.md
+tracker35,11-12,v1 val,Residual trained on tight budgets only,combined rule vs final4,"x264 -0.148 *, x265 +0.026 n.s.",FAIL,results_v1/w5/gates_35_36.md
+tracker36,11-12,v1 val,Shared set-attention BC across k,attn-kall - bc@prev,"x264 +0.015, x265 -0.037 (n.s.)",FAIL,results_v1/w5/gates_35_36.md
+tracker40,11-12/13,v1 val+test,CQL->PPO at 540k steps,540k vs 180k and vs final4,"val x265 +0.149 * over 180k; test vs final4 x264 -0.069 *, x265 +0.003 n.s.",ties final4 on x265 only,results_v1/w5/gates_40.md
+exp0,11-13,train,Residual pipeline sanity checks,"parity, determinism",train parity 40/40 exact per encoder; evals deterministic,pass,p2_data/exp_next/exp0/CHECKS.md
+exp1,11-13,v1 val,Where does final4 lose to the search?,"score decomposition, no encodes",allocation headroom +0.37 dB; loss mostly spend error; optimal over-rate 21-37 % vs final4 43-65 %,informative,results_v1/next/exp1/headroom.md
+exp2,11-13,v1 val,"Handoff: learner first, final4 for the last m frames",hybrid - final4 at m=10,"-0.052 [-0.146, +0.056]; spend error 4.16 % vs 2.55 %",FAIL,results_v1/next/exp2/report.md
+exp3,11-13,v1 val,Residual priced at 0.17 vs 0.34,lam0.17 - lam0.34 pooled,"+0.137 [+0.109, +0.166] *; vs final4 x264 -0.071 *, x265 -0.003",PASS,results_v1/next/exp3/report.md
+exp4-r2,11-13,v1 val,Wider offsets (-6..+6) + final4-state features,R2 - R1 pooled,"+0.040 [+0.023, +0.061] * but k0 -0.004 and one seed negative; ties final4 (+0.003)",FAIL (rule),results_v1/next/exp4/r2_report.md
+exp5a,11-13/14,fold + v1 val,Fixed per-frame shift on final4,final4 + shift - final4,"causal per-qbin fails the rule at k0; post-hoc k5 val x265 +0.153 [+0.044, +0.283] *, x264 -0.025",x265-only baseline upgrade,results_v1/next/exp5/shift_qbin.md; shift_val_rev4.md
+exp5b,11-14,fold,BC alone on final4,BC - final4 (k0+k5),"x264 -0.327 [-0.510, -0.165] *, x265 -0.193 [-0.329, -0.079] *; closed-loop drift",FAIL (loses),results_v1/next/exp5/bc_fold.md
+exp4-r3,11-14,v1 val,PPO from the BC actor (R3),R3 - final4 pooled; R3 - R2c,"+0.128 [+0.050, +0.216] *; BC-start effect +0.131 *",PASS,results_v1/next/exp4/r3_report.md
+exp6,11-14,v1 val,Per-context final4 setting,picked - final4 pooled,"+0.027 [-0.000, +0.050] vs +0.03 bar",FAIL (narrow),results_v1/next/exp6/gate.md
+o2,11-13,v1 val,Does the hindsight level flag matter at evaluation?,stand-in / zeroed flag - stored,<= 0.02 dB except one 540k cell,no material dependence,results_v1/next/o2/o2_report.md
+exp10,11-13/16,v1 val,ABR+VBV with tuned target margin,margins 0.90-1.00,"x264 0.90, x265 0.93; still ~1 dB below final4",baseline fixed,results_v1/next/exp10/abr_margin.md
+exp7,11-14/16,v1 val+test,Stream level: RL vs retuned rule,"selected policy - retuned rule, same-clip 8-GOP","test x264 -0.026 [-0.091, +0.040], x265 +0.050 [-0.009, +0.148]",primary not met,results_v1/final/report_test_cap.md; results_v1/next/exp7/
+test-pass,11-16,v1 test,PRE-REGISTERED: R3 - final4 at k5,R3 180k s3-5 - final4,"x264 +0.067 [+0.023, +0.107] *, x265 +0.163 [+0.086, +0.243] *",PASS (both),results_v1/final/report_test_cap.md
+fw1,11-17,v1 val,R3 / BC alone across k,"R3 - final4, R3 - BC alone at k2/k5","R3 - BC alone k2 +0.276 * / +0.307 *, k5 +0.231 * / +0.212 *",RL adds over BC,results_v1/next/fw/report_fw_val.md
+fw2,11-17,v1 val+test,R3 with its own history,own - stored history; R3 own - final4,test pooled -0.004 n.s.; R3 own - final4 test +0.071 * / +0.151 *,no material cost,results_v1/next/fw/seqhist_test.md
+fw3,11-17,v1 val,Learning curve,checkpoints 20k-360k,deterministic; 60k -> 180k improves; 360k no gain,informative,results_v1/next/fw/report_fw_val.md
+fw4,11-17,v1 val,No critic warm-up,R3 - no warm-up pooled,"+0.012 [-0.007, +0.029]",no detectable effect,results_v1/next/fw/report_fw_val.md
+fw5,11-17,v1 val+test,Overshoot-price sensitivity,R3 - final4 at lambda 0..0.68,"x265 positive at all lambda; x264 n.s. at 0, * from 0.085",x264 depends on pricing,results_v1/next/fw/metric_sens_test.md
+test2,11-17,test2,PRE-REGISTERED: replication on 93 new UGC clips,R3 - final4 at k5,"x264 +0.044 [+0.008, +0.082] *, x265 +0.187 [+0.138, +0.235] *",REPLICATED (both),results_v1/test2/report_test2.md
+test2-sec10,11-18,test2,Ahhana's R3 at k0 / k29 (x264),R3 - final4,"k0 +0.097 [+0.051, +0.149] *, k29 +0.032 [+0.005, +0.061] *","descriptive, positive",results_v1/test2/report_test2.md

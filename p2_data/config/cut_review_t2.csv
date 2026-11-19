@@ -1,0 +1,160 @@
+clip_id,frame,verdict,claude_verdict,human_verdict,resolution,note,hist_delta,scdet_score
+Animation_360P-3e52,62,cut,cut,cut,agreed (Claude and Aayush blind),hard cut to black,0.385,3.1
+Animation_360P-3e52,214,cut,cut,cut,agreed (Claude and Aayush blind),,0.205,10.1
+Animation_720P-01b3,14,cut,cut,cut,agreed (Claude and Aayush blind),cut from black,0.369,3.8
+Animation_720P-01b3,190,cut,no_cut,cut,settled (Claude no_cut / human cut),"7-frame context: robot shot ends, butterfly close-up over a nearer flower field: a cut (Aayush's way)",0.316,13.4
+Animation_720P-06a6,101,cut,cut,cut,agreed (Claude and Aayush blind),,0.109,19.0
+Animation_720P-57d9,77,gradual,gradual,no_cut,settled (Claude gradual / human no_cut),7-frame context: black brightens over frames 76-80: fade in (Claude's way),0.977,5.1
+Gaming_360P-63e6,151,cut,cut,unsure,settled (Claude cut / human unsure),7-frame context: new game view persists after f151: cut (Claude's way; human unsure),0.264,10.4
+Gaming_360P-7975,264,no_cut,no_cut,cut,settled (Claude no_cut / human cut),"7-frame context: same view, explosion effect + HUD hidden: no cut (Claude's way)",0.383,7.9
+Gaming_480P-6a5a,39,cut,cut,gradual,settled (Claude cut / human gradual),7-frame context: blurred menu -> gameplay in one frame: cut (Claude's way; human gradual/tentative cut),0.321,11.5
+HowTo_360P-2fd5,31,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),"exposure change, blurry paper",0.472,3.9
+HowTo_360P-2fd5,67,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.607,9.7
+HowTo_360P-2fd5,101,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.353,2.7
+HowTo_360P-2fd5,116,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.991,3.8
+HowTo_360P-2fd5,139,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.348,13.5
+HowTo_360P-2fd5,141,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.469,4.1
+HowTo_360P-2fd5,148,no_cut,no_cut,unsure,settled (Claude no_cut / human unsure),human unsure = no cut; Claude no_cut,0.471,3.3
+HowTo_360P-2fd5,151,no_cut,no_cut,gradual,settled (Claude no_cut / human gradual),7-frame context: focus pull on the same paper: no cut (Claude's way),0.414,2.8
+HowTo_360P-2fd5,227,no_cut,no_cut,unsure,settled (Claude no_cut / human unsure),human unsure = no cut; Claude no_cut,0.362,4.8
+HowTo_480P-64a2,164,cut,cut,cut,agreed (Claude and Aayush blind),,0.114,14.8
+LiveMusic_720P-71c5,230,cut,cut,cut,agreed (Claude and Aayush blind),,0.207,20.8
+LyricVideo_720P-47a9,47,cut,no_cut,cut,settled (Claude no_cut / human cut),"Aayush 11-17 on the 7-frame context: strong black<->white transition within a single frame: cut (human way; Claude no_cut, Claude proposal gradual)",0.633,5.9
+LyricVideo_720P-47a9,49,no_cut,no_cut,gradual,settled (Claude no_cut / human gradual),inside the f47 gradual span (Claude's way),0.5,3.9
+LyricVideo_720P-47a9,55,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.495,3.6
+LyricVideo_720P-47a9,57,no_cut,no_cut,cut,settled (Claude no_cut / human cut),7-frame context: brown tint flicker on the same title: no cut (Claude's way),0.555,3.6
+LyricVideo_720P-47a9,60,no_cut,no_cut,cut,settled (Claude no_cut / human cut),"7-frame context: single glitch frame f59, f60 returns to the same title: no cut (Claude's way)",0.859,3.2
+LyricVideo_720P-47a9,107,cut,no_cut,cut,settled (Claude no_cut / human cut),"Aayush 11-17 on the 7-frame context: strong black<->white transition within a single frame: cut (human way; Claude no_cut, Claude proposal gradual)",0.63,5.9
+LyricVideo_720P-47a9,109,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.504,3.9
+LyricVideo_720P-47a9,115,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.496,3.6
+LyricVideo_720P-47a9,117,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.557,3.6
+LyricVideo_720P-47a9,119,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.566,4.1
+MusicVideo_360P-17e4,10,cut,cut,cut,agreed (Claude and Aayush blind),,0.247,23.9
+MusicVideo_360P-17e4,64,no_cut,no_cut,cut,settled (Claude no_cut / human cut),7-frame context: title-overlay animation over the same alley shot: no cut (Claude's way),0.199,12.0
+MusicVideo_720P-0355,8,cut,cut,cut,agreed (Claude and Aayush blind),,0.241,10.5
+MusicVideo_720P-0355,9,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),"same shape, effect change",0.164,14.6
+MusicVideo_720P-0355,20,cut,cut,cut,agreed (Claude and Aayush blind),,0.245,18.4
+MusicVideo_720P-0355,119,cut,cut,cut,agreed (Claude and Aayush blind),,0.339,18.0
+MusicVideo_720P-0355,155,cut,cut,cut,agreed (Claude and Aayush blind),,0.46,8.9
+MusicVideo_720P-0355,173,cut,cut,cut,agreed (Claude and Aayush blind),single-frame strobe insert,0.963,8.0
+MusicVideo_720P-0355,190,cut,cut,cut,agreed (Claude and Aayush blind),,0.388,3.7
+MusicVideo_720P-0355,230,cut,cut,cut,agreed (Claude and Aayush blind),,0.316,30.0
+MusicVideo_720P-62df,13,cut,cut,cut,agreed (Claude and Aayush blind),,0.181,19.2
+MusicVideo_720P-62df,231,cut,cut,cut,agreed (Claude and Aayush blind),,0.258,22.1
+MusicVideo_720P-734f,110,cut,cut,cut,agreed (Claude and Aayush blind),,0.308,14.3
+MusicVideo_720P-7bcf,77,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),"dark scene, small change",0.905,2.5
+NewsClip_480P-6615,56,cut,cut,cut,agreed (Claude and Aayush blind),,0.338,20.7
+NewsClip_720P-672c,195,cut,cut,cut,agreed (Claude and Aayush blind),,0.252,15.5
+NewsClip_720P-672c,231,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),fireworks flash,0.398,8.0
+NewsClip_720P-672c,237,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.395,5.0
+NewsClip_720P-672c,238,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.432,2.2
+NewsClip_720P-672c,299,cut,cut,cut,agreed (Claude and Aayush blind),,0.309,11.6
+Sports_480P-19e4,149,cut,cut,cut,agreed (Claude and Aayush blind),,0.303,21.7
+Sports_720P-2632,9,cut,cut,cut,agreed (Claude and Aayush blind),,0.35,15.9
+Sports_720P-2632,93,cut,cut,cut,agreed (Claude and Aayush blind),,0.281,22.4
+Sports_720P-2632,137,cut,cut,cut,agreed (Claude and Aayush blind),,0.342,17.5
+TelevisionClip_720P-19de,138,cut,cut,cut,agreed (Claude and Aayush blind),,0.264,22.4
+TelevisionClip_720P-7c06,1,cut,cut,cut,agreed (Claude and Aayush blind),,0.194,15.7
+Vlog_720P-03d5,161,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),old-film flicker + jerky motion (whole clip),0.507,6.5
+Vlog_720P-03d5,168,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.477,5.4
+Vlog_720P-03d5,181,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.534,9.9
+Vlog_720P-03d5,184,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.434,3.0
+Vlog_720P-03d5,185,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.543,4.8
+Vlog_720P-03d5,193,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.596,9.1
+Vlog_720P-03d5,195,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.464,3.2
+Vlog_720P-03d5,197,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.535,6.8
+Vlog_720P-03d5,209,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.377,4.6
+Vlog_720P-03d5,211,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.506,2.2
+Vlog_720P-03d5,212,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.567,9.2
+Vlog_720P-03d5,222,no_cut,no_cut,unsure,settled (Claude no_cut / human unsure),human unsure = no cut; Claude no_cut (old-film flicker),0.537,7.7
+Vlog_720P-03d5,223,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.528,2.3
+Vlog_720P-03d5,224,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.384,3.7
+Vlog_720P-03d5,226,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.54,8.6
+Vlog_720P-03d5,233,no_cut,no_cut,unsure,settled (Claude no_cut / human unsure),human unsure = no cut; Claude no_cut (old-film flicker),0.552,8.5
+Vlog_720P-03d5,237,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.541,4.6
+Vlog_720P-03d5,245,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.545,8.3
+Vlog_720P-03d5,249,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.541,8.6
+Vlog_720P-03d5,258,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.561,8.0
+Vlog_720P-03d5,259,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.518,4.2
+Vlog_720P-03d5,262,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.592,10.0
+Vlog_720P-03d5,269,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.536,9.5
+Vlog_720P-03d5,271,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.541,6.4
+Vlog_720P-03d5,272,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.555,2.4
+Vlog_720P-03d5,273,no_cut,no_cut,unsure,settled (Claude no_cut / human unsure),human unsure = no cut; Claude no_cut (old-film flicker),0.559,3.4
+Vlog_720P-03d5,280,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.453,4.7
+Vlog_720P-03d5,283,no_cut,no_cut,unsure,settled (Claude no_cut / human unsure),human unsure = no cut; Claude no_cut (old-film flicker),0.545,3.2
+Vlog_720P-03d5,294,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.517,7.8
+Vlog_720P-03d5,297,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.546,2.9
+Vlog_720P-2929,54,cut,cut,cut,agreed (Claude and Aayush blind),title card background drops to black (graphics),0.849,8.6
+Vlog_720P-5364,73,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),"exposure ramp, dark handheld",0.687,6.2
+Vlog_720P-5364,93,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),handheld whip motion,0.38,3.5
+Vlog_720P-5364,101,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.451,7.8
+Vlog_720P-5364,105,no_cut,no_cut,unsure,settled (Claude no_cut / human unsure),human unsure = no cut; Claude no_cut (handheld motion),0.352,6.5
+Vlog_720P-5364,128,no_cut,no_cut,no_cut,agreed (Claude and Aayush blind),,0.406,6.9
+Vlog_720P-6d56,253,cut,cut,cut,agreed (Claude and Aayush blind),tilted building -> person,0.255,16.2
+Animation_360P-3e52,28,no_cut,no_cut,,claude only (rejected),"motion, same shot",0.055,10.1
+Animation_720P-57d9,78,gradual,gradual,,claude only (rejected),fade in from black f76-80 (settled f77 gradual),0.708,0.3
+Animation_720P-57d9,79,gradual,gradual,,claude only (rejected),fade in from black f76-80 (settled f77 gradual),0.445,0.5
+Animation_720P-7b29,183,no_cut,no_cut,,claude only (rejected),blank paper after the cut at f182; vignette darkens,0.402,0.8
+Animation_720P-7b29,186,no_cut,no_cut,,claude only (rejected),"blank paper, vignette change",0.44,0.0
+Animation_720P-7b29,284,no_cut,no_cut,,claude only (rejected),paper vignette change,0.375,1.7
+Animation_720P-7b29,296,no_cut,no_cut,,claude only (rejected),"blank paper, near-static",0.357,0.5
+Gaming_480P-09ab,1,no_cut,no_cut,,claude only (rejected),"same shot, gameplay motion",0.018,14.2
+Gaming_480P-09ab,3,no_cut,no_cut,,claude only (rejected),"same shot, gameplay motion",0.017,13.3
+Gaming_480P-09ab,9,no_cut,no_cut,,claude only (rejected),"same shot, gameplay motion",0.021,10.5
+Gaming_480P-09ab,151,no_cut,no_cut,,claude only (rejected),"camera pan, same scene",0.061,10.5
+Gaming_480P-09ab,262,no_cut,no_cut,,claude only (rejected),"muzzle flash, same shot",0.057,11.2
+HowTo_360P-2fd5,9,no_cut,no_cut,,claude only (rejected),handheld motion,0.365,0.8
+HowTo_360P-2fd5,134,no_cut,no_cut,,claude only (rejected),handheld motion/blur on the same paper,0.372,1.4
+LyricVideo_720P-47a9,40,no_cut,no_cut,,claude only (rejected),"title glitch flicker, same title",0.361,1.3
+LyricVideo_720P-47a9,42,no_cut,no_cut,,claude only (rejected),dark title before the dark->white jump at f43,0.555,1.5
+LyricVideo_720P-47a9,100,no_cut,no_cut,,claude only (rejected),"title glitch flicker, same title",0.367,1.3
+LyricVideo_720P-47a9,102,no_cut,no_cut,,claude only (rejected),dark title before the dark->white jump at f103,0.554,1.5
+LyricVideo_720P-47a9,162,no_cut,no_cut,,claude only (rejected),"glitch wave effect, same graphic",0.357,0.6
+LyricVideo_720P-47a9,229,no_cut,no_cut,,claude only (rejected),"glitch wave effect, same graphic",0.388,0.9
+LyricVideo_720P-47a9,230,no_cut,no_cut,,claude only (rejected),"glitch wave effect, same graphic",0.365,1.1
+MusicVideo_360P-17e4,136,no_cut,no_cut,,claude only (rejected),"same shot, motion",0.059,11.2
+MusicVideo_360P-17e4,141,no_cut,no_cut,,claude only (rejected),"same shot, motion",0.047,12.5
+MusicVideo_720P-0355,1,no_cut,no_cut,,claude only (rejected),"TV static, same content",0.087,18.7
+MusicVideo_720P-0355,156,no_cut,no_cut,,claude only (rejected),same shot as f155 (cut at f155),0.055,14.9
+MusicVideo_720P-0355,174,cut,cut,,claude only (rejected),strobe: face -> black frame in one frame (consistent with agreed round-1 cut f173 and Aayush 11-17 black<->white rule),0.914,0.6
+MusicVideo_720P-0355,175,cut,cut,,claude only (rejected),strobe: black frame -> face in one frame (as agreed round-1 cut f173),0.903,0.7
+MusicVideo_720P-0355,176,no_cut,no_cut,,claude only (rejected),same face shot as f175,0.045,15.2
+MusicVideo_720P-0355,187,no_cut,no_cut,,claude only (rejected),same shot; new framing comes at f188-190 (f190 is a cut),0.082,14.6
+MusicVideo_720P-7bcf,192,cut,cut,,claude only (rejected),"dim face close-up -> hands on table at f192 (dark, then brightens); 13-frame context checked",0.578,1.5
+NewsClip_720P-672c,239,no_cut,no_cut,,claude only (rejected),"fireworks, same shot",0.41,0.7
+Sports_360P-2ace,90,gradual,gradual,,claude only (rejected),background fades in under the title f90-92,0.619,1.2
+Sports_360P-2ace,91,gradual,gradual,,claude only (rejected),background fades in under the title f90-92,0.425,0.1
+Sports_360P-2ace,92,gradual,gradual,,claude only (rejected),background fades in under the title f90-92,0.371,0.2
+Sports_480P-41a5,109,no_cut,no_cut,,claude only (rejected),same crowd shot as f108 (cut at f108),0.084,10.5
+Vlog_720P-03d5,169,no_cut,no_cut,,claude only (rejected),"old-film flicker, same shot",0.467,1.7
+Vlog_720P-03d5,210,no_cut,no_cut,,claude only (rejected),"old-film flicker, same shot",0.395,0.2
+Vlog_720P-03d5,236,no_cut,no_cut,,claude only (rejected),"old-film flicker, same shot",0.424,1.7
+Vlog_720P-03d5,247,no_cut,no_cut,,claude only (rejected),"old-film flicker, same shot",0.407,1.8
+Vlog_720P-03d5,260,no_cut,no_cut,,claude only (rejected),"old-film flicker, same shot",0.509,1.2
+Vlog_720P-03d5,281,no_cut,no_cut,,claude only (rejected),"old-film flicker, same shot",0.463,0.5
+Vlog_720P-03d5,282,no_cut,no_cut,,claude only (rejected),"old-film flicker, same shot",0.509,0.8
+Vlog_720P-03d5,284,no_cut,no_cut,,claude only (rejected),"old-film flicker, same shot",0.517,0.6
+Vlog_720P-03d5,295,no_cut,no_cut,,claude only (rejected),"old-film flicker, same shot",0.53,1.8
+Vlog_720P-03d5,296,no_cut,no_cut,,claude only (rejected),"old-film flicker, same shot",0.516,1.8
+Vlog_720P-4e3d,1,no_cut,no_cut,,claude only (rejected),same shot (clip start),0.02,14.7
+Vlog_720P-5364,71,no_cut,no_cut,,claude only (rejected),"handheld swing, continuous",0.57,1.2
+Vlog_720P-5364,131,no_cut,no_cut,,claude only (rejected),"handheld blur, continuous",0.397,1.6
+Vlog_720P-6d56,1,no_cut,no_cut,,claude only (rejected),same shot (clip start),0.043,12.0
+Vlog_720P-6d56,198,no_cut,no_cut,,claude only (rejected),"handheld whip, same scene",0.522,0.8
+HowTo_360P-2fd5,146,no_cut,no_cut,,claude only (both detectors),"whip pan onto the paper + auto-exposure, continuous (13-frame context checked); like settled f148/f151",0.882,13.4
+LiveMusic_720P-653e,282,cut,cut,,claude only (both detectors),band -> black with inset in one frame,0.999,17.8
+LyricVideo_720P-47a9,43,cut,cut,,claude only (both detectors),dark title -> white background in one frame (as Aayush f47/f107),0.914,44.5
+LyricVideo_720P-47a9,44,no_cut,no_cut,,claude only (both detectors),"white background keeps building up after the f43 cut, same title",0.893,22.5
+LyricVideo_720P-47a9,59,no_cut,no_cut,,claude only (both detectors),single glitch frame on the same title (consistent with settled f57/f60 no_cut),0.906,17.7
+MusicVideo_360P-17e4,280,cut,cut,,claude only (both detectors),shot change,0.485,30.0
+MusicVideo_720P-0355,252,cut,cut,,claude only (both detectors),shot change,0.717,28.2
+MusicVideo_720P-0752,9,cut,cut,,claude only (both detectors),shot change,0.775,44.3
+MusicVideo_720P-734f,138,cut,cut,,claude only (both detectors),shot change,0.602,16.0
+MusicVideo_720P-734f,224,cut,cut,,claude only (both detectors),shot change,0.48,14.3
+NewsClip_720P-672c,24,cut,cut,,claude only (both detectors),shot change,0.378,22.4
+NewsClip_720P-672c,111,cut,cut,,claude only (both detectors),shot change,0.375,21.7
+NewsClip_720P-672c,152,cut,cut,,claude only (both detectors),shot change,0.351,20.8
+Sports_720P-2632,240,cut,cut,,claude only (both detectors),shot change,0.377,17.4
+Sports_720P-2632,272,cut,cut,,claude only (both detectors),shot change,0.4,15.1
+Vlog_720P-03d5,157,no_cut,no_cut,,claude only (both detectors),old-film flicker; the shot change is at f156 (also a both-detector cut),0.576,12.3

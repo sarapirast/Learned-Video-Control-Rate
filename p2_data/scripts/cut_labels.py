@@ -34,6 +34,7 @@ from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REVIEW = os.path.join(ROOT, 'config', 'cut_review_v1.csv')
+REVIEW_T2 = os.path.join(ROOT, 'config', 'cut_review_t2.csv')   # test2 verdicts (new clips only), if any
 HIST_BINS = 64
 HIST_T = 0.35
 SCDET_T = 10.0
@@ -185,6 +186,10 @@ def label(args):
     review = {}
     if os.path.exists(REVIEW):
         review = {(r['clip_id'], int(r['frame'])): r['verdict'] for r in csv.DictReader(open(REVIEW))}
+    if os.path.exists(REVIEW_T2):
+        t2 = {(r['clip_id'], int(r['frame'])): r['verdict'] for r in csv.DictReader(open(REVIEW_T2))}
+        assert not set(t2) & set(review), 'cut_review_t2.csv must not re-judge v1 frames'
+        review.update(t2)
     # Spliced clips (make_spliced.py) have exact labels: piece boundaries plus the source labels.
     known_cuts, known_grad = {}, {}
     sdir = os.path.join(args.data, 'spliced')
@@ -305,7 +310,7 @@ def main():
     ap.add_argument('--dissolves', action='store_true', help='--label: also flag dissolve candidates')
     ap.add_argument('--limit', type=int, default=0, help='--review: at most N sheets')
     args = ap.parse_args()
-    args.data = os.path.join(ROOT, 'data', 'v1', args.res)
+    args.data = os.environ.get('P2_DATA') or os.path.join(ROOT, 'data', 'v1', args.res)  # test2 (exp_next/test2/PLAN.md): P2_DATA = per-clip data root; default v1, unchanged
     if args.signals:
         ids = [args.clip] if args.clip else sorted(
             r['clip_id'] for r in csv.DictReader(open(os.path.join(args.data, 'manifest.csv'))))

@@ -31,6 +31,7 @@ import numpy as np
 ROOT = "/scratch1/aayushso/ee599"
 sys.path.insert(0, f"{ROOT}/repo-pavneet")
 OUT = f"{ROOT}/results_v1/next/fw"
+OUT_T2 = f"{ROOT}/results_v1/test2"   # test2 (exp_next/test2/PREREG.md secondary 8): RC_WORK=rcwork_t2/<enc>_resh
 D = f"{ROOT}/data/v1/320x180"
 RUN = "res_k5_fixed_no-level_f4_lam0.17_st360k_r6_capbit_meanpooled_bcinit_wu20k_s{s}"
 SM = f"{ROOT}/results_v1/next/exp5/shifts_smooth.json"
@@ -89,6 +90,8 @@ def stored_rows(enc, s, split):
     """R3 180k rows as stored: val = the F run's 180,993 checkpoint eval; test = the 11-16 test pass (eval_r3.py)."""
     if split == "test":
         return pickle.load(open(f"{ROOT}/results_v1/final/r3_test_{enc}.pkl", "rb"))[(s, "180k")]
+    if split == "test2":   # exp_next/test2/eval_t2.py --model r3k5 --split test2 (same models, stored final4 history)
+        return pickle.load(open(f"{OUT_T2}/r3k5_test2_{enc}.pkl", "rb"))[(s, K)]
     d = f"/scratch1/aayushso/rcwork_v1/{enc}_resh/results_rl/{RUN.format(s=s)}"
     return pickle.load(open(f"{d}/eval_ckpt.pkl", "rb"))["res"][(180993, "fixed", K, "val")]
 
@@ -109,7 +112,7 @@ def formula_check(split):
     import pandas as pd
     C, _, _, infos, M, pm = load_common()
     CR = _cr()
-    d = pd.concat(pd.read_parquet(f) for f in glob.glob(f"{ROOT}/results_v1/controller_real/final4_{C.CODEC}_{split}_*.parquet"))
+    d = pd.concat(pd.read_parquet(f) for f in glob.glob(f"{ROOT}/results_v1/controller_real/{'t2final4' if split == 'test2' else 'final4'}_{C.CODEC}_{split}_*.parquet"))
     d = d[d.k == K]
     d["gid"] = d.clip_id + "@" + (30 * d.gop).astype(str)
     byk = {(r.clip_id, int(r.gop), int(r.level_q0)): r for r in d.itertuples()}
@@ -133,6 +136,7 @@ def formula_check(split):
 
 def run(mode, clips, seeds, workers, split):
     C, runner, ipath, infos, M, pm = load_common()
+    assert ("rcwork_t2" in C.WORK) == (split == "test2"), f"RC_WORK {C.WORK} does not fit split {split}"
     mean = json.load(open(SM))[f"{C.CODEC}|{K}|pooled"]
     envkw = {"k": K, "mode": "fixed", "drop": ("level",), "prior": False, "extra": "f4", "res_mean": mean,
              "k_sampler": None}
@@ -173,14 +177,16 @@ def run(mode, clips, seeds, workers, split):
         and list(r["qps"]) == list(stored[s][(r["gid"], r["budget"])]["qps"]))]
     print(f"episodes without own history reproduce the stored rows: {'all' if not bad else bad[:5]}")
     assert not bad, "an episode with the stored history differs from the stored row"
-    os.makedirs(OUT, exist_ok=True)
-    dest = f"{OUT}/seqhist_{mode}_{split}_{C.CODEC}{'_check' if clips else ''}.pkl"
+    out = OUT_T2 if split == "test2" else OUT
+    os.makedirs(out, exist_ok=True)
+    dest = f"{out}/seqhist_{mode}_{split}_{C.CODEC}{'_check' if clips else ''}.pkl"
     assert not os.path.exists(dest), f"{dest} exists; never overwrite"
     pickle.dump(res, open(dest, "wb"))
     print(f"-> {dest}")
 
 
 def report(split):
+    assert split != "test2", "test2 is reported by exp_next/test2/report.py"
     import pandas as pd
     os.environ["RC_METRIC"] = "dpsnr"
     sys.path.insert(0, f"{ROOT}/exp_next/final")
@@ -249,7 +255,7 @@ def main():
     ap.add_argument("--seeds", default="3,4,5")
     ap.add_argument("--workers", type=int, default=None)
     ap.add_argument("--report", action="store_true")
-    ap.add_argument("--split", default="val", choices=("val", "test"))
+    ap.add_argument("--split", default="val", choices=("val", "test", "test2"))   # test2: run only (report in exp_next/test2)
     a = ap.parse_args()
     if a.report:
         return report(a.split)

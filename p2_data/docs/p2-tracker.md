@@ -1376,12 +1376,43 @@ order was agreed with Aayush.
     +0.029] -> "no detectable effect" (rule).
   - [x] EXPERIMENTS row added (11-17).
   - Next: ask Ahhana (k2? seeds? own mean[t]/BC at k29?); item 7 optional.
-- [ ] 44. TEST2: fresh held-out evaluation set for the frozen models (Aayush 11-17: Tier 1 + Tier 2, evaluation only).
+- [x] 44. TEST2 (DONE 11-17 23:10; Ahhana k0/k29 secondary DONE 11-18): fresh held-out evaluation set for the frozen models (Aayush 11-17: Tier 1 + Tier 2, evaluation only).
   Plan exp_next/test2/PLAN.md (UGC only, 12 categories x 8 clips, data/t2/320x180, split label test2, parity gate on
   3 v1 test clips, PREREG before eval jobs, drop if parity not exact by Thu 11-19 10:00).
   - [x] plan written 11-17
   - [x] selection script exp_next/test2/select_t2.py -> data/t2/clip_candidates.csv, selection.md (93 clips, 930 GOPs,
     52 GB incl. parity); [ ] Aayush approves list
-  - [ ] download (Aayush, hpc-transfer1), decode, cut labels, curves, budgets, final4, rc work dirs
-  - [ ] audit items (PLAN.md section 4) + parity gate
+  - [x] download DONE 11-17 (Aayush; 96 sources, 48 GB, data/t2/raw); decode tasks frozen (96, 0 skipped)
+  - [x] code (11-17; pre-change snapshot = team repo e8dcac5, repo-pavneet ca1bd00): P2_DATA switch (default v1) in
+    cut_labels, rd_native (+fp_stats), flat_gops_v1, controller_real (fitted inputs always v1; cut flags identical on
+    v1, checked), v1_rc_manifest, baselines_v1; DECODE_ARGS in jobs/decode_v1.sbatch; P2_RCWORK + test2/parity
+    splits in bc_eval, shift_eval; abr_margin test2/parity -> results_v1/test2/abr; repo-pavneet tools lf/res/lfq_infos
+    P2_DATA (+ P2_RCWORK in lfq_infos; uncommitted). New: exp_next/test2/budgets_t2.py, base_prev_t2.py (both
+    reproduce v1 exactly on v1 rows, diff 0), eval_t2.py (R3 k5/k2, CQL->PPO 540k). Audit: env reads Pavneet's
+    info['an'] -> orig infos.py must run on test2; CQL->PPO @prev needs a final3 run on test2 (tag t2final3);
+    test2 controller tags t2final4 / t2final3 (no glob clash with v1 final4_* / final3_*).
+  - [x] pipeline waves A/B DONE 11-17 (shard 7 rerun 14327054 after d18-14 failure); cut review DONE (round 1 blind
+    80 % / 90 %, kappa 0.62; settle.csv with Aayush's f47/f107 = cut; round 2 Claude; config/cut_review_t2.csv 159
+    verdicts; test2 labels 851 stable / 73 cut / 6 gradual GOPs)
+  - [x] PREREG.md FROZEN 11-17 (Aayush; sha256 eb6e94bf...); seq_history.py + cap_fix.py: test2 mode (git snapshot
+    e8dcac5 before the edits)
+  - [x] wave C 14327702-14327726 + cap_fix 14327939/40 submitted 11-17 (Aayush OK); parity GATE PASSED 11-17 ~21:20
+    (all data stages; R3 324/324, CQL->PPO 648/648, ABR 224, shift 108/108, cap_fix parity GOP). bc --check
+    30/32 / 31/32 explained (bit re-cap on Animation_720P-57d9@210, PLAN section 10)
+  - [x] report DONE 11-17 23:10: exp_next/test2/report.py -> results_v1/test2/report_test2.md (all wave C jobs
+    exit 0; seqhist x265 "episodes without own history reproduce the stored rows: all"). PRIMARY R3 - final4 k5:
+    x264 +0.044 [+0.008, +0.082] *, x265 +0.187 [+0.138, +0.235] * -> REPLICATED on both (v1 test +0.067 / +0.163).
+    RL over BC: R3 - BC alone k5 x264 +0.203 *, x265 +0.207 *; k2 +0.342 * / +0.356 *. R3 - (final4 + shift) k5
+    +0.037 * / +0.053 *. R3 - CQL->PPO k5 +0.305 * / +0.304 *. R3 k2 - final4 +0.031 n.s. / +0.146 *. Cut/gradual
+    x264 -0.036 n.s., x265 +0.133 *. Own history - final4 +0.036 n.s. / +0.184 *. Pooled v1 test + test2 +0.049 * /
+    +0.181 *. No PREREG deviation (amendments: none).
+  - [x] decode, cut labels, curves, budgets, final4/final3, rc work dirs (waves A/B)
+  - [x] audit items (PLAN.md section 4) + parity gate (PASSED)
+  - [x] Ahhana's R3 k0/k29 (PREREG secondary 10) DONE 11-18: val parity 1680/1680 per model (14347706 / 14347708);
+    test2 k0 14347707, k29 14351320 (rerun; 14347709 failed on b10-21). x264 test2, descriptive: R3 (Ahhana) - final4
+    k0 +0.097 [+0.051, +0.149] *, k29 +0.032 [+0.005, +0.061] *; k0 - BC alone (ours, s0-2) +0.647 *, - CQL->PPO +0.302 *.
   - [ ] PREREG.md frozen; eval jobs (Aayush OK); report
+- [x] 45. RESULTS PACK for the final report (Aayush 11-18: detailed .md + figures + tables, self-contained, in git):
+  report_pack/ (README.md, RESULTS.md, figures/fig1-8, tables/experiment_ledger.csv + key_numbers.csv,
+  source_reports/ = verbatim results_v1/**/*.md copies, scripts/make_figures.py). Synced to repo/p2_data/report_pack
+  by scripts/sync_to_repo.sh (now also syncs exp_next/*.sh and report_pack/). Supersedes docs/final-writeup-2026-11-16.md.

@@ -137,3 +137,60 @@ Risk: the plumbing (section 4) is the critical path, not compute or download. Th
 2. Run the download on hpc-transfer1 (command given with the list).
 3. Cut review: do it (about 30-60 min of contact sheets) or rule only.
 4. Team: ask Ahhana whether her k0 / k29 models should be included; heads-up to Pavneet (report owner).
+
+## 10. Execution log (11-17)
+
+- Download done (Aayush). Code: see docs/p2-tracker.md item 44. Submissions: exp_next/test2/submit.sh (waves).
+- Wave A submitted (decode 14323981 -> merge 14324115 -> cut signals 14324116 -> labels 14324117 -> curves 14324118 /
+  14324120, first-pass stats 14324119 / 14324121 -> gathers 14324122 / 14324123).
+- Cut labels: option 1 (Aayush 11-17) = v1 protocol. exp_next/test2/cut_review.py --make builds round 1 (blind sheets
+  for Aayush + Claude's scored strips) and round 2 (Claude only); --merge -> config/cut_review_t2.csv, then
+  cut_labels.py --label is rerun. Labels only feed the stable / cut breakdown: the report reads them from
+  data/t2/320x180/gops.csv at report time (the 'label' copies inside budgets.csv / rc manifests may predate the review
+  and are not used).
+- Wave B fix (11-17 18:20): v1's orig infos had Pavneet's experiments/scenes.py --stage apply run on them (frozen
+  detector fit results_scenes/fit.pkl, fitted on v1 train splices; backup infos.pkl.pre_scenefit), which rewrites
+  an[cut/flash/fade/scene/v_*]. Missing from the test2 chain -> parity caught it (ed_s05@120, NewsClip@210/@270).
+  Fix: copy v1 fit.pkl (identical bytes) to rcwork_t2/<enc>_orig/results_scenes/, run --stage apply (no refit), rebuild
+  lf / lfqp / resh infos from it. x264 done: orig / lf / lfqp parity OK. x265: lf job 14324253 held until apply.
+- Flat GOPs (QP-50 YUV PSNR rule): 71 of 958 (70 test2) dropped from scoring, as in v1.
+
+- Cut review done (11-17): round 1 Claude vs Aayush blind 80 % exact / 90 % cut-vs-not (kappa 0.62; v1 0.64); 19
+  disagreements settled in review/settle.csv (Aayush: Claude's proposals except LyricVideo_720P-47a9 f47/f107 = cut,
+  "strong black<->white transition within a single frame"). Round 2 (Claude): 50 rejected -> 3 cut / 5 gradual / 42
+  no_cut; 16 both-detector -> 12 cut / 4 no_cut (precision 75 %; the 4: whip pan + auto-exposure, glitch build-up,
+  single glitch frame, film flicker one frame after a cut). config/cut_review_t2.csv 159 verdicts. Relabel: test2
+  843/84/3 -> 851 stable / 73 cut / 6 gradual GOPs (15 GOPs changed); parity labels unchanged (cuts parity OK).
+- Parity 11-17 evening: prev x264/x265, ctrl final4/final3 x264/x265, infos orig/lf/lfqp both + resh x265 all OK.
+  x264 resh blocked: final4 x264 test2 shard 7 (14324220_7) failed on d18-14 (signal 53, no log) -> resh 14324229
+  DependencyNeverSatisfied.
+- PREREG.md FROZEN 11-17 (Aayush; sha256 prefix eb6e94bfbdad6776, file made read-only). Ahhana messaged by Aayush about her
+  k0/k29 models (secondary 10; descriptive, only if models + settings arrive before Thu 11-19 12:00).
+- 11-17 evening: x264 shard 7 rerun 14327054 + resh 14324229 done -> parity gate OK for every data stage (decode ...
+  infos, all 8 arm/encoder infos). seq_history.py: --split test2 added (stored rows = eval_t2 r3k5 test2, t2final4
+  for the formula check, out results_v1/test2, RC_WORK must be rcwork_t2; report() refuses test2). Formula check on
+  test2 (ee599 env, no encodes): 3084 (GOP, level) per encoder, max diff 1e-14. Slim infos pre-built for all four t2
+  work dirs. Wave C script exp_next/test2/submit_c.sh (25 jobs; dry run shown to Aayush).
+- Wave C submitted 11-17 (Aayush OK): 14327702-14327726 (25 jobs, exp_next/test2/submit_c.sh go).
+- cap_fix.py: P2_DATA test2 mode (t2final4 test2/parity rows, out results_v1/test2/cap_fix_<enc>.pkl); jobs submitted 11-17.
+- Wave C checks (11-17 ~21:15): eval-level parity R3 k5 324/324 and CQL->PPO 648/648 per encoder; ABR 224 rows and
+  shift 108/108 equal to v1; cap_fix parity GOP equal to v1's. bc_eval --check (offset 0 + mean 0 + bit cap = final4
+  stored row) 30/32 x264, 31/32 x265: every mismatch is Animation_720P-57d9@210, k0, L36/L42 (final4 overshoots an
+  8-15 kbit budget; the BIT re-cap then raises QPs from frame 8). Replay of that GOP: recap '' and 'full' reproduce
+  final4 exactly, 'bit' does not (masked or not) -> a property of the pre-registered bit-cap rule (R3 / BC / shift),
+  not of the test2 pipeline; v1's 12-episode check never sampled such a GOP. seqhist x264: 3427/10320 rows equal
+  to stored (episodes with stored history all equal).
+- 11-17 23:10: all wave C jobs done (bc25_x265 14327721, seqhist_x265 14327724, cqlppo_x265 14327725 exit 0; seqhist
+  x265: episodes without own history reproduce the stored rows: all). report.py re-run -> results_v1/test2/report_test2.md
+  complete, gate PASSED. Primary replicated on both encoders (x264 +0.044 [+0.008, +0.082], x265 +0.187 [+0.138,
+  +0.235]). No deviation from PREREG; amendments none. Open: Ahhana k0/k29 (secondary 10) only before Thu 11-19 12:00.
+- 11-18: Ahhana's R3 k0 / k29 (x264, s3-5, 180k) received before the freeze (PREREG secondary 10). Her eval.pkl args
+  match the R3 recipe; her shifts_smooth.json equals ours on every shared key (new key x264|29|pooled). New
+  exp_next/test2/eval_ahhana.py (eval_t2.py untouched): parity = her models through our v1 x264_resh env on v1 val
+  must equal her stored eval.pkl val rows; then test2. Wave D (exp_next/test2/submit_d.sh, Aayush OK 11-18):
+  parity 14347706 (k0) / 14347708 (k29), test2 14347707 (k0) / 14347709 (k29). Test2 rows read only after parity.
+- 11-18: 14347709 (r3k29a test2) FAILED on b10-21: seed 5 stalled 7 min, then 4/3440 ffmpeg decode failures (empty
+  stderr); s3/s4 ran clean but rows are written only at the end. b10-21 -> bad_nodes; rerun 14351320 (Aayush OK).
+- 11-18 14:45: rerun 14351320 OK (0 errors, a03-17). report.py re-run, gate PASSED. Secondary 10 (x264, descriptive):
+  R3 (Ahhana) - final4 k0 +0.097 [+0.051, +0.149] *, k29 +0.032 [+0.005, +0.061] *; k0 vs BC alone (ours) +0.647 *,
+  vs CQL->PPO +0.302 *. test2 complete; no PREREG deviation.

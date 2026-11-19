@@ -1,0 +1,164 @@
+EE599 RL rate control - (i) additional experiments, (ii) test2 add-on
+Aayush, status 2026-11-18. Every number comes from a results file (paths given per item).
+
+Score: dPSNR_B - 0.17 dB per 1 % over budget (0 = constant QP spending exactly the budget).
+Differences are paired per (GOP, budget level); 95 % CI = clip bootstrap; "*" = CI excludes 0.
+final4 = our frozen causal controller (the baseline every learner must beat). k = lookahead in frames.
+Each experiment had a written pre-registration (PREREG) with a pass/fail rule before it ran; all on val
+unless stated.
+
+=====================================================================================================
+TL;DR
+=====================================================================================================
+- Standalone learners (BC, CQL->PPO, Lagrangian PPO) never beat our causal controller final4. Most of
+  their loss is in landing the budget, not in how they allocate bits (Exp 1).
+- What worked: a residual on final4, priced at the metric's own overshoot rate (Exp 3), started from a
+  BC actor and fine-tuned with PPO (R3). BC alone loses (closed-loop drift); the PPO step turns it
+  into a win (+0.20 to +0.36 dB over BC).
+- R3 beats final4 at k5 on both encoders, on v1 test (x264 +0.067 *, x265 +0.163 *) and on test2,
+  a fresh set of 93 unseen UGC clips (x264 +0.044 *, x265 +0.187 *). test2 was frozen in advance and
+  gated by exact parity with v1.
+- The win comes mostly from overshooting less: R3 is over budget on 20-25 % of episodes vs ~55 % for
+  final4.
+- x265: gains almost everywhere (classes, categories, k2 and k5). x264: small gain, stable GOPs only.
+- No gain from: handoff (Exp 2), per-context settings (Exp 6), RL at stream level vs a retuned rule
+  (Exp 7), longer training (360k), lookahead beyond k5.
+- test2 add-on: built a second test set end to end (93 new YouTube-UGC clips, 12 categories, one clip
+  per uploader, none shared with v1; same decode / labels / curves / budgets pipeline, cut labels by
+  the v1 two-reviewer protocol, kappa 0.62). Nothing trained or refit on it; pre-registration frozen
+  before any score; the test2 code path reproduces every stored v1 row exactly on 3 v1 clips.
+- test2 confirms the v1 story: the primary replicates on both encoders, RL over BC holds at k2 and k5
+  (+0.20 to +0.36 *), R3 beats every baseline (final4 + shift, CQL->PPO, ABR), and pooled v1 test +
+  test2 gives x264 +0.049 *, x265 +0.181 *.
+
+=====================================================================================================
+(i) ADDITIONAL EXPERIMENTS (exp_next/, 11-13 to 11-17)
+=====================================================================================================
+
+Exp 0 - first-hour checks                                            exp_next/exp0/CHECKS.md
+  Q: is the residual pipeline sound before building on it?
+  - Training reward = dPSNR_B - stored final4 dPSNR_B - 0.34 x %over; offsets not re-capped.
+  - Train parity 40/40 exact per encoder; evaluations deterministic.
+
+Exp 1 - where does final4 lose to the hindsight search?             results_v1/next/exp1/
+  Q: score decomposition and how much headroom a learner could take.
+  - Allocation headroom (search - final4) = +0.37 dB [+0.27, +0.49].
+  - Causal methods differ from final4 almost only in spend error (mean |err| final4 3.1 %, CQL->PPO
+    4.7 %, residual 6.1 %). final4 loses ~0.3 dB to landing and ~0.35 dB to allocation.
+  - The local R-D slope is 0.036-0.064 dB per 1 %, so the best over-budget rate is 21-37 %;
+    final4 goes over on 43-65 %.
+  -> Motivated the residual design and pricing the overshoot at the metric's own rate.
+
+Exp 2 - handoff: learner for the first frames, final4 for the last m    results_v1/next/exp2/
+  - FAIL (non-inferiority at m = 10): hybrid - final4 -0.052 [-0.146, +0.056].
+  - Longer handoffs under-spend: final4's one-slope rate model, calibrated at the learner's QPs,
+    over-predicts the remaining bits. -> final4 should plan every frame; learner adds on top.
+
+Exp 3 - residual on final4 priced at the metric (lambda 0.17 vs 0.34)   results_v1/next/exp3/report.md
+  - PASS: +0.137 [+0.109, +0.166] pooled (x264 +0.184, x265 +0.090).
+  - The old residual under-spent (signed error -6 % at k0) to avoid overshoots priced at 2x the metric.
+  - vs final4: x264 -0.071 *, x265 -0.003 n.s. (ties on x265). Becomes rung R1.
+
+Exp 4 R2 - wider offsets (-6..+6) + final4-state features               results_v1/next/exp4/r2_report.md
+  - Gate vs R1 FAIL (+0.040 * pooled, but the gain is all at k5 and one seed is negative).
+  - vs final4: +0.003 n.s. -> ties final4 on both encoders.
+
+Exp 5 / 5a - BC dataset + fixed per-frame shift on final4               results_v1/next/exp5/
+  - ~102k search plans per encoder as labels; raw labels biased by frame position -> shift test first.
+  - Per-level shift looked good but the budget level is clip-level hindsight; the causal version
+    (per QP bin) failed the pre-registered rule on both encoders, failure confined to k0.
+  - Post-hoc k5 only: x265 final4 + shift +0.153 [+0.044, +0.283] on val, x264 none.
+  -> "final4 + shift" became a stronger non-RL baseline on x265.
+
+Exp 5b - BC alone (classifier over 13 offsets, deployed on final4)      results_v1/next/exp5/bc_fold.md
+  - LOSES to final4: x264 -0.327 *, x265 -0.193 *.
+  - Offline fit is fine; the loss is landing: in closed loop BC drifts +0.8..+1.4 QP at k0 (unbiased on
+    logged states) and misses the budget (mean |err| 11-15 %).
+
+Exp 4 R3 - PPO started from the BC actor, k5 (+ bit cap, critic warm-up, o[2] masked)
+                                                                       results_v1/next/exp4/r3_report.md
+  - GATE PASS: R3 - final4 +0.128 [+0.050, +0.216] pooled (x264 +0.066 *, x265 +0.190 *), all seeds.
+  - First learner to clearly beat final4. BC start effect (R3 - same without BC) +0.131 *.
+  - Gain = better quality for the bits AND fewer overshoots (27 % / 16 % of episodes vs 56 % / 50 %).
+  - Stable GOPs +0.146 *, cut/gradual +0.034 n.s.
+
+Exp 6 - per-context final4 setting (no encodes)                         results_v1/next/exp6/gate.md
+  - FAIL narrowly: +0.027 [-0.000, +0.050] vs the +0.03 bar. No bandit, no encodes.
+
+Exp 7 - stream level (reproduction / extension of Pavneet's D34/D35 and Sara's PID-Lagrangian)
+                                                                       results_v1/next/exp7/
+  - All 24 of Pavneet's stream policies and his rule reproduce exactly on val.
+  - Retuning the rule makes it much stronger (x264 -0.623 -> -0.500, x265 -0.453 -> -0.294).
+  - Test: RL - retuned rule not significant (x264 -0.026, x265 +0.050) -> "lookahead helps", not
+    "RL helps" at stream level. RL wins on mixed streams (+0.51 / +0.47 *).
+
+Exp 10 - ABR+VBV with a tuned target margin                             results_v1/next/exp10/abr_margin.md
+  - Fair codec baseline: margin frozen x264 0.90, x265 0.93. Still ~1 dB below final4.
+
+o[2] ablation - hindsight flag (budget level != 24) in every learner's observation since the pilot
+                                                                       results_v1/next/o2/o2_report.md
+  - No material dependence at evaluation (pooled change < 0.01 dB). BC / R3 trained without it.
+
+FINAL v1 TEST PASS (11-16, single, pre-registered)                     results_v1/final/report_test_cap.md
+  - PRIMARY PASS: R3 - final4 x264 +0.067 [+0.023, +0.107] *, x265 +0.163 [+0.086, +0.243] *
+    (with Ahhana's 100 dB PSNR-cap correction; every seed positive).
+  - x265 R3 - (final4 + shift) +0.074 *; R3 - CQL->PPO 540k +0.13 / +0.20 *; R3 - ABR +1.05 / +0.71 *.
+  - 360k training steps add nothing over 180k.
+
+Final-week items (exploratory; exp_next/fw/)                            results_v1/next/fw/
+  1 k-curve: R3 - final4 x264 k2 +0.035 n.s. / k5 +0.077 *; x265 k2 +0.152 * / k5 +0.209 *.
+    R3 - BC alone: k2 +0.276 * / +0.307 *, k5 +0.231 * / +0.212 *  -> RL adds over BC at both k.
+  2 R3 with its OWN previous-GOP history (deployment-faithful), test: x264 +0.071 *, x265 +0.151 *.
+  3 Learning curve: training deterministic; 60k -> 180k +0.034 -> +0.077 (x264), +0.145 -> +0.209 (x265).
+  4 No critic warm-up: no detectable effect (pooled +0.012 n.s.).
+  5 Overshoot-price sensitivity (lambda 0..0.34): x265 positive at every lambda; x264 edge goes to ~0
+    at very low prices. R3's edge grows with the price (it overshoots far less: 21-24 % vs 55 %).
+
+=====================================================================================================
+(ii) TEST2 ADD-ON: frozen models on a fresh held-out set (11-17)
+=====================================================================================================
+Why: v1 test was used once, but models and baselines were developed on v1. test2 checks whether the
+result replicates on clips nobody has seen. Evaluation only - nothing trained, refit or tuned on test2.
+
+Data (exp_next/test2/select_t2.py; data/t2/320x180)
+  - 93 new YouTube-UGC clips, 12 categories (~8 each), one clip per uploader, no uploader shared with
+    v1; 320x180, 30-frame GOPs -> 930 GOPs; 860 scored in 88 clips after the flat-GOP rule.
+  - Same pipeline as v1: decode, first-pass bits/stats, constant-QP curves QP 18-50 both encoders,
+    budgets from the v1-TRAIN fit, previous-GOP base estimate, final4 / final3 controller runs.
+  - Cut labels with the v1 protocol: two detectors, blind two-reviewer round 1 (80 % exact,
+    90 % cut vs not-cut, kappa 0.62; v1 was 0.64), settlement, round-2 check. Scored GOPs:
+    788 stable, 69 cut, 3 gradual.
+
+Safeguards
+  - PREREG.md frozen BEFORE any test2 score was computed (primary, secondaries, decision rules).
+  - Parity gate: 3 v1 test clips run through the test2 code path must reproduce the stored v1 rows
+    exactly. PASSED: every data stage, R3 324/324, CQL->PPO 648/648, final4/final3, ABR 224,
+    shift 108/108, PSNR-cap correction.
+  - Code changes behind a P2_DATA switch (default = v1), snapshotted in git first.
+
+Results (results_v1/test2/report_test2.md)              x264                     x265
+  PRIMARY R3 - final4, k5                        +0.044 [+0.008, +0.082] *  +0.187 [+0.138, +0.235] *
+    (v1 test, for comparison)                    +0.067 [+0.023, +0.107]    +0.163 [+0.086, +0.243]
+  -> REPLICATED on both encoders. Every seed positive.
+  By class: stable                               +0.051 *                    +0.192 *
+            cut/gradual                          -0.036 n.s.                 +0.133 *
+  By category (12, descriptive)                  1 of 12 CI > 0              10 of 12 CI > 0
+  R3 - final4, k2                                +0.031 n.s.                 +0.146 *
+  R3 - BC alone, k5 / k2                         +0.203 * / +0.342 *         +0.207 * / +0.356 *
+  BC alone - final4, k5                          -0.159 *                    -0.020 n.s.
+  R3 - (final4 + shift), k5                      +0.037 *                    +0.053 *
+  R3 - CQL->PPO 540k, k5                         +0.305 *                    +0.304 *
+  R3 - ABR+VBV, k5                               +2.24 *                     +1.52 *
+  R3 own history - final4, k5                    +0.036 n.s.                 +0.184 *
+  Over-budget episodes (R3 vs final4)            25 % vs 53 %                20 % vs 55 %
+  Pooled v1 test + test2 (descriptive)           +0.049 *                    +0.181 *
+
+Takeaways
+  - The R3 result is not a v1 artefact: it holds on a new, all-UGC set with a different content mix.
+  - RL over imitation is the most robust effect (+0.20 to +0.36 dB, both encoders, both k).
+  - x265: gains everywhere (classes, categories, k2 and k5). x264: small gain, stable GOPs only.
+  - No deviation from the pre-registration.
+
+Caveats: final4 and the ABR margins were tuned on v1 val; test2 is UGC only (no Xiph / Blender /
+Netflix sources). Ahhana's R3 k0 / k29 can be added (pre-registered secondary) if they arrive before
+Thu 11-19 12:00.

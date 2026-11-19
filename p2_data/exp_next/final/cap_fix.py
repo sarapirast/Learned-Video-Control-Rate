@@ -24,7 +24,11 @@ import pandas as pd
 
 ENC = sys.argv[1]
 ROOT = "/scratch1/aayushso/ee599"
-D = f"{ROOT}/data/v1/320x180"
+V1 = f"{ROOT}/data/v1/320x180"
+D = os.environ.get("P2_DATA") or V1   # test2 (exp_next/test2/PREREG.md): P2_DATA=data/t2/320x180
+T2 = os.path.realpath(D) != os.path.realpath(V1)
+SPLITS, TAG = (("test2", "parity"), "t2final4") if T2 else (("val", "test"), "final4")
+OUTD = f"{ROOT}/results_v1/test2" if T2 else f"{ROOT}/results_v1/final"
 spec = importlib.util.spec_from_file_location("controller_real", f"{ROOT}/scripts/controller_real.py")
 CR = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(CR)
@@ -60,8 +64,8 @@ def main():
           f"{len(curves)} GOPs change under the cap")
     man = {r.clip_id: r for r in pd.read_csv(f"{D}/manifest.csv").itertuples()}
     fixes = {}
-    for split in ("val", "test"):
-        d = pd.concat(pd.read_parquet(p) for p in glob.glob(f"{ROOT}/results_v1/controller_real/final4_{ENC}_{split}_*.parquet"))
+    for split in SPLITS:
+        d = pd.concat(pd.read_parquet(p) for p in glob.glob(f"{ROOT}/results_v1/controller_real/{TAG}_{ENC}_{split}_*.parquet"))
         d["gid"] = d.clip_id + "@" + (30 * d.gop).astype(str)
         d = d[d.gid.isin(curves)]
         for r in d.itertuples():
@@ -80,8 +84,11 @@ def main():
     dl = [v["psnr_uncapped"] - v["psnr"] for v in fixes.values()]
     print(f"{ENC}: final4 rows re-measured {len(fixes)} (bits and uncapped PSNR identical to stored); PSNR drop under "
           f"the cap: mean {np.mean(dl):.3f}, max {np.max(dl):.3f} dB; GOPs: {sorted({k[0] for k in fixes})}")
-    os.makedirs(f"{ROOT}/results_v1/final", exist_ok=True)
-    pickle.dump({"curves": curves, "final4": fixes}, open(f"{ROOT}/results_v1/final/cap_fix_{ENC}.pkl", "wb"))
+    os.makedirs(OUTD, exist_ok=True)
+    dest = f"{OUTD}/cap_fix_{ENC}.pkl"
+    assert not (T2 and os.path.exists(dest)), f"{dest} exists; never overwrite"
+    pickle.dump({"curves": curves, "final4": fixes}, open(dest, "wb"))
+    print(f"-> {dest}")
 
 
 if __name__ == "__main__":
