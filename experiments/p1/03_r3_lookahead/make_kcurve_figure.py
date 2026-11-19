@@ -1,0 +1,138 @@
+"""make_kcurve_figure.py: figure of BC, R3 and R2c across lookahead on x264 val, styled like figure 2 of Aayush's
+report pack (p2_data/report_pack/scripts/make_figures.py: palette, markers, symlog k axis).
+
+Left panel: mean score vs k for final4, BC alone (R3's 20k checkpoint), R3, R2c and shift-only (R2c's 20k checkpoint),
+with the best constant QP in hindsight as a reference line. Right panel: paired differences with 95 % clip-bootstrap
+CIs: R3 - final4, BC - final4, R2c - final4, R3 - R2c (series side by side). Points that rest on one seed (k2 and k10;
+R2c at k5) are hollow, with a "hollow = 1 seed" legend entry; all others average seeds 3-5 per episode.
+Inputs (no new runs): results/r3_kcurve/rows_final.parquet (score_final_capped.py: one PSNR cap everywhere, capped
+curves), results/baselines_val/rows_scored_cap.parquet (02, for the best constant QP in hindsight).
+Outputs: results/r3_kcurve/fig_val_kcurve_bc_r3_r2c.png and fig_val_kcurve_bc_r3_r2c.csv (every plotted number).
+Run (Aayush's ee599 env: pandas, pyarrow, matplotlib; seconds): python -I make_kcurve_figure.py
+"""
+import os
+import sys
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
+from matplotlib.transforms import offset_copy  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from score_final_capped import boot  # noqa: E402  (same clip bootstrap as the final table)
+
+R = "/scratch1/ahhanagu/ee599/results"
+OUT = f"{R}/r3_kcurve/fig_val_kcurve_bc_r3_r2c"
+KS = (0, 2, 5, 10, 29)
+
+# palette and rcParams copied from p2_data/report_pack/scripts/make_figures.py (figure 2 look)
+SURF, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
+C1, C2, C3 = "#2a78d6", "#eb6834", "#1baf7a"
+LIGHT = "#9b9a95"
+plt.rcParams.update({
+    "figure.facecolor": SURF, "axes.facecolor": SURF, "savefig.facecolor": SURF, "axes.edgecolor": INK2,
+    "axes.labelcolor": INK, "xtick.color": INK2, "ytick.color": INK2, "text.color": INK, "font.size": 9.5,
+    "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True, "grid.color": GRID,
+    "grid.linewidth": 0.6, "axes.axisbelow": True, "legend.frameon": False, "axes.titlesize": 10.5,
+    "axes.titleweight": "bold", "lines.linewidth": 2})
+# figure 2 styles (final4, R3, BC alone); R2c = slot 3 with its own marker, shift-only = light neutral
+STYLE = {"final4": (INK2, "s", "-"), "BC": (C2, "^", "--"), "R3": (C1, "o", "-"),
+         "R2c": (C3, "P", "-"), "shift-only": (LIGHT, "x", ":")}
+LABEL = {"final4": "final4", "BC": "BC alone (R3's start)", "R3": "R3 (BC start + PPO)",
+         "R2c": "R2c (PPO, standard start)", "shift-only": "final4 + shift + cap (R2c's start)"}
+DIFFS = [("R3 − final4", "R3", "final4", C1, "o"), ("BC − final4", "BC", "final4", C2, "^"),
+         ("R2c − final4", "R2c", "final4", C3, "P"), ("R3 − R2c", "R3", "R2c", INK, "D")]
+
+
+def main():
+    d = pd.read_parquet(f"{R}/r3_kcurve/rows_final.parquet")
+    d = d[~d.hole]
+    seeds = d[d.method != "final4"].groupby(["method", "k"]).seed.nunique()
+
+    def ep(m, k):                       # seeds averaged per episode
+        x = d[(d.method == m) & (d.k == k)]
+        return x.groupby(["gid", "level", "clip"]).score.mean()
+
+    def one_seed(m, k):
+        return m != "final4" and seeds.get((m, k), 0) == 1
+
+    b = pd.read_parquet(f"{R}/baselines_val/rows_scored_cap.parquet")
+    cqp = b[(b.enc == "x264") & (b.method == "CQP best (hindsight)") & ~b.hole].score.mean()
+
+    rows = []
+    fig, (axl, axr) = plt.subplots(1, 2, figsize=(9.6, 4.3))
+
+    # ---- left: mean score vs k
+    for m, (col, mk, ls) in STYLE.items():
+        pts = [(k, ep(m, k).mean(), one_seed(m, k)) for k in KS if len(ep(m, k))]
+        if not pts:
+            continue
+        x, y, single = zip(*pts)
+        axl.plot(x, y, ls=ls, color=col, lw=1.6 if m == "shift-only" else 2, zorder=2)
+        for k, v, s in pts:
+            axl.plot(k, v, marker=mk, ms=6.5, color=col, mec=col, mew=1.8, mfc=SURF if s else col, ls="none",
+                     zorder=3)
+            rows.append({"panel": "score", "series": m, "k": k, "value": v, "lo": "", "hi": "",
+                         "seeds": int(seeds.get((m, k), 0)) if m != "final4" else "", "one_seed": s})
+        axl.plot([], [], ls=ls, color=col, marker=mk, ms=6, mfc=col, mec=col, mew=1.8, label=LABEL[m])
+    axl.axhline(cqp, color=INK2, lw=1, ls=(0, (2, 2)))
+    axl.text(29, cqp - 0.012, "best constant QP in hindsight", ha="right", va="top", fontsize=7.5, color=INK2)
+    axl.set_ylabel("mean score (dB)")
+    axl.set_title("x264, val: score vs lookahead", loc="left")
+    hollow = Line2D([], [], ls="none", marker="o", ms=6, mfc=SURF, mec=INK2, mew=1.6, label="hollow = 1 seed")
+    h, lab = axl.get_legend_handles_labels()
+    axl.legend(h + [hollow], lab + [hollow.get_label()], loc="lower right", fontsize=7.5)
+
+    # ---- right: paired differences with clip-bootstrap CIs
+    off = {lab: o for lab, o in zip([t[0] for t in DIFFS], (-7.5, -2.5, 2.5, 7.5))}      # points, side by side
+    ends = []                           # CI ends: offset artists are not autoscaled, so set the y range from these
+    for lab, a, bb, col, mk in DIFFS:
+        tr = offset_copy(axr.transData, fig=fig, x=off[lab], y=0, units="points")
+        pts = []
+        for k in KS:
+            ea, eb = ep(a, k), ep(bb, k)
+            if not len(ea) or not len(eb):
+                continue
+            j = pd.concat([ea.rename("a"), eb.rename("b")], axis=1, join="inner").reset_index()
+            v, lo, hi = boot((j.a - j.b).to_numpy(), j["clip"].to_numpy())
+            s = one_seed(a, k) or one_seed(bb, k)
+            pts.append((k, v, lo, hi, s))
+            ends += [lo, hi]
+            rows.append({"panel": "difference", "series": lab, "k": k, "value": v, "lo": lo, "hi": hi,
+                         "seeds": "", "one_seed": s})
+        x, y = [p[0] for p in pts], [p[1] for p in pts]
+        axr.plot(x, y, color=col, lw=1.2, alpha=0.55, zorder=2, transform=tr)
+        for xk, v, lo, hi, s in pts:
+            axr.plot([xk, xk], [lo, hi], color=col, lw=1.6, solid_capstyle="round", zorder=2, transform=tr)
+            axr.plot(xk, v, marker=mk, ms=6, color=col, mec=col, mew=1.6, mfc=SURF if s else col, ls="none",
+                     zorder=3, transform=tr)
+        axr.plot([], [], color=col, marker=mk, ms=6, mfc=col, mec=col, label=lab)
+    axr.axhline(0, color=INK2, lw=1, zorder=1)
+    pad = 0.05 * (max(ends) - min(ends))
+    axr.set_ylim(min(ends) - pad, max(ends) + pad)
+    axr.set_ylabel("dB (paired difference)")
+    axr.set_title("x264, val: paired differences", loc="left")
+    h, lab = axr.get_legend_handles_labels()
+    axr.legend(h + [hollow], lab + [hollow.get_label()], loc="lower right", fontsize=7.5)
+
+    for ax in (axl, axr):
+        ax.set_xscale("symlog", linthresh=2)
+        ax.set_xticks(KS)
+        ax.set_xticklabels([str(k) for k in KS])
+        ax.set_xlabel("lookahead k (frames)")
+        ax.set_xlim(-0.6, 40)
+    fig.text(0.01, 0.01, "x264, val, level-24 hole excluded, seeds 3-5 averaged per episode; hollow = one seed (R3 / BC at k2, k10; "
+             "R2c at k5). One PSNR cap everywhere.\nBars: 95 % clip bootstrap. BC = R3's 20k checkpoint (the imitation start); "
+             "R2c = R3's training without the BC start. Right panel: series side by side at each k.", fontsize=7,
+             color=INK2)
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
+    fig.savefig(f"{OUT}.png", dpi=180)
+    pd.DataFrame(rows).to_csv(f"{OUT}.csv", index=False, float_format="%.4f")
+    print(f"-> {OUT}.png, {OUT}.csv")
+
+
+if __name__ == "__main__":
+    main()
