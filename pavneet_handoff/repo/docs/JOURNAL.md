@@ -317,3 +317,9 @@ Paired, seeds averaged (il_ppo_rr: 1 seed), 95 % cluster bootstrap, test n=8 / t
 - 11-18 D49 VMAF full submitted: x265 native 14357516 / 1080 14357517, x264 native 14357518 / 1080 14357519 (debug timing 14 s native, 240 s 1080 per GOP; VMAF 3.0.0 built from source, /scratch1/pbanga/envs/vmaf/bin/vmaf, official binary needs glibc 2.34).
 - 11-18 D51 paper fixes applied (paper/final/final_report.tex, 6 pages; backup /scratch1/pbanga/tmp/final_report_v1.tex). 3-seed il_ppo - encoder E2: x265 AR1 -0.51 [-1.74,+0.11], LTE +0.96 [-0.86,+2.25]; x264 AR1 -1.67*, LTE -0.52 [-2.97,+1.25]; n16 +1.25 / +0.10.
 - 11-18 D49 VMAF curves done (all 96 tasks, 0 bits mismatch; 1080p shards <= 49 min). D52 VMAF rescoring -> results/v1_vmaf/; paper Table VI + VMAF paragraph; last red placeholder removed (6 pages).
+- 11-18 pushed to GitHub main b716b0e (user: "yes push"): pavneet_handoff/repo synced (D47-D52, paper/final), artifacts + ladder oracle/real/il_ppo_rr and results_vmaf (57 MB, 341 files); clone fast-forwarded to Aayush's 4e7ce09 first. Rule-retune diff vs Exp 7 analysed (scratch script /scratch1/pbanga/tmp/rule_diff.py).
+- 11-18 D53: rules A (Exp 7, same-clip tuned) and B (all-stream tuned) both in Table III; ladder-budget check of both rules.
+
+## 2026-11-19
+- Added the team's test2 replication to the final report (Table II columns, Fig. 1 from the team pack, text, abstract, conclusion); per-GOP PSNR wording fixed (YUV mean over frames); 7 pages (user OK). D54.
+- Encoder-row VMAF: script + report written and tested (bits reproduce exactly); full array job pending submission.

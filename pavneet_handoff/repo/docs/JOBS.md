@@ -211,3 +211,4 @@ Debug tests: 13726162/63 (own_rc_stream quick, passed), 13726780 (re-analysis + 
 - 11-18 D47 full: x265 real 14352607 / rr 14352608 / model 14352609 / report 14352610; x264 real 14352611 / rr 14352612 / model 14352613 / report 14352614. ETA ~2-3 h.
 - 11-18 D49 VMAF (x264/x265 native + 1080p, 96 tasks): all COMPLETED, no errors; nothing running.
 - 11-18 D49 VMAF curves (x264/x265, native + 1080p, 96 array tasks): all COMPLETED, no errors; nothing left running.
+- 11-19 D54 encoder VMAF: `tools/submit_enc_vmaf.sh x265|x264` (64 tasks x 1 CPU, 6G, 3 h, %32; ~80 CPU-h per encoder, ~3 h wall). NOT SUBMITTED yet (sbatch blocked by permission check; waiting for the user). Debug output: rcwork_v1/x265/results_enc_vmaf_debug/0of40.pkl.
