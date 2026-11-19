@@ -207,3 +207,7 @@ Debug tests: 13726162/63 (own_rc_stream quick, passed), 13726780 (re-analysis + 
 
 ## 2026-11-18 — D45 il rerun (fixed buffer_rl2 DIRS)
 - x265: il 14346012 (array 0-5), report 14346013 (afterany); x264: il 14346014, report 14346015. Writes only to rcwork_v1/<codec>/results_buffer{,_trace}_ladder. Previous il tasks took ~15 min each. After: python tools/buffer_wide_report.py.
+- 11-18 D47 debug: x265 14352570 (debug partition, 50 min cap).
+- 11-18 D47 full: x265 real 14352607 / rr 14352608 / model 14352609 / report 14352610; x264 real 14352611 / rr 14352612 / model 14352613 / report 14352614. ETA ~2-3 h.
+- 11-18 D49 VMAF (x264/x265 native + 1080p, 96 tasks): all COMPLETED, no errors; nothing running.
+- 11-18 D49 VMAF curves (x264/x265, native + 1080p, 96 array tasks): all COMPLETED, no errors; nothing left running.

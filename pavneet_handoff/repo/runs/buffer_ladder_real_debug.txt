@@ -1,0 +1,4 @@
+RC_BUF_LADDER=1 buffer_real.py --split test --shard 0 --nshards 1 --limit 2 --replay 2
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace buffer_real.py --split test --shard 0 --nshards 1 --limit 2 --replay 2
+RC_BUF_LADDER=1 buffer_real.py --split val --shard 0 --nshards 1 --limit 2
+RC_BUF_LADDER=1 buffer_rl3.py --method il_rr --seed 0 --quick

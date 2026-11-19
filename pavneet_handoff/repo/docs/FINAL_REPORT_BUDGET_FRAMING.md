@@ -13,9 +13,9 @@ The budget tells a controller something about the content, so we fix, per settin
   never inputs.
 - **Live stream (Section Z).** There is no first pass, so the clip's cost cannot be known. The budget and the mean
   channel rate come from a fixed bitrate ladder: at level q0, the median over training GOPs of constant-QP bits per
-  GOP, the same for every stream. The budget then says nothing about the stream's content. An earlier version used
-  the clip-level budget here too; that leaks the stream's cost through the mean channel rate, and its results are
-  reported only as a comparison (Table Z-old).
+  GOP, the same for every stream. The budget then says nothing about the stream's content. As a check we also report
+  the live stream with the per-GOP section's budget (Aayush's clip-level budgets.csv, the budget used before the fix):
+  it leaks the stream's cost through the mean channel rate, so it is the comparison, not the headline (Table Z-check).
 - **Milestone setting (original dataset).** The budget was the GOP's own constant-QP bits and the base QP the one that
   met it, so the controller was told the GOP's cost. Those results are superseded and shown only for history.
 

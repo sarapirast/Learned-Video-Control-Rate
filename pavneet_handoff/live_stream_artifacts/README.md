@@ -15,7 +15,8 @@ Everything needed to re-run or re-check the live-stream experiments described in
 | `<codec>/results_buffer/` | Default setting (AR(1) channel ρ 0.8 σ 0.3, 1 s latency cap, 0.5 dB per % stalled). |
 | `<codec>/results_buffer_trace/` | Same, on the LTE traces. |
 | `<codec>/results_buffer_{sig0.15,sig0.5,cap0.5,cap2,lam0.25,lam1}/` | D39 one-at-a-time sweep (channel volatility, latency cap, stall weight). |
-| `<codec>/results_buffer_ladder/`, `results_buffer_trace_ladder/` | D45 leak-fixed setting (`RC_BUF_LADDER=1`): budget and mean channel rate from a fixed bitrate ladder, AR(1) and LTE. vbv2 / mpc, ppo_v2 and il / il_ppo (3 seeds). |
+| `<codec>/results_buffer_ladder/`, `results_buffer_trace_ladder/` | D45 leak-fixed setting (`RC_BUF_LADDER=1`): budget and mean channel rate from a fixed bitrate ladder, AR(1) and LTE. vbv2 / mpc, ppo_v2 and il / il_ppo (3 seeds). Since 11-18 also `oracle/` (D41 hindsight oracle in the ladder setting, D50), `real/` (D47 real encoder in the loop, incl. the encoder's whole-stream ABR+VBV `enc_vbv_f*` rows) and `il_ppo_rr_L2_s0/` (il_ppo seed-0 re-run with its model). |
+| `<codec>/results_vmaf/{native,1080}/` | D49 VMAF (vmaf_v0.6.1) constant-QP curves of every val / test GOP, QP 18–50: `{"rows": {gid: {"bits": int[33], "vmaf": float[33, 30]}}}`, at native 320×180 and upscaled to 1080p (bicubic). Bits equal the PSNR curves exactly. Used by `../repo/tools/vmaf_rescore.py` (D52). |
 
 Inside each `results_buffer*` folder:
 

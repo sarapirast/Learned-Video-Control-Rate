@@ -1,0 +1,44 @@
+RC_BUF_LADDER=1 --split val --shard 0 --nshards 4
+RC_BUF_LADDER=1 --split val --shard 1 --nshards 4
+RC_BUF_LADDER=1 --split val --shard 2 --nshards 4
+RC_BUF_LADDER=1 --split val --shard 3 --nshards 4
+RC_BUF_LADDER=1 --split test --shard 0 --nshards 12
+RC_BUF_LADDER=1 --split test --shard 1 --nshards 12
+RC_BUF_LADDER=1 --split test --shard 2 --nshards 12
+RC_BUF_LADDER=1 --split test --shard 3 --nshards 12
+RC_BUF_LADDER=1 --split test --shard 4 --nshards 12
+RC_BUF_LADDER=1 --split test --shard 5 --nshards 12
+RC_BUF_LADDER=1 --split test --shard 6 --nshards 12
+RC_BUF_LADDER=1 --split test --shard 7 --nshards 12
+RC_BUF_LADDER=1 --split test --shard 8 --nshards 12
+RC_BUF_LADDER=1 --split test --shard 9 --nshards 12
+RC_BUF_LADDER=1 --split test --shard 10 --nshards 12
+RC_BUF_LADDER=1 --split test --shard 11 --nshards 12
+RC_BUF_LADDER=1 --split test16 --shard 0 --nshards 12
+RC_BUF_LADDER=1 --split test16 --shard 1 --nshards 12
+RC_BUF_LADDER=1 --split test16 --shard 2 --nshards 12
+RC_BUF_LADDER=1 --split test16 --shard 3 --nshards 12
+RC_BUF_LADDER=1 --split test16 --shard 4 --nshards 12
+RC_BUF_LADDER=1 --split test16 --shard 5 --nshards 12
+RC_BUF_LADDER=1 --split test16 --shard 6 --nshards 12
+RC_BUF_LADDER=1 --split test16 --shard 7 --nshards 12
+RC_BUF_LADDER=1 --split test16 --shard 8 --nshards 12
+RC_BUF_LADDER=1 --split test16 --shard 9 --nshards 12
+RC_BUF_LADDER=1 --split test16 --shard 10 --nshards 12
+RC_BUF_LADDER=1 --split test16 --shard 11 --nshards 12
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split val --shard 0 --nshards 4
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split val --shard 1 --nshards 4
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split val --shard 2 --nshards 4
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split val --shard 3 --nshards 4
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 0 --nshards 12
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 1 --nshards 12
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 2 --nshards 12
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 3 --nshards 12
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 4 --nshards 12
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 5 --nshards 12
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 6 --nshards 12
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 7 --nshards 12
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 8 --nshards 12
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 9 --nshards 12
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 10 --nshards 12
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 11 --nshards 12

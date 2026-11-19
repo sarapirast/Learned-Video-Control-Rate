@@ -8,6 +8,16 @@
 > `repo/results/v1_buffer/<codec>/`. Uses dataset v1. **To replicate:** `live_stream_artifacts/README.md` (v1 per-frame
 > curves and budgets, the LTE throughput traces, all trained models and per-case results, and step-by-step commands).
 
+> **Update 2026-11-18 (later): final-report checks D47–D52.** Details in `repo/docs/DECISIONS.md` / `JOURNAL.md`.
+> - D47: real encoder in the loop for the leak-fixed live stream; replay = lookup exactly. vs the encoder's own whole-stream
+>   ABR+VBV (target tuned on val), il_ppo ties or loses (x264 AR(1) 8-GOP −1.67 dB *); `repo/results/v1_buffer/live_vs_encoder.md` (D51, 3 seeds).
+> - D48: Aayush's baseline budget kept as a check of the ladder headline (il_ppo beats vbv2 under both).
+> - D50: ladder-setting oracle headroom (1.7–1.9 dB AR(1), 2.7–3.1 dB LTE); stream level rescored in luma PSNR.
+> - D49/D52: VMAF curves (native + 1080p) and VMAF rescoring of every one-QP-per-GOP row (`repo/results/v1_vmaf/`):
+>   live gains hold in VMAF; at the stream level, lookahead helps PSNR but not VMAF.
+> - First full draft of the final report: `repo/paper/final/final_report.pdf` (6 pages, IEEE).
+> - Artifacts added: ladder `oracle/`, `real/`, `il_ppo_rr_L2_s0/`, and `results_vmaf/` (see `live_stream_artifacts/README.md`).
+>
 > **Update 2026-11-18: TA milestone feedback, leak-fixed live stream (D44–D46).** Details in `repo/docs/JOURNAL.md` and
 > `repo/docs/DECISIONS.md`.
 > - Quality and budget violations reported separately, with the scene detector's own lookahead counted:

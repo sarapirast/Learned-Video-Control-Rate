@@ -31,7 +31,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from experiments import own_rc_stream as O, stream_rl as S  # noqa: E402
-from rclib import clipenv as CE, codec, config as C, data, runner, streamenv as SE  # noqa: E402
+from rclib import clipenv as CE, codec, config as C, data, runner, streamenv as SE, yrd  # noqa: E402
 from rclib.runner import log  # noqa: E402
 
 VBV = ("vbv",)
@@ -45,6 +45,59 @@ assert C.V1, "run with RC_V1=1 (v1 encoder settings: psy off)"
 PSY_OFF = {"x265": ["--psy-rd", "0", "--psy-rdoq", "0"], "x264": ["--no-psy"]}
 O.TOOLS["tree"] = {k: [*v, *PSY_OFF[k]] for k, v in O.TOOLS["tree"].items()}
 O.TOOLS["plain"] = codec.FORCED_ARGS
+
+
+# D50 (RC_OWN_LUMA=1): the same encodes scored in luma PSNR of pooled MSE (the per-GOP and live levels' metric),
+# with luma constant-QP tables from results_yrd/frames.pkl; RL / rule rows are rescored from their stored per-GOP
+# QPs. Stage and report names get '_luma', so the YUV-weighted D35 results stay as they are.
+LUMA = os.environ.get("RC_OWN_LUMA", "0") == "1"
+STAGE = "own_rc_stream_v1" + ("_luma" if LUMA else "")
+_FR = {}
+
+
+def luma_tab(g):
+    """Our curve bits (as every budget and lookup) with the luma MSE of the same constant-QP encodes from frames.pkl
+    (its own bit count differs by header accounting only, <= 0.34 %)."""
+    if not _FR:
+        _FR.update(pickle.load(open(os.path.join(C.results_dir("yrd"), "frames.pkl"), "rb")))
+        _FR["_infos"] = S.load_infos()
+    bits, psnr = np.full(C.QP_MAX + 1, np.nan), np.full(C.QP_MAX + 1, np.nan)
+    bits[C.QPS] = _FR["_infos"][g]["curve"]["bits"]
+    psnr[C.QPS] = yrd.psnr(_FR[g]["mse"].mean(1))
+    return {"bits": bits, "psnr": psnr}
+
+
+def _encode_luma(p, src, d, extra, two_pass=False):
+    out = os.path.join(d, "out." + ("hevc" if C.CODEC == "x265" else "264"))
+    base = [*extra, *(["--repeat-headers"] if C.CODEC == "x265" else [])]
+    if two_pass:
+        stats = os.path.join(d, "stats.log")
+        for k in (1, 2):
+            codec._run(codec._cmd(C.CODEC, p, O.N, out, [*base, "--pass", str(k), "--stats", stats]))
+    else:
+        codec._run(codec._cmd(C.CODEC, p, O.N, out, base))
+    with open(out, "rb") as f:
+        bits = codec.frame_bits(f.read(), C.CODEC)
+    assert len(bits) == O.N, (len(bits), O.N)
+    ys = C.W * C.H
+    e = src[:, :ys].astype(np.int32) - codec.decode(out, O.N)[:, :ys].astype(np.int32)
+    return bits, (e * e).mean(1)
+
+
+def rescore_luma(rows):
+    """RL / rule rows -> the same rows scored in luma from their per-GOP QPs (bits must equal the stored bits)."""
+    out, dif = [], 0.0
+    for x in rows:
+        tabs = [luma_tab(g) for g in x["stream"]]
+        q = [int(v) for v in x["qps"]]
+        tot = float(sum(t["bits"][v] for t, v in zip(tabs, q)))
+        mp = float(CE.pooled([t["psnr"][v] for t, v in zip(tabs, q)]))
+        dif = max(dif, abs(tot / x["bits"] - 1))
+        dps, over, sc = SE.stream_score(tabs, tot, mp, x["budget"])
+        out.append({**x, "bits": tot, "psnr": mp, "dpsnr": dps, "over_pct": over, "over": tot > 1.01 * x["budget"],
+                    "score": sc, "use": tot / x["budget"]})
+    assert dif < 1e-6, f"luma tables disagree with stored bits: {dif}"
+    return out
 
 
 def cases(infos, quick=False):
@@ -63,7 +116,7 @@ def _args(B, tk, extra):
 
 def _case(item):
     kind, grp, stream, q0, s, sub = item
-    tabs = [CE.gop_table(sub[g]) for g in stream]
+    tabs = [luma_tab(g) if LUMA else CE.gop_table(sub[g]) for g in stream]
     B = s * sum(SE.gop_budget(sub, g, q0) for g in stream)
     d = tempfile.mkdtemp(dir=codec._tmpdir())
     out = {}
@@ -71,11 +124,18 @@ def _case(item):
         p, src = O._stream(sub, stream, d)
         for name, (mode, tk, extra) in CONFIGS.items():
             try:
-                bits, psnr = O._encode(p, src, d, _args(B, tk, extra), mode == "2pass")
+                if LUMA:
+                    bits, mse = _encode_luma(p, src, d, _args(B, tk, extra), mode == "2pass")
+                else:
+                    bits, psnr = O._encode(p, src, d, _args(B, tk, extra), mode == "2pass")
             except (RuntimeError, AssertionError) as e:
                 out[name] = {"failed": True, "err": str(e)[-300:]}
                 continue
-            gb, gp = O._per_gop(bits, psnr)
+            if LUMA:
+                gb = bits.reshape(CE.N_GOP, C.GOP).sum(1)
+                gp = yrd.psnr(mse.reshape(CE.N_GOP, C.GOP).mean(1))
+            else:
+                gb, gp = O._per_gop(bits, psnr)
             tot, mp = float(gb.sum()), float(CE.pooled(gp))
             dps, over, sc = SE.stream_score(tabs, tot, mp, B)
             out[name] = {"bits": tot, "psnr": mp, "use": tot / B, "dpsnr": dps, "over_pct": over,
@@ -116,13 +176,13 @@ def report(st, infos):
              "split": "equal split per GOP"}
     for (k, look, split), rows in base["rows"].items():
         if split == "test":
-            M[names[k].format(look)] = S.frame([rows])
+            M[names[k].format(look)] = S.frame([rescore_luma(rows) if LUMA else rows])
     for m in ("bc_ppo", "ppo", "bc_ppo_lag"):
         for L in (0, 2):
             seeds = [pickle.load(open(p, "rb"))["res"]["test"]
                      for p in sorted(glob.glob(os.path.join(C.WORK, "results_stream", f"{m}_L{L}_s*", "eval.pkl")))]
             if seeds:
-                M[f"RL {m}, L={L}"] = S.frame(seeds)
+                M[f"RL {m}, L={L}"] = S.frame([rescore_luma(r) for r in seeds] if LUMA else seeds)
     for name in CONFIGS:
         rows = {k: v[name] for k, v in enc.items() if not v[name].get("failed")}
         df = pd.DataFrame([{**rows[k], "kind": enc[k]["kind"], "group": enc[k]["group"]} for k in rows],
@@ -154,7 +214,8 @@ def report(st, infos):
         ov = 100 * (M[a].loc[ks].over.astype(float).values - M[b].loc[ks].over.astype(float).values)
         prs.append({"A": a, "B": b, "comparison": note, "cases": len(ks),
                     "score A-B (dB)": f"{t[0]:+.3f} [{t[1]:+.3f}, {t[2]:+.3f}]", ">1% over A-B (pts)": f"{ov.mean():+.1f}"})
-    out = [f"# Stream RL vs the encoder's own rate control ({E}, v1 test streams, dB metric)", "",
+    out = [f"# Stream RL vs the encoder's own rate control ({E}, v1 test streams, dB metric"
+           f"{', luma PSNR of pooled MSE (D50)' if LUMA else ', 6:1:1 YUV PSNR'})", "",
            f"{len(keys)} cases = {len(set(k[0] for k in keys))} streams of {SE.N_GOP} GOPs x 4 budget levels at s = 1 "
            "(budget = sum of the GOPs' budgets.csv budgets). The encoder codes each stream as one encode told the budget as "
            "an average bitrate and picks a QP per frame; RL and the rule pick one QP per GOP (curve lookups). Score = "
@@ -165,7 +226,7 @@ def report(st, infos):
     if st.done("check"):
         out += ["## Check (stream encode vs v1 per-GOP curves)", ""] + [f"- {x}" for x in st.load("check")] + [""]
     os.makedirs(S.REPORTS, exist_ok=True)
-    p = os.path.join(S.REPORTS, "own_rc_stream_v1_report.md")
+    p = os.path.join(S.REPORTS, f"{STAGE}_report.md")
     open(p, "w").write("\n".join(out))
     print("\n".join(out))
     print(f"wrote {p}")
@@ -173,7 +234,7 @@ def report(st, infos):
 
 def main():
     a = runner.args()
-    st = runner.Stages("own_rc_stream_v1", a.quick)
+    st = runner.Stages(STAGE, a.quick)
     infos = S.load_infos()
     if a.report:
         return report(st, infos)

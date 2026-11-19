@@ -1,0 +1,16 @@
+RC_BUF_LADDER=1 --split test --shard 0 --nshards 4
+RC_BUF_LADDER=1 --split test --shard 1 --nshards 4
+RC_BUF_LADDER=1 --split test --shard 2 --nshards 4
+RC_BUF_LADDER=1 --split test --shard 3 --nshards 4
+RC_BUF_LADDER=1 --split test16 --shard 0 --nshards 4
+RC_BUF_LADDER=1 --split test16 --shard 1 --nshards 4
+RC_BUF_LADDER=1 --split test16 --shard 2 --nshards 4
+RC_BUF_LADDER=1 --split test16 --shard 3 --nshards 4
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 0 --nshards 4
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 1 --nshards 4
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 2 --nshards 4
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test --shard 3 --nshards 4
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test16 --shard 0 --nshards 4
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test16 --shard 1 --nshards 4
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test16 --shard 2 --nshards 4
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --split test16 --shard 3 --nshards 4

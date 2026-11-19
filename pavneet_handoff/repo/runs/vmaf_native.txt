@@ -1,0 +1,8 @@
+--scale native --shard 0 --nshards 8
+--scale native --shard 1 --nshards 8
+--scale native --shard 2 --nshards 8
+--scale native --shard 3 --nshards 8
+--scale native --shard 4 --nshards 8
+--scale native --shard 5 --nshards 8
+--scale native --shard 6 --nshards 8
+--scale native --shard 7 --nshards 8
