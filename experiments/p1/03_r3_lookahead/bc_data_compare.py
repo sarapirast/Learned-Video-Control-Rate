@@ -1,19 +1,21 @@
-"""Check that a rebuilt BC dataset equals Aayush's as a set of rows (row order differs: his build used imap_unordered).
+"""Check that a rebuilt BC dataset (encoder from RC_CODEC, default x264) equals Aayush's as a set of rows (row order differs: his build used imap_unordered).
 Row key = (gid, level, S, t) of the plan + a 64-bit fingerprint of the observation + every label column.
   python -I bc_data_compare.py <mine dir> <tag: v1|v2> <k>
 """
+import os
 import sys
 
 import numpy as np
 import pandas as pd
 
 REF = "/scratch1/aayushso/ee599/results_v1/next/exp5"
+ENC = os.environ.get("RC_CODEC", "x264")
 
 
 def keys(d, tag, k):
     t = "_v2" if tag == "v2" else ""
-    z = np.load(f"{d}/data{t}_x264_k{k}.npz")
-    plans = pd.read_pickle(f"{d}/plans{t}_x264.pkl").set_index("pid")
+    z = np.load(f"{d}/data{t}_{ENC}_k{k}.npz")
+    plans = pd.read_pickle(f"{d}/plans{t}_{ENC}.pkl").set_index("pid")
     p = plans.reindex(z["pid"])
     w = np.random.default_rng(0).integers(1, 2**62, z["obs"].shape[1], dtype=np.uint64)
     obs = z["obs"].view(np.uint16)

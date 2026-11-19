@@ -1,4 +1,4 @@
-"""Smooth pooled mean shift for x264 at the k in EXP5_KS, with the fit of p2_data/exp_next/exp5/shift_smooth.py (fit()
+"""Smooth pooled mean shift for the encoder in RC_CODEC (x264 / x265) at the k in EXP5_KS, with the fit of p2_data/exp_next/exp5/shift_smooth.py (fit()
 copied verbatim; weights = shift_fit.weights: exp(delta / beta) clipped at the 99th percentile), from the v1 data that
 bc_data_build.py wrote to <dir>. Writes <dir>/shifts_smooth.json = Aayush's file + the new "x264|<k>|pooled" entries.
 --check: compare the fitted vectors with Aayush's entries for the same k (for k5 / k0 validation) instead of writing.
@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 GOP = 30
+ENC = os.environ.get("RC_CODEC", "x264")
 SRC = "/scratch1/aayushso/ee599/results_v1/next/exp5/shifts_smooth.json"
 
 
@@ -38,9 +39,9 @@ def main():
     ref = json.load(open(SRC))
     out = dict(json.load(open(base)))
     for k in ks:
-        z = np.load(f"{d}/data_x264_k{k}.npz")
+        z = np.load(f"{d}/data_{ENC}_k{k}.npz")
         vec, par, _ = fit(z["label"].astype(float), weights(z["delta"].astype(float), 0.1), z["t"].astype(int))
-        key = f"x264|{k}|pooled"
+        key = f"{ENC}|{k}|pooled"
         if check:
             dv = np.abs(vec - np.asarray(ref[key])).max()
             print(f"{key}: max |mine - stored| = {dv:.2e} ({'OK' if dv < 1e-6 else 'DIFFERENT'})")

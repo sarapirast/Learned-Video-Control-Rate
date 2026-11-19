@@ -1,0 +1,6 @@
+--k 0 --seed 3 --method res --ppo-steps 180000 --lam 0.17 --extra f4 --drop level --res-mean pooled --warmup 20000 --save-at 20000,60000,120000 --eval-splits val
+--k 0 --seed 4 --method res --ppo-steps 180000 --lam 0.17 --extra f4 --drop level --res-mean pooled --warmup 20000 --save-at 20000,60000,120000 --eval-splits val
+--k 0 --seed 5 --method res --ppo-steps 180000 --lam 0.17 --extra f4 --drop level --res-mean pooled --warmup 20000 --save-at 20000,60000,120000 --eval-splits val
+--k 29 --seed 3 --method res --ppo-steps 180000 --lam 0.17 --extra f4 --drop level --res-mean pooled --warmup 20000 --save-at 20000,60000,120000 --eval-splits val
+--k 29 --seed 4 --method res --ppo-steps 180000 --lam 0.17 --extra f4 --drop level --res-mean pooled --warmup 20000 --save-at 20000,60000,120000 --eval-splits val
+--k 29 --seed 5 --method res --ppo-steps 180000 --lam 0.17 --extra f4 --drop level --res-mean pooled --warmup 20000 --save-at 20000,60000,120000 --eval-splits val

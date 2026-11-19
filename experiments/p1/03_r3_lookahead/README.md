@@ -32,7 +32,8 @@ frozen during the warm-up), 60k, 120k; all evaluated on val (560 episodes).
 | `submit_*.sh` | queue the jobs with their dependencies |
 | `check_k5_r3_weights.py` | k5 reruns vs Aayush's models (weights) |
 | `score_lookahead_batch1.py`, `score_lookahead_all.py` | earlier scoring vs final4 (before the capped curves) |
-| `score_final_capped.py` | **final scoring** of 03 and 04 with one PSNR cap everywhere (table below) |
+| `score_final_capped.py` | **final scoring** of 03 and 04 with one PSNR cap everywhere (table below); `--enc x265` for x265 (uses Aayush's x265 runs where mine are missing, credited) |
+| `job6_prep_bc_x265_k0_k29.sbatch`, `runs_x265_*.txt`, `submit_x265.sh` | x265 extension (CLI backend, `P1_ENC=x265` in `env.sh`): k29 data + shift with the k5 checks, BC k0/k29 seeds 3-5, R3 at k0/k29 (`--seeds1`: seed 3 first) |
 
 ## How to rerun, in order
 1. **Batch 1.** `bash submit_batch1.sh`: job 1 (k29 data + shift, k5 checks) → job 2 (BC k29 and k0 seed 3, one after

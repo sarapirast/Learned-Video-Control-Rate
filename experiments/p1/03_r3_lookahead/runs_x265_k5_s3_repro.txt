@@ -1,0 +1,1 @@
+--k 5 --seed 3 --method res --ppo-steps 180000 --lam 0.17 --extra f4 --drop level --res-mean pooled --warmup 20000 --save-at 20000,60000,120000 --eval-splits val --init-bc /scratch1/aayushso/ee599/results_v1/next/exp5/bc/bc_{enc}_k{k}_s{seed}.pt

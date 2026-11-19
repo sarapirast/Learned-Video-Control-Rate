@@ -5,6 +5,7 @@ training changed" (his model gives exactly his stored rows today, so the differe
 Inputs: Aayush's run folder (read-only): model.zip + eval.pkl (its args give the env settings). Env settings for the res
 arm come from ../03_r3_lookahead/env.sh (RC_RES_RECAP=bit etc.); the k5 mean shift equals Aayush's (checked in 03).
 Output: printed comparison; also written to /scratch1/ahhanagu/ee599/results/r3_kcurve/<run name>_reeval_check.txt
+x265: P1_ENC=x265 before sourcing env.sh (CLI backend); set RC_SHIFTS to the shifts file the stored run used.
 Run (compute node, ~2 min per model):
   source ../03_r3_lookahead/env.sh; RC_WORKERS=2 $PY -I reeval_stored_model.py <run name>
 """
@@ -17,13 +18,13 @@ sys.path.insert(0, "/scratch1/ahhanagu/ee599/Learned-Video-Control-Rate/pavneet_
 sys.path.insert(0, "/scratch1/ahhanagu/ee599/Learned-Video-Control-Rate")   # x264env (shim backend); -I ignores PYTHONPATH
 from rclib import config as C, policies as P, runner  # noqa: E402
 
-STORED = "/scratch1/aayushso/rcwork_v1/x264_resh/results_rl/{name}"
+STORED = "/scratch1/aayushso/rcwork_v1/{enc}_resh/results_rl/{name}"     # encoder from RC_CODEC (env.sh P1_ENC)
 OUT = "/scratch1/ahhanagu/ee599/results/r3_kcurve/{name}_reeval_check.txt"
 
 
 def main():
     name = sys.argv[1]
-    d = STORED.format(name=name)
+    d = STORED.format(enc=C.CODEC, name=name)
     ev = pickle.load(open(f"{d}/eval.pkl", "rb"))
     a = ev["args"]
     assert C.RES and C.RES_RECAP == "bit" and max(C.ACTIONS) == 6 and a["k"] == 5 and a["mode"] == "fixed"

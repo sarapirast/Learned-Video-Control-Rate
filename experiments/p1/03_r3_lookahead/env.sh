@@ -16,9 +16,19 @@ S=$REPO/experiments/p1/03_r3_lookahead       # the scripts the jobs call (bc_dat
 PY=/scratch1/aayushso/envs/rc/bin/python
 export PYTHONPATH=$REPO                       # x264env for the shim backend
 export PYTHONNOUSERSITE=1 PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
-export RC_CODEC=x264 RC_ARM=res RC_METRIC=dpsnr RC_RES_RANGE=6 RC_RES_RECAP=bit RC_BACKEND=shim
+export RC_ARM=res RC_METRIC=dpsnr RC_RES_RANGE=6 RC_RES_RECAP=bit
 export RC_CTRL_SETTING=1.0:6:1.0:2:3:4:1:1:1:0:3
-export RC_WORK=$B/work RC_REPORTS=$B/work/reports RC_SHIFTS=$B/exp5/shifts_smooth.json
+# Encoder: P1_ENC=x264 (default; shim backend, work/ -> Aayush's x264_resh) or x265 (CLI backend: the shim is x264
+# only; Aayush's x265 4.1 build as in his job env; work_x265/ -> his x265_resh; own shifts file exp5_x265/).
+case ${P1_ENC:-x264} in
+  x264) export RC_CODEC=x264 RC_BACKEND=shim
+        export RC_WORK=$B/work RC_REPORTS=$B/work/reports RC_SHIFTS=$B/exp5/shifts_smooth.json ;;
+  x265) export RC_CODEC=x265 RC_BACKEND=cli
+        export PATH=/scratch1/aayushso/envs/codecs/bin:$PATH
+        grep -q 'version 4.1' <<< "$(x265 --version 2>&1)" || { echo "env.sh: x265 4.1 not found" >&2; return 1; }
+        export RC_WORK=$B/work_x265 RC_REPORTS=$B/work_x265/reports RC_SHIFTS=$B/exp5_x265/shifts_smooth.json ;;
+  *)    echo "env.sh: P1_ENC must be x264 or x265" >&2; return 1 ;;
+esac
 export RC_ENVS=${RC_ENVS:-14} RC_WORKERS=${RC_WORKERS:-$(( ${SLURM_CPUS_PER_TASK:-4} - 2 ))}
 export RC_TMP=/dev/shm/rc_ahhanagu_${SLURM_JOB_ID:-none} TMPDIR=/scratch1/ahhanagu/tmp
 mkdir -p "$RC_TMP" "$TMPDIR"
