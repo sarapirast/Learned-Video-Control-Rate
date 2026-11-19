@@ -1,6 +1,7 @@
 # Learned per-frame rate control under a hard GOP budget: results of the P2 workspace (data v1 + test2)
 
-Author: Aayush (P2), with Claude. Status: FINAL, 2026-11-18. Experimentation is closed.
+Author: Aayush (P2), with Claude. Status: FINAL, 2026-11-18; 11-19 addendum (capped Table I, luma stream rows;
+sections 8, 9, 12, 14). Experimentation is closed.
 This file is written to be read by a person or an agent drafting the team's final report. It is self-contained:
 every number cites the report it comes from, and those reports are copied verbatim under `source_reports/`.
 It supersedes `p2_data/docs/final-writeup-2026-11-16.md` (that file predates the PSNR-cap correction, the
@@ -254,6 +255,12 @@ These predate the pre-registered round; numbers on the "old" scale are in points
 6. **Lookahead.** For final4 the k-curve is front-loaded: on v1 test x264 k2 - k0 = +0.185 *, k5 - k2 = +0.034 *,
    k10 / k29 - k5 ~ 0 (`results_v1/w5/w5_numbers.md`). Lookahead helps cut GOPs about twice as much as stable ones
    (k5 - k0: +0.38 vs +0.18 dB; `results_v1/w3/class_kcurves_*.md`). See figure 8.
+7. **Capped version of the v1 test k-curve (11-19).** `w5_numbers.md` / `abr_dpsnr.md` predate the 100 dB PSNR cap.
+   `results_v1/final/table1_cap.md` (`exp_next/final/table1_cap.py`, rescoring only) gives the same table with the
+   cap, in the same convention (hole episodes included): one GOP's curve changes, so every cell moves by at most
+   +0.002 dB and final4's row not at all; ABR+VBV x264 range -1.52 to -1.64 (was -1.65); the "share of the search's
+   gain" moves by at most 1 point. It also lists the hole-excluded version. Use it for any k-curve table in the
+   report (the final report's Table I).
 
 ![quality vs delay on v1 test, before R3](figures/fig8_quality_vs_delay_v1test_pre_r3.png)
 
@@ -272,6 +279,18 @@ budgets over a stream of GOPs, a policy picks per-GOP budgets.
   spliced "mixed" streams (+0.51 / +0.47 *) and on x265 16/32-GOP streams (+0.10 *).
 - Hierarchy (x264, descriptive; `results_v1/next/exp7/part2_x264_test.md`): final4 inside each GOP adds +0.35 to
   +0.71 dB over constant-QP GOPs; retuned rule + final4 is best (+0.36); RL + final4 is 0.39 dB below it *.
+- **Luma PSNR (11-19).** The rows above use the 6:1:1 YUV PSNR of Pavneet's stream code; his later stream and live
+  rows use luma PSNR of pooled MSE. Rescored in luma from the stored per-GOP QPs, no encodes
+  (`results_v1/final/exp7_luma.md`, `exp_next/exp7/luma_rescore.py`; his D50 definition, luma tables identical to
+  his): primary policy - rule A x264 -0.045 [-0.136, +0.046], x265 +0.073 [-0.006, +0.207] (still not met); mixed
+  streams +0.60 * / +0.55 *; policy - his rule as reported, mixed +0.22 * / +0.29 *. Over-budget rates do not depend
+  on the PSNR convention. The 16/32-GOP film rows have no per-frame luma and stay YUV.
+- **Sara's PID-Lagrangian PPO in luma (11-19).** Her equal-reliability comparison (rule at margin 0.96 vs her
+  constrained PPO runs, v1 test, L2 and L0; `p4/README.md`) rescored the same way (`results_v1/final/pid_luma.md`,
+  `exp_next/exp7/pid_luma.py`; the YUV rerun reproduces her README exactly): x264 +0.14 to +0.17 (YUV) ->
+  **+0.18 to +0.20** (luma), x265 +0.18 to +0.25 -> **+0.22 to +0.28**, all CIs > 0. Luma gaps are 10-25 % larger
+  than YUV ones (as Pavneet found for his rows: chroma PSNR sits near its cap on v1, so the 6:1:1
+  weighting dilutes luma differences).
 - Reading: at stream level without a network model, "lookahead helps", not "RL helps". Pavneet's live-stream work
   (network + buffer) is reported separately in `pavneet_handoff/` with a different metric.
 
@@ -329,10 +348,16 @@ Source: `results_v1/next/fw/` (report_fw_val.md, seqhist_*.md, metric_sens_*.md)
 - test2 is UGC only (no Xiph / Blender / Netflix sources), so its content mix differs from v1 test.
 - Cut/gradual slices are small (v1 test 52 scored GOPs; test2 72 GOPs in 36 clips); category slices have 4-8 clips each.
 - x264's ABR margin (0.90) is at its grid edge.
-- One resolution (320x180), one GOP length (30), one encoder setting per codec, PSNR only (no VMAF on CARC).
+- One resolution (320x180), one GOP length (30), one encoder setting per codec. Per-GOP (per-frame) results are
+  PSNR only: VMAF there needs re-encoding every episode's per-frame QPs and was not done (stated limitation; agreed
+  with Pavneet 11-19). Pavneet's VMAF check (VMAF 3.0.0 built on CARC) covers only the stream and live levels,
+  where each GOP is one constant QP (`pavneet_handoff/`).
+- PSNR conventions differ by level: per-GOP = YUV 6:1:1 PSNR averaged over frames (every plane capped at 100 dB);
+  stream / live = luma PSNR of pooled MSE. The Exp 7 and PID rows have luma versions (section 9).
 - Numbers from the older reports in section 8 use different conventions (hole included, uncapped PSNR, or the old
   points scale); compare only within a table. Example: final4 x264 test k5 is -0.129 in w5_numbers.md (hole
-  included) and -0.107 in report_test_cap.md (hole excluded, capped).
+  included) and -0.107 in report_test_cap.md (hole excluded, capped); the capped, hole-included k-curve table is
+  `results_v1/final/table1_cap.md` (section 8 item 7).
 
 ---
 
@@ -358,7 +383,8 @@ better than final4; per-category effects; any gain from training past 180k; that
 
 ## 14. Provenance and regeneration
 
-- `source_reports/results_v1/...` are verbatim copies (2026-11-18) of the workspace reports
+- `source_reports/results_v1/...` are verbatim copies (2026-11-18; `final/table1_cap.md`, `exp7_luma.md`,
+  `pid_luma.md` added 11-19) of the workspace reports
   (`/scratch1/aayushso/ee599/results_v1/...`). Raw rows (pkl / parquet) and data are not in git (team convention).
 - `tables/key_numbers.csv`: every number in figures 1-6 with the source file and the exact source line it was
   parsed from. `tables/experiment_ledger.csv`: one row per experiment.
@@ -367,7 +393,8 @@ better than final4; per-category effects; any gain from training past 180k; that
 - Code that produced the reports (in git under `p2_data/`): v1 test pass `exp_next/final/report.py`; test2
   `exp_next/test2/report.py`, `eval_t2.py`, `eval_ahhana.py`; development experiments `exp_next/exp*/`; final week
   `exp_next/fw/`; controller `scripts/controller_real.py`; metric and learner comparisons `scripts/lfq_compare.py`,
-  `scripts/w5_numbers.py`. RL environment and training: Pavneet's pipeline as modified for v1, in git as
+  `scripts/w5_numbers.py`; 11-19 rescorings `exp_next/final/table1_cap.py`, `exp_next/exp7/luma_rescore.py`,
+  `exp_next/exp7/pid_luma.py`. RL environment and training: Pavneet's pipeline as modified for v1, in git as
   `pavneet_pipeline/` (rclib/env.py, config.py, policies.py and experiments/rl.py there are identical to the versions
   that produced every result here, including the residual arm used by R3). Not in git: a data-root switch for test2
   in three `tools/*_infos.py` files of the local copy.

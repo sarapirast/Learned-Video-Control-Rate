@@ -203,7 +203,7 @@ and how does that change with lookahead k? Results are split into cut, gradual a
     So neither shaping strength nor GAE credit is the main cause. Remaining candidate: the critic starts from the
     unshaped CQL Q (off by the shaping offset from step 0) and 60k steps don't fix it. Not pursued: conclusion =
     shaping helps only the unconstrained CQL->PPO (budget handling); keep Lagrangian unshaped.
-- [~] 24. Loose ends: data README for rd/budgets/fp_stats/static; merge fp_bits/fp_stats into frames.parquet;
+- [x] 24. (CLOSED 11-18, Aayush: not needed; report_pack/RESULTS.md + docs/data-v1-README.md cover the data for the report) Loose ends: data README for rd/budgets/fp_stats/static; merge fp_bits/fp_stats into frames.parquet;
   3 uncertain frames in decimated clips; repo + project2 sync. (Aayush: delete data/v1/320x180/rd/smoke/; CARC ticket)
   11-09 DONE: (a) frames.parquet now has first-pass columns (scripts/build_features.py): fp_bits = x264 QP 32 default,
   fp_bits_<enc>_q<30|32>, fps_<enc>_<tex|mv|misc|intra|inter|skip> at QP 32; old columns unchanged (checked);
@@ -1334,7 +1334,7 @@ order was agreed with Aayush.
     x265: Lagr orig k=0 4.12, best k=29 4.75 (+0.63 +- 0.26); dec k=0 3.45 (leak drop 0.67 vs 1.31 on x264);
     CQL->PPO x265 3.49 at k=0 (x264 -0.17); BC gains most from lookahead but overshoots 20-30%.
     Correction: x264 ABR+VBV over budget = 85% pooled over both budgets (62-76% was QP38 only).
-- [~] 43. FINAL WEEK (Aayush 11-17: docs/final-week-experiments-2026-11-17.md, "go ahead"; rules exp_next/fw/PLAN.md;
+- [x] 43. FINAL WEEK (DONE 11-17; results in report_pack/RESULTS.md section 10) (Aayush 11-17: docs/final-week-experiments-2026-11-17.md, "go ahead"; rules exp_next/fw/PLAN.md;
   freeze: no launches after Thu 11-19 12:00). Val only, exploratory.
   - [x] V1-V5 answered (PLAN.md): R3 replays final4's GOP n-1 history (item 2 needed); ckpts 60k/181k(/360k); warm-up
     inside the 180k; Ahhana's k0/k29 details unknown (ask); hill_climb(start=) exists, 600 = whole-GOP encodes.
@@ -1416,3 +1416,10 @@ order was agreed with Aayush.
   report_pack/ (README.md, RESULTS.md, figures/fig1-8, tables/experiment_ledger.csv + key_numbers.csv,
   source_reports/ = verbatim results_v1/**/*.md copies, scripts/make_figures.py). Synced to repo/p2_data/report_pack
   by scripts/sync_to_repo.sh (now also syncs exp_next/*.sh and report_pack/). Supersedes docs/final-writeup-2026-11-16.md.
+- [x] 46. PAVNEET'S REPORT FEEDBACK (11-19; rescoring only, no encodes): (i) Table I (v1 test k-curve, from
+  w5_numbers.md 11-11, uncapped) with the 100 dB cap -> results_v1/final/table1_cap.md (exp_next/final/table1_cap.py):
+  every cell changes by <= +0.002 dB (1 GOP x 4 levels affected; final4 0.000); capture shares move by <= 1 point.
+  (ii) Table III 6:1:1 rows in luma (Pavneet's D50 definition, luma MSE equal to his frames.pkl):
+  Exp 7 -> results_v1/final/exp7_luma.md (exp_next/exp7/luma_rescore.py; film 16/32-GOP rows have no per-frame luma,
+  stay YUV); Sara's PID equal-reliability rows -> results_v1/final/pid_luma.md (exp_next/exp7/pid_luma.py; YUV
+  reproduces her README exactly). (iii) VMAF per-frame level: stays a limitation (Pavneet).

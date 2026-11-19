@@ -1,4 +1,4 @@
-# P2 results pack for the final report (Aayush, 2026-11-18)
+# P2 results pack for the final report (Aayush, 2026-11-18; addendum 2026-11-19)
 
 A self-contained summary of every P2-workspace result on learned per-frame rate control, positive and negative,
 prepared so that a person or an agent can draft the team's final report from it together with the teammates'
@@ -24,7 +24,9 @@ own reports (`p4/README.md` for Sara's PID-Lagrangian work, `pavneet_handoff/` f
 3. `tables/experiment_ledger.csv` - one row per experiment: question, comparison, result, verdict, source report.
 4. `tables/key_numbers.csv` - every number plotted in figures 1-6, with the report and the exact line it came from.
 5. `source_reports/` - verbatim copies of the result reports (`results_v1/**/*.md`, two figures, and the two
-   test pre-registrations) as they stood on 2026-11-18. RESULTS.md cites them by their `results_v1/...` path.
+   test pre-registrations) as they stood on 2026-11-18, plus three 11-19 rescorings in `results_v1/final/`
+   (`table1_cap.md`: the v1 test k-curve with the PSNR cap; `exp7_luma.md`, `pid_luma.md`: stream-level rows in
+   luma PSNR). RESULTS.md cites them by their `results_v1/...` path.
 
 ## Conventions (short version; details in RESULTS.md sections 2-3)
 
