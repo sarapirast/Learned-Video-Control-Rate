@@ -15,12 +15,13 @@ Everything needed to re-run or re-check the live-stream experiments described in
 | `<codec>/results_buffer/` | Default setting (AR(1) channel ρ 0.8 σ 0.3, 1 s latency cap, 0.5 dB per % stalled). |
 | `<codec>/results_buffer_trace/` | Same, on the LTE traces. |
 | `<codec>/results_buffer_{sig0.15,sig0.5,cap0.5,cap2,lam0.25,lam1}/` | D39 one-at-a-time sweep (channel volatility, latency cap, stall weight). |
+| `<codec>/results_buffer_ladder/`, `results_buffer_trace_ladder/` | D45 leak-fixed setting (`RC_BUF_LADDER=1`): budget and mean channel rate from a fixed bitrate ladder, AR(1) and LTE. vbv2 / mpc, ppo_v2 and il / il_ppo (3 seeds). |
 
 Inside each `results_buffer*` folder:
 
 | File | What it is |
 |---|---|
-| `baselines.pkl`, `baselines2.pkl` | Tuned hand rules (rule / vbv, then vbv2 / mpc): tuned parameters, val grid, and per-case rows on val / test / test16 |
+| `baselines.pkl`, `baselines2.pkl`, `baselines2_wide.pkl` | Tuned hand rules (rule / vbv, then vbv2 / mpc; `_wide` = the 11-17 retune on wider grids): tuned parameters, val grid, and per-case rows on val / test / test16 |
 | `<method>_L<L>_s<seed>/eval.pkl` | Per-case evaluation rows (score, dPSNR, budget use, stall %) on val, test (n = 8) and test16 (n = 16) |
 | `<method>_L<L>_s<seed>/model.zip` | Trained policy (stable-baselines3 PPO), where saved. D42 runs (`il_*`, `ppo_mix*`, `ppo_wide`) did not save models; `il_ppo_rr` (D43) is a re-run of `il_ppo` seed 0 with its model. |
 | `fresh.pkl` | D39 fresh-film evaluation (default setting) |

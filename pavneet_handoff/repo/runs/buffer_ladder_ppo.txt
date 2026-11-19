@@ -1,0 +1,6 @@
+RC_BUF_LADDER=1 --method ppo_v2 --look 2 --seed 0
+RC_BUF_LADDER=1 --method ppo_v2 --look 2 --seed 1
+RC_BUF_LADDER=1 --method ppo_v2 --look 2 --seed 2
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --method ppo_v2 --look 2 --seed 0
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --method ppo_v2 --look 2 --seed 1
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --method ppo_v2 --look 2 --seed 2

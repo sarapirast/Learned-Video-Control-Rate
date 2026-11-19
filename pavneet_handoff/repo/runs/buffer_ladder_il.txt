@@ -1,0 +1,6 @@
+RC_BUF_LADDER=1 --method il --seed 0
+RC_BUF_LADDER=1 --method il --seed 1
+RC_BUF_LADDER=1 --method il --seed 2
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --method il --seed 0
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --method il --seed 1
+RC_BUF_LADDER=1 RC_BUF_CHANNEL=trace --method il --seed 2

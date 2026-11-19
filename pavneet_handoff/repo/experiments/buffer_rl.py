@@ -213,6 +213,69 @@ def baselines2(quick=False):
     return out
 
 
+# Aayush's check 1-2 (team update 2026-11-16): several tuned vbv2 / mpc values sat on their grid edges. Wider 1-D
+# grids (each contains the D39 values), coordinate search on the same val subset from the D39 optimum, at most 4 rounds;
+# then mpc on a wider (gamma, H) grid. RL policies are NOT retrained: they still act on the D39 vbv2, so this can only
+# make the comparison harder for RL.
+V2_WIDE = {"psi": (0.05, 0.1, 0.2, 0.35, 0.5, 0.7, 0.85, 1.0, 1.3, 1.6, 2.0), "beta": (0.1, 0.2, 0.3, 0.6, 1.0, 1.5, 2.0, 3.0),
+           "kappa": (0.0, 0.25, 0.5, 1.0, 1.5, 3.0, 5.0, 8.0), "alpha": (0.2, 0.3, 0.45, 0.6, 0.8, 1.0),
+           "rmargin": (None, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.05, 1.2)}
+MPC_WIDE = {"gamma": (0.0003, 0.0006, 0.00125, 0.0025, 0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64),
+            "H": (1, 2, 3, 4, 6, 8)}
+
+
+def baselines2_wide(quick=False):
+    p = os.path.join(OUT, "baselines2_wide.pkl" if not quick else "baselines2_wide_quick.pkl")
+    if os.path.exists(p):
+        return pickle.load(open(p, "rb"))
+    bs, b2 = baselines(quick), baselines2(quick)
+    tu, c0, look = bs["tune"][2], bs["c0"], 2
+    cs = case_sets(quick)
+    val = cs["val"][::3]
+    sv = {}
+
+    def score(bp):
+        k = tuple(bp[x] for x in V2_GRID)
+        if k not in sv:
+            sv[k] = np.mean([r["score"] for r in evaluate(zero, val, make_env("val", look, c0, tu["rp"], "vbv2", bp=bp))])
+        return sv[k]
+    best = dict(b2["vbv2"])
+    cur = score(best)
+    for rnd in range(4):
+        changed = False
+        for name, grid in V2_WIDE.items():
+            for v in grid:
+                cand = dict(best, **{name: v})
+                if score(cand) > cur + 1e-9:
+                    best, cur, changed = cand, score(cand), True
+        log(f"vbv2 wide round {rnd}: {best} val {cur:+.4f} ({len(sv)} settings tried)")
+        if not changed:
+            break
+    edges = [n for n, g in V2_WIDE.items() if best[n] is not None and best[n] in (g[1] if g[0] is None else g[0], g[-1])]
+    rho, sig = mpc_channel()
+    sm = {}
+    for g, H in itertools.product(*MPC_WIDE.values()):
+        bp = dict(best, gamma=g, H=H, rho=rho, sig=sig)
+        sm[(g, H)] = np.mean([r["score"] for r in evaluate(zero, val, make_env("val", look, c0, tu["rp"], "mpc", bp=bp))])
+    g, H = max(sm, key=sm.get)
+    bmpc = dict(best, gamma=g, H=H, rho=rho, sig=sig)
+    if g in (MPC_WIDE["gamma"][0], MPC_WIDE["gamma"][-1]) or H in (MPC_WIDE["H"][0], MPC_WIDE["H"][-1]):
+        edges.append("mpc " + ("gamma" if g in (MPC_WIDE["gamma"][0], MPC_WIDE["gamma"][-1]) else "H"))
+    log(f"mpc wide: gamma {g} H {H} val {sm[(g, H)]:+.4f}; D39 vbv2 val {score(dict(b2['vbv2'])):+.4f}; "
+        f"edges still hit: {edges or 'none'}")
+    R = {}
+    for split in ("test", "test16"):
+        c = cs[split]
+        R[("vbv2w", look, split)] = evaluate(zero, c, make_env(split, look, c0, tu["rp"], "vbv2", n=n_of(split), bp=best))
+        R[("mpcw", look, split)] = evaluate(zero, c, make_env(split, look, c0, tu["rp"], "mpc", n=n_of(split), bp=bmpc))
+    out = {"rows": R, "vbv2": best, "mpc": bmpc, "val_vbv2": sv, "val_mpc": sm, "edges": edges,
+           "val_d39": {"vbv2": score(dict(b2["vbv2"])), "mpc": max(b2["val_mpc"].values())}}
+    pickle.dump(out, open(p, "wb"))
+    for k, v in R.items():
+        log(k, f"score {np.mean([r['score'] for r in v]):+.3f} stall {np.mean([r['stall_pct'] for r in v]):.2f}%")
+    return out
+
+
 def fresh_eval():
     """Default setting only: baselines and the trained L = 2 policies, unchanged, on the D35 fresh films (n = 16 / 32).
     Fresh films have no per-frame luma table, so quality there is our 6:1:1 YUV PSNR (comparisons within a set)."""
@@ -385,6 +448,7 @@ def main():
     ap.add_argument("--list", default="")
     ap.add_argument("--baselines", action="store_true")
     ap.add_argument("--baselines2", action="store_true")
+    ap.add_argument("--baselines2-wide", action="store_true", help="wider vbv2 / mpc retune on val (Aayush's check)")
     ap.add_argument("--fresh", action="store_true")
     ap.add_argument("--report", action="store_true")
     ap.add_argument("--quick", action="store_true")
@@ -397,6 +461,8 @@ def main():
         return baselines(a.quick)
     if a.baselines2:
         return baselines2(a.quick)
+    if a.baselines2_wide:
+        return baselines2_wide(a.quick)
     if a.fresh:
         return fresh_eval()
     if a.report:
