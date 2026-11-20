@@ -84,7 +84,7 @@ Deck: https://claude.ai/artifact/LeTMK5swRpFufCUMfJpXXf (each slide's speaker no
 
 ## Slide 17: PID-Lagrangian PPO sets its own price
 
-(about 1 minute). Operators also care how often a stream goes over budget, so we trained PID-Lagrangian PPO, a constrained RL method where a PID controller adjusts the Lagrange multiplier on the over-budget constraint. It found an overshoot price of 0.36 to 0.48 by itself, close to the 0.34 we had picked by hand. At the same over-budget rate as the rule, it beats rule B by about 0.18 to 0.20 dB on x264 and 0.22 to 0.28 on x265, all significant, and RL’s edge grows as the reliability requirement tightens. Finally, lookahead over two future GOPs is worth about a quarter of a dB in PSNR at this level, for the rule and RL alike, and RL’s edge over the rule is already present without it. Pavneet will now add the network.
+(about 1 minute). Operators also care how often a stream goes over budget, so we trained PID-Lagrangian PPO, a constrained RL method where a PID controller adjusts the Lagrange multiplier on the over-budget constraint. It found an overshoot price of 0.36 to 0.48 by itself, close to the 0.34 we had picked by hand. At the same over-budget rate as the rule, it beats rule B by about 0.21 to 0.26 dB on x264 and 0.24 to 0.27 on x265, all significant, and RL’s edge grows as the reliability requirement tightens. Finally, lookahead over two future GOPs is worth about a quarter of a dB in PSNR at this level, for the rule and RL alike, and RL’s edge over the rule is already present without it. Pavneet will now add the network.
 
 # Pavneet
 

@@ -323,3 +323,7 @@ Paired, seeds averaged (il_ppo_rr: 1 seed), 95 % cluster bootstrap, test n=8 / t
 ## 2026-11-19
 - Added the team's test2 replication to the final report (Table II columns, Fig. 1 from the team pack, text, abstract, conclusion); per-GOP PSNR wording fixed (YUV mean over frames); 7 pages (user OK). D54.
 - Encoder-row VMAF: script + report written and tested (bits reproduce exactly); full array job pending submission.
+
+## 2026-11-20 — Aayush 5cb8ad6 into the paper
+- R3 share of the search's gain at k=5 (capped, hole included): 81% / 79% (x265 was 78%; exact 78.6%).
+- PID row of Table III replaced by Sara's Part 4 (rule B re-tuned on val, margin matched on val), luma per Aayush's pid_retuned_luma.md: +0.21 to +0.26* / +0.24 to +0.27*. Footnote † updated. Presentation script PID numbers updated; deck slide s4-pid still shows the old numbers (deck sources were in a cleared scratchpad).

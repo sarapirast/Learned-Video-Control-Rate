@@ -96,7 +96,7 @@ The bits now leave through a channel. GOP $i$ (1~s) drains at rate $R_i = m_i\,\
 \section{Results}
 %=====================================================================
 \subsection{Per-frame control: the value of lookahead}
-Table~\ref{tab:kcurve} gives the test score by lookahead. Three facts stand out. First, \textbf{no single-pass method reaches the search}: the search scores $+0.30$/$+0.28$~dB (x264/x265), while the controller stays 0.12--0.28~dB below constant QP at $k\ge 2$. Second, \textbf{lookahead's value is front-loaded}: the controller gains $+0.19$/$+0.16$~dB from $k{=}0$ to $k{=}2$, $+0.03$/$+0.07$ from $k{=}2$ to $k{=}5$, and nothing beyond (the whole GOP is slightly worse than $k{=}5$). About 2--5 frames (67--167~ms) buy all of it. In the proposal's terms (lower block of Table~\ref{tab:kcurve}), a single-pass controller captures about two thirds of the search's gain over the encoder's own rate control with no lookahead (66\%/52\%), about three quarters with 2--5 frames (75--77\% / 62--67\%), and no more with the whole GOP; R3 raises this to 81\%/78\% at $k{=}5$. Knowing the previous GOP's outcome substitutes for delay at $k{=}0$ ($+0.14$~dB [$+0.03$, $+0.24$] on x264). Third, \textbf{the encoders' own ABR+VBV is far behind} ($-1.2$ to $-1.7$~dB at every $k$, over budget on half or more of the GOPs) and does not improve with lookahead.
+Table~\ref{tab:kcurve} gives the test score by lookahead. Three facts stand out. First, \textbf{no single-pass method reaches the search}: the search scores $+0.30$/$+0.28$~dB (x264/x265), while the controller stays 0.12--0.28~dB below constant QP at $k\ge 2$. Second, \textbf{lookahead's value is front-loaded}: the controller gains $+0.19$/$+0.16$~dB from $k{=}0$ to $k{=}2$, $+0.03$/$+0.07$ from $k{=}2$ to $k{=}5$, and nothing beyond (the whole GOP is slightly worse than $k{=}5$). About 2--5 frames (67--167~ms) buy all of it. In the proposal's terms (lower block of Table~\ref{tab:kcurve}), a single-pass controller captures about two thirds of the search's gain over the encoder's own rate control with no lookahead (66\%/52\%), about three quarters with 2--5 frames (75--77\% / 62--67\%), and no more with the whole GOP; R3 raises this to 81\%/79\% at $k{=}5$. Knowing the previous GOP's outcome substitutes for delay at $k{=}0$ ($+0.14$~dB [$+0.03$, $+0.24$] on x264). Third, \textbf{the encoders' own ABR+VBV is far behind} ($-1.2$ to $-1.7$~dB at every $k$, over budget on half or more of the GOPs) and does not improve with lookahead.
 
 \begin{table}[t]
 \caption{Per-GOP test score $S$ (dB) by lookahead $k$, clip-level (two-pass) budgets. 0 = best constant QP in hindsight. Lower block: share of the search's gain over the encoder's ABR+VBV that each method captures, $(S-S_{\mathrm{ABR}})/(S_{\mathrm{search}}-S_{\mathrm{ABR}})$, with $S_{\mathrm{ABR}}$ at the middle of its range ($\pm1$ point). Learners: 3 seeds. Budget-level-24 episodes beyond the QP-18 spend included.}
@@ -212,7 +212,7 @@ BC$\to$PPO $-$ rule B, single-clip & $+0.05$ [$-0.06$, $+0.13$] & $+0.13$\sig\\
 BC$\to$PPO $-$ rule B, mixed streams & $+0.22$\sig & $+0.33$\sig\\
 Rule A $-$ rule B, single-clip / mixed & $+0.10$ / $-0.38$\sig & $+0.09$ / $-0.26$\sig\\
 \quad same, ladder budget (content-blind) & $+0.05$ / $-0.33$\sig & $+0.02$ / $-0.24$\sig\\
-PID-Lag.\ PPO $-$ rule B at equal reliability$^{\dagger}$ & $+0.18$ to $+0.20$\sig & $+0.22$ to $+0.28$\sig\\
+PID-Lag.\ PPO $-$ rule B at equal reliability$^{\dagger}$ & $+0.21$ to $+0.26$\sig & $+0.24$ to $+0.27$\sig\\
 BC$\to$PPO $-$ encoder ABR+VBV & $+0.29$\sig & $+0.61$\sig\\
 BC$\to$PPO $-$ encoder two-pass (non-causal) & $-0.31$\sig & $+0.03$\\
 \midrule
@@ -223,7 +223,7 @@ Streams $>$1\% over: rule B / BC$\to$PPO / Lagr. & 12 / 12 / 8\% & 11 / 10 / 5\%
 Mixed streams $>$1\% over: rule A / rule B & 34 / 14\% & 24 / 14\%\\
 \bottomrule
 \end{tabular}}
-\par\vspace{2pt}{\scriptsize\raggedright Rule A: tuned on single-clip val streams (pre-registered); rule B: tuned on all val streams. RL = policy selected on val. $^{\dagger}$Rule B on its original grid, margin set to the same $\sim$6\% over rate. $^{\S}$Film rows: 6:1:1 YUV PSNR (no per-frame luma); all other rows luma.\par}
+\par\vspace{2pt}{\scriptsize\raggedright Rule A: tuned on single-clip val streams (pre-registered); rule B: tuned on all val streams. RL = policy selected on val. $^{\dagger}$Rule B re-tuned on val; its margin is matched to each policy's val over-budget rate. $^{\S}$Film rows: 6:1:1 YUV PSNR (no per-frame luma); all other rows luma.\par}
 \end{table}
 
 \subsection{Live channel with a latency cap}
