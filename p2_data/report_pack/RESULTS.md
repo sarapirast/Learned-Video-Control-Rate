@@ -1,7 +1,7 @@
 # Learned per-frame rate control under a hard GOP budget: results of the P2 workspace (data v1 + test2)
 
 Author: Aayush (P2), with Claude. Status: FINAL, 2026-11-18; 11-19 addendum (capped Table I, luma stream rows;
-sections 8, 9, 12, 14). Experimentation is closed.
+sections 8, 9, 12, 14); 11-20 addendum (R3's share of the search's gain; Sara's Part 4 in luma; sections 8, 9, 14). Experimentation is closed.
 This file is written to be read by a person or an agent drafting the team's final report. It is self-contained:
 every number cites the report it comes from, and those reports are copied verbatim under `source_reports/`.
 It supersedes `p2_data/docs/final-writeup-2026-11-16.md` (that file predates the PSNR-cap correction, the
@@ -260,7 +260,10 @@ These predate the pre-registered round; numbers on the "old" scale are in points
    cap, in the same convention (hole episodes included): one GOP's curve changes, so every cell moves by at most
    +0.002 dB and final4's row not at all; ABR+VBV x264 range -1.52 to -1.64 (was -1.65); the "share of the search's
    gain" moves by at most 1 point. It also lists the hole-excluded version. Use it for any k-curve table in the
-   report (the final report's Table I).
+   report (the final report's Table I). **R3 row (11-20):** R3 (180k, seeds 3-5 averaged, the final test pass rows;
+   v1 test has R3 at k5 only) scores -0.055 (x264) / -0.036 (x265) at k5, capped, hole included, so its **share of
+   the search's gain is 81 % / 79 %** (78.6 %; S_search +0.298 / +0.282, S_ABR = middle of the capped ABR+VBV range
+   -1.580 / -1.207). Hole excluded: -0.040 / -0.022 (= the primary R3 - final4 +0.067 / +0.163, checked).
 
 ![quality vs delay on v1 test, before R3](figures/fig8_quality_vs_delay_v1test_pre_r3.png)
 
@@ -291,6 +294,14 @@ budgets over a stream of GOPs, a policy picks per-GOP budgets.
   **+0.18 to +0.20** (luma), x265 +0.18 to +0.25 -> **+0.22 to +0.28**, all CIs > 0. Luma gaps are 10-25 % larger
   than YUV ones (as Pavneet found for his rows: chroma PSNR sits near its cap on v1, so the 6:1:1
   weighting dilutes luma differences).
+- **Sara's Part 4 in luma (11-20).** Part 4 replaces that comparison: rules A / B re-tuned on val, the rule's margin
+  matched on VAL to each policy's val over-budget rate (`p4/pid_vs_retuned.py`, `p4/README.md` "Part 4"). Rescored
+  in luma the same way (`results_v1/final/pid_retuned_luma.md`, `exp_next/exp7/pid_retuned_luma.py`; same QPs,
+  tuning and matched margins; every YUV line of her output reproduced). Paper row, PID runs (ppo_pid L0/L2,
+  bc_ppo_pid L2) - rule B, all streams: x264 +0.17 to +0.22 (YUV) -> **+0.21 to +0.26** (luma), x265 +0.20 to +0.25
+  -> **+0.24 to +0.27**, 3/3 CIs > 0 on both. Rule B single-clip: x264 +0.04 to +0.26 (2/3 *), x265 +0.11 to +0.14
+  (3/3 *); rule A single-clip: x264 -0.03 to +0.04 (1/3 *), x265 +0.01 to +0.04 (0/3) - against the rule tuned on
+  single-clip streams, PID's edge is ~0 in both conventions; rule A all streams +0.34 to +0.42 / +0.35 to +0.47.
 - Reading: at stream level without a network model, "lookahead helps", not "RL helps". Pavneet's live-stream work
   (network + buffer) is reported separately in `pavneet_handoff/` with a different metric.
 
@@ -384,7 +395,7 @@ better than final4; per-category effects; any gain from training past 180k; that
 ## 14. Provenance and regeneration
 
 - `source_reports/results_v1/...` are verbatim copies (2026-11-18; `final/table1_cap.md`, `exp7_luma.md`,
-  `pid_luma.md` added 11-19) of the workspace reports
+  `pid_luma.md` added 11-19; `table1_cap.md` updated with R3 and `pid_retuned_luma.md` added 11-20) of the workspace reports
   (`/scratch1/aayushso/ee599/results_v1/...`). Raw rows (pkl / parquet) and data are not in git (team convention).
 - `tables/key_numbers.csv`: every number in figures 1-6 with the source file and the exact source line it was
   parsed from. `tables/experiment_ledger.csv`: one row per experiment.
@@ -394,7 +405,7 @@ better than final4; per-category effects; any gain from training past 180k; that
   `exp_next/test2/report.py`, `eval_t2.py`, `eval_ahhana.py`; development experiments `exp_next/exp*/`; final week
   `exp_next/fw/`; controller `scripts/controller_real.py`; metric and learner comparisons `scripts/lfq_compare.py`,
   `scripts/w5_numbers.py`; 11-19 rescorings `exp_next/final/table1_cap.py`, `exp_next/exp7/luma_rescore.py`,
-  `exp_next/exp7/pid_luma.py`. RL environment and training: Pavneet's pipeline as modified for v1, in git as
+  `exp_next/exp7/pid_luma.py`; 11-20 `exp_next/exp7/pid_retuned_luma.py` (and R3 in `table1_cap.py`). RL environment and training: Pavneet's pipeline as modified for v1, in git as
   `pavneet_pipeline/` (rclib/env.py, config.py, policies.py and experiments/rl.py there are identical to the versions
   that produced every result here, including the residual arm used by R3). Not in git: a data-root switch for test2
   in three `tools/*_infos.py` files of the local copy.

@@ -1423,3 +1423,9 @@ order was agreed with Aayush.
   Exp 7 -> results_v1/final/exp7_luma.md (exp_next/exp7/luma_rescore.py; film 16/32-GOP rows have no per-frame luma,
   stay YUV); Sara's PID equal-reliability rows -> results_v1/final/pid_luma.md (exp_next/exp7/pid_luma.py; YUV
   reproduces her README exactly). (iii) VMAF per-frame level: stays a limitation (Pavneet).
+- [x] 47. PAVNEET'S TODO (11-20, /scratch1/pbanga/ee599/docs/AAYUSH_TODO.md; rescoring only): (1) R3 (180k, seeds 3-5)
+  row added to table1_cap.md at k5 (only k on v1 test): capped, hole included -0.055 / -0.036 -> share of the search's
+  gain 81 % / 79 % (x264 / x265); hole excluded = primary +0.067 / +0.163 (asserted). (2) Sara's Part 4
+  (p4/pid_vs_retuned.py) in luma -> results_v1/final/pid_retuned_luma.md (exp_next/exp7/pid_retuned_luma.py; her YUV
+  output reproduced line by line): paper row PID - rule B all streams x264 +0.21 to +0.26*, x265 +0.24 to +0.27*.
+  Report pack updated (RESULTS.md sections 8, 9, 14; README).
