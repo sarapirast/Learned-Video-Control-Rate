@@ -13,7 +13,7 @@ test2 work dir /scratch1/aayushso/rcwork_t2/<enc>_resh (--split test2: test2 inf
 read in place; nothing of his is written (infos_slim.pkl exists in both). P2_DATA only matters for building infos, not
 here. Backend: x264 may use the shim (identical to the CLI, 01 + parity below), x265 uses the CLI (his path exactly).
 Gates: --split test2 refuses to run unless this script's own val parity file for the same (enc, model) exists with every
-row equal; for x265 it also needs scored val rows for every seed (results/r3_kcurve/rows_final_x265.parquet).
+row equal; for x265 it also needs scored val rows for every seed (results/r3_kcurve/scored_runs_x265.json).
 --ckpt 20000: the same for each run's 20k checkpoint = its BC start (the actor is frozen during the 20k critic warm-up),
 i.e. "BC alone" from the very network that R3 started from (val parity against the run's stored 20k evaluation).
 Out: /scratch1/ahhanagu/ee599/results/test2_posthoc/r3k{0,29}[bc]_<split>_<enc>.pkl = {(seed, k): rows}, never
