@@ -75,9 +75,8 @@ def main():
         got = sorted(s for s, _ in pv["rows"])
         assert got == seeds, f"val parity file covers seeds {got}, test2 asked for {seeds}"
         if enc == "x265":
-            import pandas as pd
-            sc = pd.read_parquet(f"{B}/r3_kcurve/rows_final_x265.parquet")
-            got = sorted(sc[(sc.method == "R3") & (sc.k == k) & (sc.src == "mine")].seed.unique())
+            sc = json.load(open(f"{B}/r3_kcurve/scored_runs_x265.json"))   # written by score_final_capped.py --enc x265
+            got = sorted(s for m, kk, s, src in sc if m == "R3" and kk == k and src == "mine")
             assert got == seeds, f"x265 k{k}: val scores exist for seeds {got}, need {seeds} before test2"
     # ---- models and their env, as rl.py / eval_ahhana.py
     ipath = os.path.join(runner.Stages("infos").dir, "infos_slim.pkl")

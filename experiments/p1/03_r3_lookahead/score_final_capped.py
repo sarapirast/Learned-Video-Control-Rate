@@ -22,6 +22,7 @@ runs are used and credited in the summary: R3 k2 (final 180k) and k5 (180,993 ch
 Run (Aayush's ee599 env, seconds): python -I score_final_capped.py [--enc x265]
 """
 import glob
+import json
 import os
 import pickle
 import re
@@ -150,6 +151,9 @@ def main():
         chk.append(f"Aayush's stored scores reproduced by this scorer where the capped curve is unchanged: {n_ok}/{n_chk}")
     d = pd.DataFrame(rows)
     d.to_parquet(f"{B}/r3_kcurve/rows_final{TAG}.parquet")
+    # which runs were scored, as plain JSON (read by 05_test2_posthoc/eval_test2_p1.py's gate; the rc env has no pyarrow)
+    json.dump(sorted([m, int(k), int(s), src] for m, k, s, src in d[["method", "k", "seed", "src"]].drop_duplicates().itertuples(index=False)),
+              open(f"{B}/r3_kcurve/scored_runs{TAG}.json", "w"))
     d = d[~d.hole]
 
     def ep(method, k):                 # seeds averaged per episode
