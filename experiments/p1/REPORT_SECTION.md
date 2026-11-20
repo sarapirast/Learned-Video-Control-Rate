@@ -180,6 +180,8 @@ RL handles scene cuts better (cut/gradual slices are small and mostly not signif
 - Aayush's 11-14 morning runs (k5 seeds 0-2) cannot be retrained bit-for-bit with today's code (his training code
   changed that day; evaluation did not); all results here use code that reproduces his seed 3-5 models exactly
   (`experiments/p1/04_r2c_control/README.md`).
+- The R3 recipe (lambda 0.17, 180k checkpoint) was chosen on validation before this study, so the validation numbers
+  are not fully held out, most of all at k5; test2 is the clean check.
 - One resolution (320x180), 30-frame IPPP GOPs, one encoder setting per codec, PSNR only.
 
 ---

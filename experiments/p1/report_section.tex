@@ -27,8 +27,7 @@ We separate the two parts of R3 at every lookahead $k\in\{0,2,5,10,29\}$: \emph{
 classifier over 13 QP offsets trained on the search plans, one network per $k$ with the same data and fold protocol),
 \emph{R3} (that start fine-tuned with PPO as a residual on the controller), and \emph{R2c} (the same PPO from the
 standard start, no imitation). BC alone is measured exactly as R3's start: the actor is frozen during the 20k-step
-critic warm-up. Seeds 3--5 averaged per episode unless marked; validation only; paired with the controller at the same
-$k$ (Table~\ref{tab:p1kcurve}, Fig.~\ref{fig:p1kcurve}).
+critic warm-up. Seeds 3--5 averaged per episode unless marked (Table~\ref{tab:p1kcurve}, Fig.~\ref{fig:p1kcurve}).
 
 \begin{table}[t]
 \caption{Imitation start (BC), R3 and R2c across lookahead, validation, dB; differences paired with the controller at
@@ -75,5 +74,6 @@ at large $k$ the start is already good. On x264 the imitation start is worth $+0
 that R3 uses lookahead better than the controller, that its edge over the controller grows or shrinks with $k$, or that
 it handles scene cuts better; absolute quality still levels off at $k\approx5$--10.
 
-\textbf{Limitations of this part.} Validation only, except the test2 replication of the x264 $k{=}0$ / $k{=}29$ models;
-the x265 test2 result is post-hoc; R2c on x264 only; one seed at x264 $k{=}2,10$ and for R2c at $k{=}5$.
+\textbf{Limitations of this part.} The R3 recipe ($\lambda{=}0.17$, 180k checkpoint) was chosen on validation before
+this study, so validation numbers are not fully held out, most of all at $k{=}5$; test2 (post-hoc for x265) is the
+clean check. R2c on x264 only; one seed at x264 $k{=}2,10$ and for R2c at $k{=}5$.
