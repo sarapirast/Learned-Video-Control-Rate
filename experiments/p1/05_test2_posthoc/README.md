@@ -32,4 +32,21 @@ to `/scratch1/ahhanagu/ee599/results/test2_posthoc/`. `P2_DATA` only matters for
 here. x264 uses the shim (identical to the CLI, see 01); x265 uses the CLI, his path exactly.
 
 ## Results
-Pending: the x264 parity job and the x265 runs.
+**x264 (parity with Aayush's pre-registered secondary 10):** this script reproduces his stored test2 rows exactly,
+10,320/10,320 rows for each model, and the scores match his report: R3 - controller k0 +0.097 \*, k29 +0.032 \*
+(n 3,326, 88 clips). The CIs to quote are his (`report_test2.md`: [+0.051, +0.149] and [+0.005, +0.061]); this
+re-score draws its own bootstrap and gives [+0.052, +0.146] and [+0.003, +0.062]. Source: `results/test2_posthoc/summary_x264.md`.
+
+**x265 (POST-HOC, NOT PRE-REGISTERED; agreed with Aayush 2026-11-19).** Run once, after all x265 val runs (seeds 3-5)
+were final and scored; each model first passed its val parity gate (1,680/1,680 rows). Jobs 14391845-48 (test2 steps;
+the first submission 14391564-69 failed at the gate on a parquet read, before any test2 evaluation). BC start = each
+run's own 20k checkpoint.
+
+| x265 test2, post-hoc (n 3,320, 88 clips) | k0 | k29 |
+|---|---|---|
+| R3 - controller | +0.166 [+0.109, +0.228] * | +0.098 [+0.050, +0.145] * |
+| BC start - controller | -0.340 [-0.431, -0.242] * | +0.140 [+0.087, +0.193] * |
+| R3 - BC start | +0.506 [+0.420, +0.587] * | -0.042 [-0.067, -0.014] * |
+
+Source: `results/test2_posthoc/summary_x265.md` (rows `r3k{0,29}[bc]_test2_x265.pkl`). At k29 the BC start alone beats
+the controller and R3 ends slightly below it. The k0 and k29 CIs overlap, so no claim that the edge changes with k.

@@ -1,0 +1,79 @@
+% =====================================================================================================================
+% P1 section for the final report (Ahhana), drop-in for pavneet_handoff/repo/paper/final/final_report.tex (IEEEtran).
+% Uses only a macro the draft already defines (\sig) and its packages (booktabs, graphicx).
+% Integration (for whoever edits the draft; nothing here edits it):
+%   Block A -> Section "Experimental Setup", as a paragraph after "Protocol".
+%   Block B -> Section "Results", after subsection "Per-frame control: where RL beats the controller". It replaces the
+%              paragraph "Imitation alone vs. imitation followed by RL" and the pgfplots figure fig:kcurve (same x264 val
+%              numbers; this version adds x265, R3 - BC, R3 - R2c and the CIs).
+%   Copy results/r3_kcurve/fig_val_kcurve_report.png (Ahhana's scratch) to paper/final/figs/. (The two-row version with the
+%   paired differences, fig_val_kcurve_bc_r3_r2c.png, is for slides; its numbers are in Table tab:p1kcurve.)
+% Every number: experiments/p1/REPORT_SECTION.md, which cites the result file for each table.
+% =====================================================================================================================
+
+% ---------------------------------------------------------------------------------------------- Block A (setup)
+\textbf{Encoder interface and fast evaluation.} The x264 encoder is driven per frame through a ctypes shim around
+libx264 (one frame at a forced QP, returning slice bits and the reconstruction); against the x264 command line it is
+byte-identical in all 25 parity cases (bitstream, per-frame slice bits and decoded frames). Behind the RL environment
+it replaces re-encoding the GOP prefix at every step: results are identical on 40/40 spot-check episodes (per-frame
+QPs, bits, PSNR and scores) and on the full validation set (2,800 controller and $3{\times}560$ R3 episodes),
+evaluation is about $13{\times}$ faster, and retraining R3 through it reproduces the stored models bit for bit. The shim
+is x264 only; x265 runs use the command line.
+
+% ---------------------------------------------------------------------------------------------- Block B (results)
+\subsection{Imitation start and RL across lookahead (validation)}
+\label{sec:p1kcurve}
+We separate the two parts of R3 at every lookahead $k\in\{0,2,5,10,29\}$: \emph{BC alone} (the imitation start, a
+classifier over 13 QP offsets trained on the search plans, one network per $k$ with the same data and fold protocol),
+\emph{R3} (that start fine-tuned with PPO as a residual on the controller), and \emph{R2c} (the same PPO from the
+standard start, no imitation). BC alone is measured exactly as R3's start: the actor is frozen during the 20k-step
+critic warm-up. Seeds 3--5 averaged per episode unless marked; validation only; paired with the controller at the same
+$k$ (Table~\ref{tab:p1kcurve}, Fig.~\ref{fig:p1kcurve}).
+
+\begin{table}[t]
+\caption{Imitation start (BC), R3 and R2c across lookahead, validation, dB; differences paired with the controller at
+the same $k$. \sig\ = 95\% clip-bootstrap CI excludes 0. $^{\dagger}$ one seed. x265 $k{=}2,5$: existing team runs; no
+R2c or $k{=}10$ on x265.}
+\label{tab:p1kcurve}
+\centering\footnotesize\setlength{\tabcolsep}{2.2pt}
+\resizebox{\columnwidth}{!}{\begin{tabular}{@{}r ccccc ccc@{}}
+\toprule
+& \multicolumn{5}{c}{x264} & \multicolumn{3}{c}{x265}\\
+\cmidrule(lr){2-6}\cmidrule(l){7-9}
+$k$ & BC$-$C & R3$-$C & R3$-$BC & R2c$-$C & R3$-$R2c & BC$-$C & R3$-$C & R3$-$BC\\
+\midrule
+0  & $-0.533$\sig & $+0.069$\sig & $+0.602$\sig & $-0.064$\sig & $+0.133$\sig & $-0.395$\sig & $+0.127$\sig & $+0.522$\sig\\
+2  & $-0.234$\sig$^{\dagger}$ & $+0.072$\sig$^{\dagger}$ & $+0.306$\sig$^{\dagger}$ & -- & -- & $-0.155$\sig & $+0.152$\sig & $+0.307$\sig\\
+5  & $-0.155$\sig & $+0.077$\sig & $+0.231$\sig & $-0.018^{\dagger}$ & $+0.095$\sig$^{\dagger}$ & $-0.003$ & $+0.209$\sig & $+0.212$\sig\\
+10 & $+0.058$\sig$^{\dagger}$ & $+0.102$\sig$^{\dagger}$ & $+0.044$\sig$^{\dagger}$ & -- & -- & -- & -- & --\\
+29 & $+0.057$\sig & $+0.097$\sig & $+0.041$ & $-0.044$\sig & $+0.141$\sig & $+0.132$\sig & $+0.104$\sig & $-0.028$\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figs/fig_val_kcurve_report.png}
+\caption{Lookahead study on validation: mean score by lookahead (left x264, right x265; hole excluded,
+seeds 3--5 averaged). Hollow markers: one seed. R2c and $k{=}10$: x264 only; x265 $k{=}2,5$: existing
+team runs. Paired differences with CIs: Table~\ref{tab:p1kcurve}.}
+\label{fig:p1kcurve}
+\end{figure*}
+
+\textbf{R3 beats the controller at every lookahead on validation} on both encoders, except x264 at $k{=}2$, where the
+team's 3-seed runs give $+0.035$ (not significant; the single seed in Table~\ref{tab:p1kcurve} gives $+0.072$). The
+x264 models trained at $k{=}0$ and $k{=}29$ also beat the controller on test2 ($+0.097$\sig\ and $+0.032$\sig;
+Table~\ref{tab:r3}). In a post-hoc check (not pre-registered), the
+x265 models at $k{=}0$ and $k{=}29$ beat it on test2 by $+0.166$\sig\ and $+0.098$\sig; at $k{=}29$ the BC start alone
+already does ($+0.140$\sig) and R3 ends slightly below that start ($-0.042$\sig).
+
+\textbf{What PPO adds over its imitation start shrinks with $k$}, to nothing measurable at $k{=}29$ on both encoders
+(R3$-$BC from $+0.60$ / $+0.52$ at $k{=}0$ to $+0.04$ / $-0.03$, CI including 0, at $k{=}29$), where BC alone already
+beats the controller ($+0.057$\sig\ / $+0.132$\sig). At small $k$ PPO mostly repairs a start that drifts in closed loop;
+at large $k$ the start is already good. On x264 the imitation start is worth $+0.10$ to $+0.14$~dB at every $k$ tested
+(R3$-$R2c), and PPO from the standard start never beats the controller: R3's gain needs both parts. We do not claim
+that R3 uses lookahead better than the controller, that its edge over the controller grows or shrinks with $k$, or that
+it handles scene cuts better; absolute quality still levels off at $k\approx5$--10.
+
+\textbf{Limitations of this part.} Validation only, except the test2 replication of the x264 $k{=}0$ / $k{=}29$ models;
+the x265 test2 result is post-hoc; R2c on x264 only; one seed at x264 $k{=}2,10$ and for R2c at $k{=}5$.

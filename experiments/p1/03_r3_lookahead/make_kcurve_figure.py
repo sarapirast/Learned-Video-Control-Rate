@@ -10,7 +10,8 @@ R2c at k5) are hollow, with a "hollow = 1 seed" legend entry; all others average
 Inputs (no new runs): results/r3_kcurve/rows_final.parquet and rows_final_x265.parquet (score_final_capped.py [--enc
 x265]: one PSNR cap everywhere, capped curves; x265 k2 / k5 = Aayush's runs), results/baselines_val/rows_scored_cap.parquet (02, for the best constant QP in hindsight).
 Outputs: results/r3_kcurve/fig_val_kcurve_bc_r3_r2c.png (both panels), fig_val_kcurve_scores[_x265].png (left panel only,
-for slides, per encoder) and fig_val_kcurve_bc_r3_r2c.csv (every plotted number).
+for slides, per encoder), fig_val_kcurve_report.png (the two score panels in one row, for the final report) and
+fig_val_kcurve_bc_r3_r2c.csv (every plotted number).
 Run (Aayush's ee599 env: pandas, pyarrow, matplotlib; seconds): python -I make_kcurve_figure.py
 """
 import os
@@ -31,6 +32,7 @@ R = "/scratch1/ahhanagu/ee599/results"
 OUT = f"{R}/r3_kcurve/fig_val_kcurve_bc_r3_r2c"
 ENCS = ("x264", "x265")
 SLIDE = {"x264": f"{R}/r3_kcurve/fig_val_kcurve_scores.png", "x265": f"{R}/r3_kcurve/fig_val_kcurve_scores_x265.png"}
+REPORT_FIG = f"{R}/r3_kcurve/fig_val_kcurve_report.png"   # one row: x264 | x265 score panels (final report)
 KS = (0, 2, 5, 10, 29)
 
 # palette and rcParams copied from p2_data/report_pack/scripts/make_figures.py (figure 2 look)
@@ -44,13 +46,13 @@ plt.rcParams.update({
     "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True, "grid.color": GRID,
     "grid.linewidth": 0.6, "axes.axisbelow": True, "legend.frameon": False, "axes.titlesize": 10.5,
     "axes.titleweight": "bold", "lines.linewidth": 2})
-# figure 2 styles (final4, R3, BC alone); R2c = slot 3 with its own marker, shift-only = light neutral
+# figure 2 styles (the controller = final4, R3, BC alone); legends say "the controller"; R2c = slot 3 with its own marker, shift-only = light neutral
 STYLE = {"final4": (INK2, "s", "-"), "BC": (C2, "^", "--"), "R3": (C1, "o", "-"),
          "R2c": (C3, "P", "-"), "shift-only": (LIGHT, "x", ":")}
-LABEL = {"final4": "final4", "BC": "BC alone (R3's start)", "R3": "R3 (BC start + PPO)",
-         "R2c": "R2c (PPO, standard start)", "shift-only": "final4 + shift + cap (R2c's start)"}
-DIFFS = [("R3 − final4", "R3", "final4", C1, "o"), ("BC − final4", "BC", "final4", C2, "^"),
-         ("R3 − BC", "R3", "BC", C4, "v"), ("R2c − final4", "R2c", "final4", C3, "P"),
+LABEL = {"final4": "the controller", "BC": "BC alone (R3's start)", "R3": "R3 (BC start + PPO)",
+         "R2c": "R2c (PPO, standard start)", "shift-only": "the controller + shift + cap (R2c's start)"}
+DIFFS = [("R3 − controller", "R3", "final4", C1, "o"), ("BC − controller", "BC", "final4", C2, "^"),
+         ("R3 − BC", "R3", "BC", C4, "v"), ("R2c − controller", "R2c", "final4", C3, "P"),
          ("R3 − R2c", "R3", "R2c", INK, "D")]
 OFFSET = 2.5                            # points between neighbouring series at one k (5 series: -5 .. +5)
 
@@ -168,8 +170,14 @@ def main():
         fs.text(0.01, 0.01, notes[enc], fontsize=6.8, color=INK2)
         fs.tight_layout(rect=(0, 0.09, 1, 1))
         fs.savefig(SLIDE[enc], dpi=180)
+    # ---- report version: the two score panels side by side (the paired differences are in the report's table)
+    fr, axs2 = plt.subplots(1, 2, figsize=(10.4, 3.7))
+    for ax, enc in zip(axs2, ENCS):
+        draw_left(ax, enc, record=False)
+    fr.tight_layout()                    # no footer: the report caption carries the notes
+    fr.savefig(REPORT_FIG, dpi=180)
     pd.DataFrame(rows).to_csv(f"{OUT}.csv", index=False, float_format="%.4f")
-    print(f"-> {OUT}.png, {', '.join(SLIDE.values())}, {OUT}.csv")
+    print(f"-> {OUT}.png, {', '.join(SLIDE.values())}, {REPORT_FIG}, {OUT}.csv")
 
 
 if __name__ == "__main__":
